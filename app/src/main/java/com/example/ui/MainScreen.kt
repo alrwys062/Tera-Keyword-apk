@@ -82,6 +82,8 @@ fun MainScreen() {
 
     Scaffold(
         containerColor = Color(0xFF070A0F),
+        contentWindowInsets = WindowInsets.statusBars,
+        floatingActionButtonPosition = FabPosition.End,
         floatingActionButton = {
             if (currentDestination != AppDestination.CHAT_SIMULATOR && currentDestination != AppDestination.CUSTOM_THEME_BUILDER) {
                 FloatingActionButton(
@@ -90,13 +92,13 @@ fun MainScreen() {
                     contentColor = Color.Black,
                     shape = CircleShape,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(54.dp)
                         .border(2.dp, Color(0xFF38BDF8), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Keyboard,
                         contentDescription = "Test Keyboard",
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
@@ -206,17 +208,22 @@ fun BottomNavigationBar(
     onDestinationSelected: (AppDestination) -> Unit
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(68.dp),
+        modifier = Modifier.fillMaxWidth(),
         color = Color(0xFF0D111A),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E283A))
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             // Setup / Activation tab
             val setupBadgeColor = when (keyboardStatus) {
                 KeyboardStatus.ACTIVE_DEFAULT -> Color(0xFF10B981)
@@ -257,6 +264,7 @@ fun BottomNavigationBar(
             )
         }
     }
+}
 }
 
 @Composable

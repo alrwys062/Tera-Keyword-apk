@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.data.PreferencesManager
+import com.example.keyboard.TurboKeyboardView
 import com.example.utils.KeyboardStatus
 import com.example.utils.KeyboardStatusHelper
 
@@ -538,10 +539,35 @@ fun KeyboardSetupScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                var showInteractiveKeyboardPreview by remember { mutableStateOf(false) }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Button(
+                        onClick = { showInteractiveKeyboardPreview = !showInteractiveKeyboardPreview },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (showInteractiveKeyboardPreview) Color(0xFF00E5FF) else Color(0xFF1E283A)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (showInteractiveKeyboardPreview) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                            tint = if (showInteractiveKeyboardPreview) Color.Black else Color(0xFF00E5FF),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (showInteractiveKeyboardPreview) "إخفاء المعاينة" else "معاينة مباشرة هنا",
+                            color = if (showInteractiveKeyboardPreview) Color.Black else Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     OutlinedButton(
                         onClick = onNavigateToChatSimulator,
                         modifier = Modifier.weight(1f).height(42.dp),
@@ -551,7 +577,7 @@ fun KeyboardSetupScreen(
                     ) {
                         Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("محاكي المحادثة", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("شاشة المحادثة", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -566,9 +592,92 @@ fun KeyboardSetupScreen(
                         Text("إعدادات النظام", fontSize = 11.sp)
                     }
                 }
+
+                // Interactive live keyboard right inside the preview card
+                AnimatedVisibility(visible = showInteractiveKeyboardPreview) {
+                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "معاينة تفاعلية فورية لكيبورد Turbo:",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "جرب الكتابة والمسطرة والإيموجي",
+                                color = Color(0xFF8E9BAE),
+                                fontSize = 10.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF0A0E18),
+                            border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.35f))
+                        ) {
+                            TurboKeyboardView(
+                                theme = prefs.getActiveTheme(),
+                                settings = prefs.getSettings(),
+                                onDirectInsertText = { text ->
+                                    if (text == "\n") testInputText += "\n"
+                                    else testInputText += text
+                                },
+                                onDirectDeleteLastChar = {
+                                    if (testInputText.isNotEmpty()) {
+                                        testInputText = testInputText.dropLast(1)
+                                    }
+                                },
+                                onDirectClearAndReplaceText = { newText ->
+                                    testInputText = newText
+                                },
+                                getCurrentText = { testInputText },
+                                prefsManager = prefs
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Special guidance for Honor, Huawei, Xiaomi, and Samsung devices
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = Color(0xFF101624),
+            border = BorderStroke(1.dp, Color(0xFF233048))
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.PhoneAndroid,
+                        contentDescription = null,
+                        tint = Color(0xFF00E5FF),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "ملاحظة خاصة لهواتف Honor و Huawei و Xiaomi:",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "في واجهات Honor (MagicOS) و Huawei (EMUI): بعد الضغط على 'تفعيل'، تأكد من تفعيل مفتاح Turbo Keyboard في قائمة 'إدارة لوحات المفاتيح'، ثم اضغط 'اختيار' لتحديده ككيبورد افتراضي لكافة التطبيقات.",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }

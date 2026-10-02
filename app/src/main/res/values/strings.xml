@@ -2,4 +2,6 @@
     <string name="app_name">Turbo Keyboard</string>
     <string name="ime_name">Turbo Keyboard - كيبورد برو</string>
     <string name="ime_settings">Turbo Keyboard Settings</string>
+    <string name="subtype_ar">العربية (Turbo Keyboard)</string>
+    <string name="subtype_en">English (Turbo Keyboard)</string>
 </resources>

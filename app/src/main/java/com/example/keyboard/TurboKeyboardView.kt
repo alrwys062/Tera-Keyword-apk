@@ -211,6 +211,7 @@ fun TurboKeyboardView(
         modifier = Modifier
             .fillMaxWidth()
             .then(bgModifier)
+            .navigationBarsPadding()
     ) {
         // Top status/alert banner when 4-sec translate is active
         AnimatedVisibility(visible = enterHoldMessage.isNotEmpty() || enterHoldProgress > 0.1f) {

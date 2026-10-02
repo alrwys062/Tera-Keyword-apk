@@ -1,0 +1,6 @@
+{
+  "name": "Turbo Keyboard",
+  "description": "Professional Arabic & English smart keyboard with custom themes, instant translation, text decoration, clipboard manager, and emoji tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

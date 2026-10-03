@@ -72,4 +72,33 @@ class TurboKeyboardUnitTest {
         assertNotNull(enabled)
         assertNotNull(active)
     }
+
+    @Test
+    fun testSpellCheckDictionary() {
+        val correction = com.example.data.SpellCheckDictionary.getCorrection("انشاء الله", true)
+        assertEquals("إن شاء الله", correction)
+
+        val butCorrection = com.example.data.SpellCheckDictionary.getCorrection("لاكن", true)
+        assertEquals("لكن", butCorrection)
+
+        val sentence = "انشاء الله بشوفك لاكن هدا مهم"
+        val corrected = com.example.data.SpellCheckDictionary.autoCorrectSentence(sentence, true)
+        assertTrue(corrected.contains("إن شاء الله"))
+        assertTrue(corrected.contains("لكن"))
+        assertTrue(corrected.contains("هذا"))
+    }
+
+    @Test
+    fun testAiToneEngine() {
+        val sample = "ابي اكلمك بموضوع"
+        val formal = com.example.data.AiToneEngine.transformTone(sample, "formal")
+        assertNotNull(formal)
+        assertTrue(formal.isNotBlank())
+
+        val friendly = com.example.data.AiToneEngine.transformTone(sample, "friendly")
+        assertNotNull(friendly)
+
+        val tones = com.example.data.AiToneEngine.allTones
+        assertTrue(tones.size >= 8)
+    }
 }

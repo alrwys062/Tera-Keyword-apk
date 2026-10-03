@@ -17,32 +17,70 @@ object PredictionEngine {
         "today", "tomorrow", "tonight", "work", "time", "where", "there", "about", "could", "would"
     )
 
-    fun getPredictions(prefix: String, isArabic: Boolean, userWords: List<String> = emptyList()): List<String> {
-        val clean = prefix.trim().lowercase()
+    data class PredictionResult(
+        val word: String,
+        val isCorrection: Boolean = false,
+        val isCustomCandidate: Boolean = false
+    )
+
+    fun getPredictionsWithCorrection(
+        prefix: String,
+        isArabic: Boolean,
+        userWords: List<String> = emptyList()
+    ): List<PredictionResult> {
+        val clean = prefix.trim()
         if (clean.isEmpty()) {
             return if (isArabic) {
-                listOf("اقتراحات", "اقتراح", "اقتراحات")
+                listOf(
+                    PredictionResult("اقتراحات"),
+                    PredictionResult("اقتراح"),
+                    PredictionResult("اقتراحات")
+                )
             } else {
-                listOf("suggest", "suggestion", "suggestive")
+                listOf(
+                    PredictionResult("suggest"),
+                    PredictionResult("suggestion"),
+                    PredictionResult("suggestive")
+                )
             }
         }
 
+        val correction = SpellCheckDictionary.getCorrection(clean, isArabic)
         val dictionary = if (isArabic) commonArabicWords else commonEnglishWords
-        val combined = userWords + dictionary
-        val matches = combined.filter { it.lowercase().startsWith(clean) && it.lowercase() != clean }.distinct()
+        val combined = (userWords + dictionary).distinct()
+        val matches = combined.filter {
+            it.lowercase().startsWith(clean.lowercase()) && it.lowercase() != clean.lowercase()
+        }
 
-        return if (matches.isNotEmpty()) {
-            val list = matches.take(3).toMutableList()
-            while (list.size < 3) {
-                list.add(if (isArabic) "اقتراح" else "suggest")
-            }
-            list
-        } else {
-            if (isArabic) {
-                listOf("${clean}ة", clean, "${clean}ات")
-            } else {
-                listOf(clean, "${clean}s", "${clean}ing")
+        val results = mutableListOf<PredictionResult>()
+
+        if (correction != null) {
+            // First priority: corrected spelling!
+            results.add(PredictionResult(word = correction, isCorrection = true))
+        }
+
+        for (m in matches) {
+            if (results.size < 3 && results.none { it.word == m }) {
+                results.add(PredictionResult(word = m, isCorrection = false))
             }
         }
+
+        // If user typed a word not in dictionary and not corrected, offer to save to user dictionary
+        if (clean.length >= 3 && !combined.contains(clean) && correction == null && results.size < 3) {
+            results.add(PredictionResult(word = clean, isCustomCandidate = true))
+        }
+
+        // Fillers if needed
+        while (results.size < 3) {
+            val fallback = if (isArabic) "اقتراح" else "suggest"
+            results.add(PredictionResult(word = fallback))
+        }
+
+        return results.take(3)
+    }
+
+    fun getPredictions(prefix: String, isArabic: Boolean, userWords: List<String> = emptyList()): List<String> {
+        return getPredictionsWithCorrection(prefix, isArabic, userWords).map { it.word }
     }
 }
+

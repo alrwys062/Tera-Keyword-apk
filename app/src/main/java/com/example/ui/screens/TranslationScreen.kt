@@ -5,12 +5,16 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
@@ -42,6 +46,13 @@ fun TranslationScreen(
     var translatedResult by remember { mutableStateOf("Hello! How are you today?") }
     var isTranslating by remember { mutableStateOf(false) }
 
+    var showSourcePicker by remember { mutableStateOf(false) }
+    var showTargetPicker by remember { mutableStateOf(false) }
+
+    val allLangs = TranslationEngine.supportedLanguages
+    val sourceItem = allLangs.find { it.code == sourceLang } ?: allLangs[0]
+    val targetItem = allLangs.find { it.code == targetLang } ?: allLangs[1]
+
     fun doTranslation() {
         if (inputText.isBlank()) return
         isTranslating = true
@@ -49,6 +60,79 @@ fun TranslationScreen(
             translatedResult = TranslationEngine.translate(inputText, sourceLang, targetLang)
             isTranslating = false
         }
+    }
+
+    if (showSourcePicker || showTargetPicker) {
+        var query by remember { mutableStateOf("") }
+        val filtered = allLangs.filter {
+            it.nameAr.contains(query, ignoreCase = true) ||
+            it.nameEn.contains(query, ignoreCase = true)
+        }
+
+        AlertDialog(
+            onDismissRequest = {
+                showSourcePicker = false
+                showTargetPicker = false
+            },
+            title = {
+                Text(
+                    text = if (showSourcePicker) "اختر لغة النص الأصلي (من)" else "اختر لغة الترجمة (إلى)",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(modifier = Modifier.height(300.dp)) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text("ابحث في جميع لغات العالم...", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(filtered) { langItem ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (showSourcePicker) {
+                                            sourceLang = langItem.code
+                                            showSourcePicker = false
+                                        } else {
+                                            targetLang = langItem.code
+                                            showTargetPicker = false
+                                        }
+                                        doTranslation()
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(langItem.flag, fontSize = 20.sp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(langItem.nameAr, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("(${langItem.nameEn})", color = Color(0xFF8E9BAE), fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSourcePicker = false
+                    showTargetPicker = false
+                }) {
+                    Text("إلغاء", color = Color(0xFF00E5FF))
+                }
+            },
+            containerColor = Color(0xFF141A28)
+        )
     }
 
     Column(
@@ -108,12 +192,26 @@ fun TranslationScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Text(
-                    text = if (sourceLang == "ar") "العربية" else "English",
-                    color = Color(0xFF00E5FF),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF1E283A),
+                    border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.4f)),
+                    modifier = Modifier.clickable { showSourcePicker = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(sourceItem.flag, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = sourceItem.nameAr,
+                            color = Color(0xFF00E5FF),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
 
                 IconButton(
                     onClick = {
@@ -136,12 +234,26 @@ fun TranslationScreen(
                     )
                 }
 
-                Text(
-                    text = if (targetLang == "en") "English" else "العربية",
-                    color = Color(0xFF00E5FF),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF1E283A),
+                    border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.4f)),
+                    modifier = Modifier.clickable { showTargetPicker = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(targetItem.flag, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = targetItem.nameAr,
+                            color = Color(0xFF00E5FF),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
         }
 

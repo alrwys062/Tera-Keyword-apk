@@ -46,6 +46,21 @@ class TurboKeyboardService : InputMethodService(),
         } catch (e: Exception) {
             // Already restored or not required
         }
+        try {
+            val clipManager = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            clipManager?.addPrimaryClipChangedListener {
+                val clip = clipManager.primaryClip
+                if (clip != null && clip.itemCount > 0) {
+                    val text = clip.getItemAt(0)?.text?.toString()
+                    if (!text.isNullOrBlank()) {
+                        val prefs = PreferencesManager(this@TurboKeyboardService)
+                        prefs.addClipboardItem(text)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
     }
 
@@ -90,6 +105,16 @@ class TurboKeyboardService : InputMethodService(),
                     inputConnection = currentIc ?: currentInputConnection,
                     onVoiceRequested = {
                         launchVoiceRecognition()
+                    },
+                    onOpenSettingsRequested = {
+                        try {
+                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            if (intent != null) startActivity(intent)
+                        } catch (e: Exception) {
+                            // Ignore
+                        }
                     },
                     prefsManager = prefs
                 )

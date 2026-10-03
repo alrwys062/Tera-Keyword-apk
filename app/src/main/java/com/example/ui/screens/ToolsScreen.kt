@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -266,6 +267,122 @@ fun ToolsScreen(
                     tint = Color(0xFF00E5FF)
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // AI Tone & Smart Assistant Card (Requested by user)
+        var showAiToneDialog by remember { mutableStateOf(false) }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .clickable { showAiToneDialog = true },
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF161F2E).copy(alpha = 0.9f),
+            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF818CF8).copy(alpha = 0.7f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF818CF8).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Psychology,
+                            contentDescription = "AI Assistant",
+                            tint = Color(0xFF818CF8),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "مساعد الذكاء الاصطناعي وتغيير النبرة",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "رسمي، ودي، مختصر، شاعري، فصيح + تصحيح الأخطاء",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFF818CF8)
+                )
+            }
+        }
+
+        if (showAiToneDialog) {
+            var sampleText by remember { mutableStateOf("مساء الخير يا غالي ابي اسألك عن موضوع مهم") }
+            var selectedTone by remember { mutableStateOf("formal") }
+            var resultText by remember { mutableStateOf(com.example.data.AiToneEngine.transformTone(sampleText, "formal")) }
+
+            AlertDialog(
+                onDismissRequest = { showAiToneDialog = false },
+                title = { Text("تجربة نبرات الذكاء الاصطناعي", color = Color.White, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = sampleText,
+                            onValueChange = {
+                                sampleText = it
+                                resultText = com.example.data.AiToneEngine.transformTone(it, selectedTone)
+                            },
+                            label = { Text("اكتب نصاً لتغيير نبرته") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(com.example.data.AiToneEngine.allTones) { tone ->
+                                val sel = tone.id == selectedTone
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (sel) Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(0xFF1E283A),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (sel) Color(0xFF00E5FF) else Color(0xFF28364F)),
+                                    modifier = Modifier.clickable {
+                                        selectedTone = tone.id
+                                        resultText = com.example.data.AiToneEngine.transformTone(sampleText, tone.id)
+                                    }
+                                ) {
+                                    Text("${tone.icon} ${tone.nameAr}", color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text("النتيجة:", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF131A26),
+                            modifier = Modifier.fillMaxWidth().height(70.dp).padding(top = 4.dp)
+                        ) {
+                            Box(modifier = Modifier.padding(8.dp)) {
+                                Text(resultText, color = Color.White, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showAiToneDialog = false }) {
+                        Text("إغلاق", color = Color(0xFF00E5FF))
+                    }
+                },
+                containerColor = Color(0xFF141A28)
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))

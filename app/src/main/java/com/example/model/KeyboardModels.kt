@@ -32,8 +32,15 @@ data class ClipboardItem(
     val isPinned: Boolean = false
 )
 
+data class TextShortcut(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val trigger: String,
+    val expansion: String
+)
+
 data class KeyboardSettings(
     val vibrationEnabled: Boolean = true,
+    val vibrationDurationMs: Int = 20,
     val soundEnabled: Boolean = false,
     val keyPopupEnabled: Boolean = true,
     val autoCapitalization: Boolean = true,
@@ -41,25 +48,37 @@ data class KeyboardSettings(
     val suggestionsEnabled: Boolean = true,
     val autoCorrection: Boolean = false,
     val numberRowEnabled: Boolean = false,
+    val topQuickEmojiRowEnabled: Boolean = true,
     val keyHeightFactor: Float = 1.0f,
+    val keyFontSizeFactor: Float = 1.0f,
     val currentThemeId: String = "cyber_pro",
     val defaultLanguage: String = "ar",
     val swipeSpaceSwitchLanguage: Boolean = true,
     val enterLongPressTranslateEnabled: Boolean = true,
-    val showDualHints: Boolean = true
+    val showDualHints: Boolean = true,
+    val clipboardCloseOnPaste: Boolean = true,
+    val clipboardSaveForever: Boolean = true,
+    val enterKeyOnLeft: Boolean = false,
+    val activeDecorationStyle: String = "none",
+    val keyboardLayoutStyle: String = "basic_ar", // "basic_ar", "samsung", "aosp", "linux", "swift"
+    val translationSource: String = "ar",
+    val translationTarget: String = "en",
+    val autoTranslateOnCopy: Boolean = false
 )
 
 enum class KeyboardLanguage(val code: String, val displayName: String, val nativeName: String) {
-    ARABIC("ar", "Arabic", "العربية"),
-    ENGLISH("en", "English (US)", "English (US)")
+    ARABIC("ar", "Arabic", "عربي اساسي"),
+    ENGLISH("en", "English", "English")
 }
 
 enum class KeyboardSubView {
     NONE,
     EMOJI,
     GIF,
+    PHOTOS,
     TRANSLATE,
     CLIPBOARD,
     DECORATION,
+    AI_ASSISTANT,
     TOOLS_MORE
 }

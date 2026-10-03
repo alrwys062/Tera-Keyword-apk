@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.example.model.ClipboardItem
 import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
+import com.example.model.TextShortcut
 import com.example.model.ThemePresets
 import org.json.JSONArray
 import org.json.JSONObject
@@ -16,6 +17,7 @@ class PreferencesManager(context: Context) {
     fun getSettings(): KeyboardSettings {
         return KeyboardSettings(
             vibrationEnabled = prefs.getBoolean("vibrationEnabled", true),
+            vibrationDurationMs = prefs.getInt("vibrationDurationMs", 20),
             soundEnabled = prefs.getBoolean("soundEnabled", false),
             keyPopupEnabled = prefs.getBoolean("keyPopupEnabled", true),
             autoCapitalization = prefs.getBoolean("autoCapitalization", true),
@@ -23,17 +25,29 @@ class PreferencesManager(context: Context) {
             suggestionsEnabled = prefs.getBoolean("suggestionsEnabled", true),
             autoCorrection = prefs.getBoolean("autoCorrection", false),
             numberRowEnabled = prefs.getBoolean("numberRowEnabled", false),
+            topQuickEmojiRowEnabled = prefs.getBoolean("topQuickEmojiRowEnabled", true),
             keyHeightFactor = prefs.getFloat("keyHeightFactor", 1.0f),
+            keyFontSizeFactor = prefs.getFloat("keyFontSizeFactor", 1.0f),
             currentThemeId = prefs.getString("currentThemeId", "cyber_pro") ?: "cyber_pro",
             defaultLanguage = prefs.getString("defaultLanguage", "ar") ?: "ar",
             swipeSpaceSwitchLanguage = prefs.getBoolean("swipeSpaceSwitchLanguage", true),
-            enterLongPressTranslateEnabled = prefs.getBoolean("enterLongPressTranslateEnabled", true)
+            enterLongPressTranslateEnabled = prefs.getBoolean("enterLongPressTranslateEnabled", true),
+            showDualHints = prefs.getBoolean("showDualHints", true),
+            clipboardCloseOnPaste = prefs.getBoolean("clipboardCloseOnPaste", true),
+            clipboardSaveForever = prefs.getBoolean("clipboardSaveForever", true),
+            enterKeyOnLeft = prefs.getBoolean("enterKeyOnLeft", false),
+            activeDecorationStyle = prefs.getString("activeDecorationStyle", "none") ?: "none",
+            keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "basic_ar") ?: "basic_ar",
+            translationSource = prefs.getString("translationSource", "ar") ?: "ar",
+            translationTarget = prefs.getString("translationTarget", "en") ?: "en",
+            autoTranslateOnCopy = prefs.getBoolean("autoTranslateOnCopy", false)
         )
     }
 
     fun saveSettings(settings: KeyboardSettings) {
         prefs.edit()
             .putBoolean("vibrationEnabled", settings.vibrationEnabled)
+            .putInt("vibrationDurationMs", settings.vibrationDurationMs)
             .putBoolean("soundEnabled", settings.soundEnabled)
             .putBoolean("keyPopupEnabled", settings.keyPopupEnabled)
             .putBoolean("autoCapitalization", settings.autoCapitalization)
@@ -41,16 +55,52 @@ class PreferencesManager(context: Context) {
             .putBoolean("suggestionsEnabled", settings.suggestionsEnabled)
             .putBoolean("autoCorrection", settings.autoCorrection)
             .putBoolean("numberRowEnabled", settings.numberRowEnabled)
+            .putBoolean("topQuickEmojiRowEnabled", settings.topQuickEmojiRowEnabled)
             .putFloat("keyHeightFactor", settings.keyHeightFactor)
+            .putFloat("keyFontSizeFactor", settings.keyFontSizeFactor)
             .putString("currentThemeId", settings.currentThemeId)
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
             .putBoolean("enterLongPressTranslateEnabled", settings.enterLongPressTranslateEnabled)
+            .putBoolean("showDualHints", settings.showDualHints)
+            .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
+            .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
+            .putBoolean("enterKeyOnLeft", settings.enterKeyOnLeft)
+            .putString("activeDecorationStyle", settings.activeDecorationStyle)
+            .putString("keyboardLayoutStyle", settings.keyboardLayoutStyle)
+            .putString("translationSource", settings.translationSource)
+            .putString("translationTarget", settings.translationTarget)
+            .putBoolean("autoTranslateOnCopy", settings.autoTranslateOnCopy)
             .apply()
     }
 
     fun setCurrentTheme(themeId: String) {
         prefs.edit().putString("currentThemeId", themeId).apply()
+    }
+
+    fun setActiveDecorationStyle(style: String) {
+        prefs.edit().putString("activeDecorationStyle", style).apply()
+    }
+
+    fun getActiveDecorationStyle(): String {
+        return prefs.getString("activeDecorationStyle", "none") ?: "none"
+    }
+
+    // Scroll position in Clipboard (Index and exact pixel Offset)
+    fun getLastClipboardScrollIndex(): Int {
+        return prefs.getInt("last_clipboard_scroll_idx", 0)
+    }
+
+    fun setLastClipboardScrollIndex(idx: Int) {
+        prefs.edit().putInt("last_clipboard_scroll_idx", idx).apply()
+    }
+
+    fun getLastClipboardScrollOffset(): Int {
+        return prefs.getInt("last_clipboard_scroll_offset", 0)
+    }
+
+    fun setLastClipboardScrollOffset(offset: Int) {
+        prefs.edit().putInt("last_clipboard_scroll_offset", offset).apply()
     }
 
     // Custom Themes storage
@@ -122,7 +172,8 @@ class PreferencesManager(context: Context) {
     }
 
     fun deleteCustomTheme(themeId: String) {
-        val current = getCustomThemes().filterNot { it.id == themeId }
+        val current = getCustomThemes().toMutableList()
+        current.removeAll { it.id == themeId }
         val arr = JSONArray()
         for (t in current) {
             val obj = JSONObject().apply {
@@ -147,6 +198,9 @@ class PreferencesManager(context: Context) {
             arr.put(obj)
         }
         prefs.edit().putString("custom_themes_list", arr.toString()).apply()
+        if (prefs.getString("currentThemeId", "") == themeId) {
+            setCurrentTheme("cyber_pro")
+        }
     }
 
     fun getActiveTheme(): KeyboardTheme {
@@ -154,17 +208,17 @@ class PreferencesManager(context: Context) {
         return getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
     }
 
-    // Clipboard storage
+    // Permanent Clipboard storage ("حفظ النصوص للأبد")
     fun getClipboardItems(): List<ClipboardItem> {
         val json = prefs.getString("clipboard_history", null)
         if (json == null) {
-            // Seed initial helpful pinned clips
             val initial = listOf(
                 ClipboardItem(text = "مرحبا! كيف حالك اليوم؟", isPinned = true),
-                ClipboardItem(text = "أنا بخير، شكراً!", isPinned = true),
                 ClipboardItem(text = "السلام عليكم ورحمة الله وبركاته", isPinned = true),
-                ClipboardItem(text = "Hello! How are you?", isPinned = false),
-                ClipboardItem(text = "I'm good, thank you! 😊", isPinned = false)
+                ClipboardItem(text = "جزاك الله خيراً وبارك فيك", isPinned = true),
+                ClipboardItem(text = "صلى الله عليه وسلم", isPinned = true),
+                ClipboardItem(text = "أنا بخير، شكراً لك! 😊", isPinned = false),
+                ClipboardItem(text = "https://google.com", isPinned = false)
             )
             saveClipboardItems(initial)
             return initial
@@ -210,9 +264,9 @@ class PreferencesManager(context: Context) {
         val current = getClipboardItems().toMutableList()
         current.removeAll { it.text == trimmed }
         current.add(0, ClipboardItem(text = trimmed, isPinned = isPinned))
-        // Limit to 50 clips
-        if (current.size > 50) {
-            saveClipboardItems(current.take(50))
+        // Stored forever without small limit - up to 10000 items
+        if (current.size > 10000) {
+            saveClipboardItems(current.take(10000))
         } else {
             saveClipboardItems(current)
         }
@@ -236,9 +290,68 @@ class PreferencesManager(context: Context) {
         saveClipboardItems(current)
     }
 
+    // Text Shortcuts (الاختصارات)
+    fun getShortcuts(): List<TextShortcut> {
+        val json = prefs.getString("text_shortcuts_list", null)
+        if (json == null) {
+            val initial = listOf(
+                TextShortcut(trigger = "سلام", expansion = "السلام عليكم ورحمة الله وبركاته"),
+                TextShortcut(trigger = "ص", expansion = "صلى الله عليه وسلم"),
+                TextShortcut(trigger = "جزاك", expansion = "جزاك الله خيراً ونفع بك"),
+                TextShortcut(trigger = "إن شاء", expansion = "إن شاء الله تعالى"),
+                TextShortcut(trigger = "شكرا", expansion = "شكراً جزيلاً لك وبارك الله فيك")
+            )
+            saveShortcuts(initial)
+            return initial
+        }
+        val list = mutableListOf<TextShortcut>()
+        try {
+            val arr = JSONArray(json)
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                list.add(
+                    TextShortcut(
+                        id = obj.getString("id"),
+                        trigger = obj.getString("trigger"),
+                        expansion = obj.getString("expansion")
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    fun saveShortcuts(shortcuts: List<TextShortcut>) {
+        val arr = JSONArray()
+        for (s in shortcuts) {
+            val obj = JSONObject().apply {
+                put("id", s.id)
+                put("trigger", s.trigger)
+                put("expansion", s.expansion)
+            }
+            arr.put(obj)
+        }
+        prefs.edit().putString("text_shortcuts_list", arr.toString()).apply()
+    }
+
+    fun addShortcut(trigger: String, expansion: String) {
+        if (trigger.isBlank() || expansion.isBlank()) return
+        val current = getShortcuts().toMutableList()
+        current.removeAll { it.trigger.equals(trigger.trim(), ignoreCase = true) }
+        current.add(0, TextShortcut(trigger = trigger.trim(), expansion = expansion.trim()))
+        saveShortcuts(current)
+    }
+
+    fun deleteShortcut(id: String) {
+        val current = getShortcuts().filterNot { it.id == id }
+        saveShortcuts(current)
+    }
+
     // Recent Emojis
     fun getRecentEmojis(): List<String> {
-        val saved = prefs.getString("recent_emojis", "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙") ?: "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙"
+        val saved = prefs.getString("recent_emojis", "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙,👑,💋") ?: "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙,👑,💋"
         return saved.split(",").filter { it.isNotBlank() }
     }
 
@@ -246,6 +359,37 @@ class PreferencesManager(context: Context) {
         val current = getRecentEmojis().toMutableList()
         current.remove(emoji)
         current.add(0, emoji)
-        prefs.edit().putString("recent_emojis", current.take(24).joinToString(",")).apply()
+        prefs.edit().putString("recent_emojis", current.take(32).joinToString(",")).apply()
+    }
+
+    // Backup & Restore
+    fun exportBackupJson(): String {
+        val root = JSONObject().apply {
+            put("clipboard", JSONArray(prefs.getString("clipboard_history", "[]")))
+            put("shortcuts", JSONArray(prefs.getString("text_shortcuts_list", "[]")))
+            put("settings", JSONObject().apply {
+                val s = getSettings()
+                put("vibrationEnabled", s.vibrationEnabled)
+                put("soundEnabled", s.soundEnabled)
+                put("numberRowEnabled", s.numberRowEnabled)
+                put("keyboardLayoutStyle", s.keyboardLayoutStyle)
+            })
+        }
+        return root.toString()
+    }
+
+    fun restoreBackupJson(jsonString: String): Boolean {
+        return try {
+            val root = JSONObject(jsonString)
+            if (root.has("clipboard")) {
+                prefs.edit().putString("clipboard_history", root.getJSONArray("clipboard").toString()).apply()
+            }
+            if (root.has("shortcuts")) {
+                prefs.edit().putString("text_shortcuts_list", root.getJSONArray("shortcuts").toString()).apply()
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.example.data
 object TextDecorator {
 
     data class DecorationItem(
+        val id: String,
         val nameAr: String,
         val nameEn: String,
         val preview: String,
@@ -10,92 +11,75 @@ object TextDecorator {
     )
 
     val arabicStyles = listOf(
-        DecorationItem("زخرفة كشيدة ممدودة", "Arabic Elongated", "مــرحــبــاً") { text ->
-            val sb = StringBuilder()
-            for (ch in text) {
-                sb.append(ch)
-                if (isArabicLetter(ch) && ch != 'ا' && ch != 'و' && ch != 'د' && ch != 'ذ' && ch != 'ر' && ch != 'ز' && ch != 'ة') {
-                    sb.append("ــ")
-                }
-            }
-            sb.toString()
-        },
-        DecorationItem("زخرفة الملكية ꧁꧂", "Royal Ornament", "꧁ مرحباً ꧂") { text ->
-            "꧁ $text ꧂"
-        },
-        DecorationItem("زخرفة ريشة ༺༻", "Feather Ornament", "༺ مرحباً ༻") { text ->
-            "༺ $text ༻"
-        },
-        DecorationItem("زخرفة الأجنحة ༒༒", "Angel Wings", "༒ مرحباً ༒") { text ->
-            "༒ $text ༒"
-        },
-        DecorationItem("تشكيل وتنوين خفيف", "Tashkeel Diacritics", "مَرْحَبَاً") { text ->
-            tashkeelText(text)
-        },
-        DecorationItem("زخرفة إسلامية ۞۞", "Islamic Star", "۞ مرحباً ۞") { text ->
-            "۞ $text ۞"
-        },
-        DecorationItem("زخرفة الفراشات ✿✿", "Flower Blossom", "✿ مرحباً ✿") { text ->
-            "✿ $text ✿"
-        },
-        DecorationItem("زخرفة النجوم ★★★", "Star Border", "★ مرحباً ★") { text ->
-            "★ $text ★"
-        },
-        DecorationItem("زخرفة الأقواس ⦅⦆", "Curved Brackets", "⦅ مرحباً ⦆") { text ->
-            "⦅ $text ⦆"
-        },
-        DecorationItem("زخرفة الحروف المشكلة", "Arabic Ornate Letters", "مہرحہبہاً") { text ->
-            ornateArabicLetters(text)
-        }
+        DecorationItem("arabic_ornate", "زخرفة عربية حروف", "Arabic Ornate", "مہرحہبہاً") { ornateArabicLetters(it) },
+        DecorationItem("arabic_kashida", "زخرفة عربية ممدودة", "Arabic Elongated", "مــرحــبــاً") { elongateArabic(it) },
+        DecorationItem("arabic_tashkeel", "تشكيل وتنوين عربي", "Arabic Tashkeel", "مَرْحَبَاً") { tashkeelText(it) },
+        DecorationItem("arabic_stars", "زخرفة نجوم ★", "Arabic Stars", "★ مرحباً ★") { "★ $it ★" },
+        DecorationItem("arabic_royal", "زخرفة ملكية ꧁꧂", "Royal Ornament", "꧁ مرحباً ꧂") { "꧁ $it ꧂" },
+        DecorationItem("arabic_wings", "زخرفة أجنحة ༒", "Angel Wings", "༒ مرحباً ༒") { "༒ $it ༒" }
     )
 
     val englishStyles = listOf(
-        DecorationItem("𝒞𝓊𝓇𝓈𝒾𝓋ℯ 𝒮𝒸𝓇𝒾𝓅𝓉", "Cursive Script", "ℋℯ𝓁𝓁ℴ") { text ->
-            transformToMap(text, SCRIPT_MAP)
-        },
-        DecorationItem("𝐁𝐨𝐥𝐝 𝐒𝐞𝐫𝐢𝐟", "Bold Serif", "𝐇𝐞𝐥𝐥𝐨") { text ->
-            transformToMap(text, BOLD_SERIF_MAP)
-        },
-        DecorationItem("𝗕𝗼𝗹𝗱 𝗦𝗮𝗻𝘀", "Bold Sans", "𝗛𝗲𝗹𝗹𝗼") { text ->
-            transformToMap(text, BOLD_SANS_MAP)
-        },
-        DecorationItem("𝔊𝔬𝔱𝔥𝔦𝔠 𝔉𝔯𝔞𝔨𝔱𝔲𝔯", "Gothic Fraktur", "𝔈𝔵𝔞𝔪𝔭𝔩𝔢") { text ->
-            transformToMap(text, GOTHIC_MAP)
-        },
-        DecorationItem("Ⓑⓤⓑⓑⓛⓔ Ⓒⓘⓡⓒⓛⓔ", "Bubble Circles", "Ⓗⓔⓛⓛⓞ") { text ->
-            transformToMap(text, CIRCLE_MAP)
-        },
-        DecorationItem("🅂🅀🅄🄰🅁🄴 🄱🄾🅇", "Square Boxes", "🄷🄴🄻🄻🄾") { text ->
-            transformToMap(text, SQUARE_MAP)
-        },
-        DecorationItem("𝕎𝕚𝕕𝕖 𝔽𝕦𝕝𝕝𝕨𝕚𝕕𝕥𝕙", "Fullwidth", "Ｈｅｌｌｏ") { text ->
-            transformToMap(text, FULLWIDTH_MAP)
-        },
-        DecorationItem("U̲n̲d̲e̲r̲l̲i̲n̲e̲d̲", "Underlined", "H̲e̲l̲l̲o̲") { text ->
-            val sb = StringBuilder()
-            for (ch in text) {
-                sb.append(ch).append('\u0332')
-            }
-            sb.toString()
-        },
-        DecorationItem("S̶t̶r̶i̶k̶e̶t̶h̶r̶o̶u̶g̶h̶", "Strikethrough", "H̶e̶l̶l̶o̶") { text ->
-            val sb = StringBuilder()
-            for (ch in text) {
-                sb.append(ch).append('\u0336')
-            }
-            sb.toString()
-        },
-        DecorationItem("★ N e o n ★", "Spaced Stars", "★ H e l l o ★") { text ->
-            "★ " + text.toCharArray().joinToString(" ") + " ★"
-        }
+        DecorationItem("bold_serif", "عريض سيريف", "Bold Serif", "𝐓𝐞𝐱𝐭 𝐒𝐭𝐲𝐥𝐞") { transformToMap(it, BOLD_SERIF_MAP) },
+        DecorationItem("bold_sans", "عريض سانس", "Bold Sans", "𝗧𝗲𝘅𝘁 𝗦𝘁𝘆𝗹𝗲") { transformToMap(it, BOLD_SANS_MAP) },
+        DecorationItem("italic_sans", "مائل سانس", "Italic Sans", "𝘛𝘦𝘹𝘵 𝘚𝘵𝘺𝘭𝘦") { transformToMap(it, ITALIC_SANS_MAP) },
+        DecorationItem("monospace", "أحادي المسافة", "Monospace", "𝚃𝚎𝚡𝚝 𝚂𝚝𝚢𝚕𝚎") { transformToMap(it, MONOSPACE_MAP) },
+        DecorationItem("gothic", "قوطي كلاسيك", "Gothic Fraktur", "𝔗𝔢𝔵𝔱 𝔖𝔱𝔶𝔩𝔢") { transformToMap(it, GOTHIC_MAP) },
+        DecorationItem("script", "مخطوطة يدوية", "Script Cursive", "𝓣𝓮𝔁𝓽 𝓢𝓽𝔂𝓵𝓮") { transformToMap(it, SCRIPT_MAP) },
+        DecorationItem("square", "مربعات أنيقة", "Square Boxes", "🅃🄴🅇🅃 🅂🅃🅈🄻🄴") { transformToMap(it, SQUARE_MAP) },
+        DecorationItem("circle", "دوائر فقاعية", "Bubble Circles", "Ⓣⓔⓧⓣ Ⓢⓣⓨⓛⓔ") { transformToMap(it, CIRCLE_MAP) }
     )
+
+    val allStyles = listOf(
+        DecorationItem("none", "بدون زخرفة", "Normal", "Text Style") { it }
+    ) + englishStyles + arabicStyles
+
+    fun decorateChar(charStr: String, styleId: String): String {
+        if (styleId == "none") return charStr
+        if (charStr.length != 1) return charStr
+        val c = charStr[0]
+        return when (styleId) {
+            "bold_serif" -> BOLD_SERIF_MAP[c] ?: charStr
+            "bold_sans" -> BOLD_SANS_MAP[c] ?: charStr
+            "italic_sans" -> ITALIC_SANS_MAP[c] ?: charStr
+            "monospace" -> MONOSPACE_MAP[c] ?: charStr
+            "gothic" -> GOTHIC_MAP[c] ?: charStr
+            "script" -> SCRIPT_MAP[c] ?: charStr
+            "square" -> SQUARE_MAP[c] ?: charStr
+            "circle" -> CIRCLE_MAP[c] ?: charStr
+            "arabic_ornate" -> ARABIC_ORNATE_MAP[c] ?: charStr
+            "arabic_kashida" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}\u0640" else charStr
+            "arabic_tashkeel" -> if (isArabicLetter(c)) "${c}\u064E" else charStr
+            else -> charStr
+        }
+    }
+
+    fun decorateText(text: String, styleId: String): String {
+        val item = allStyles.find { it.id == styleId } ?: return text
+        return item.transform(text)
+    }
 
     private fun isArabicLetter(c: Char): Boolean {
         return c in '\u0621'..'\u064A'
     }
 
+    private fun isNonConnectingArabic(c: Char): Boolean {
+        return c in listOf('ا', 'و', 'د', 'ذ', 'ر', 'ز', 'ة', 'ء', 'ى')
+    }
+
+    private fun elongateArabic(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch) && !isNonConnectingArabic(ch)) {
+                sb.append("\u0640")
+            }
+        }
+        return sb.toString()
+    }
+
     private fun tashkeelText(text: String): String {
-        val diacritics = listOf("َ", "ِ", "ُ", "ْ", "ّ", "ً", "ٍ", "ٌ")
+        val diacritics = listOf("\u064E", "\u0650", "\u064F", "\u0652", "\u0651", "\u064B", "\u064D", "\u064C")
         val sb = StringBuilder()
         var i = 0
         for (c in text) {
@@ -108,19 +92,20 @@ object TextDecorator {
         return sb.toString()
     }
 
+    private val ARABIC_ORNATE_MAP = mapOf(
+        'ا' to "أ", 'ب' to "بہ", 'ت' to "تہ", 'ث' to "ثہ",
+        'ج' to "جہ", 'ح' to "حہ", 'خ' to "خہ", 'د' to "د",
+        'ذ' to "ذ", 'ر' to "ر", 'ز' to "ز", 'س' to "سہ",
+        'ش' to "شہ", 'ص' to "صہ", 'ض' to "ضه", 'ط' to "طہ",
+        'ظ' to "ظ", 'ع' to "عہ", 'غ' to "غه", 'ف' to "فُـ",
+        'ق' to "قہ", 'ك' to "كُـ", 'ل' to "لـ", 'م' to "مہ",
+        'ن' to "نہ", 'ه' to "هـ", 'و' to "و", 'ي' to "يہ", 'ة' to "ة"
+    )
+
     private fun ornateArabicLetters(text: String): String {
-        val map = mapOf(
-            'ا' to "أ", 'ب' to "بہ", 'ت' to "تہ", 'ث' to "ثہ",
-            'ج' to "جہ", 'ح' to "حہ", 'خ' to "خہ", 'د' to "د",
-            'ذ' to "ذ", 'ر' to "ر", 'ز' to "ز", 'س' to "سہ",
-            'ش' to "شہ", 'ص' to "صہ", 'ض' to "ضه", 'ط' to "طہ",
-            'ظ' to "ظ", 'ع' to "عہ", 'غ' to "غه", 'ف' to "فُـ",
-            'ق' to "قہ", 'ك' to "كُـ", 'ل' to "لـ", 'م' to "مہ",
-            'ن' to "نہ", 'ه' to "هـ", 'و' to "و", 'ي' to "يہ", 'ة' to "ة"
-        )
         val sb = StringBuilder()
         for (c in text) {
-            sb.append(map[c] ?: c.toString())
+            sb.append(ARABIC_ORNATE_MAP[c] ?: c.toString())
         }
         return sb.toString()
     }
@@ -169,13 +154,35 @@ object TextDecorator {
         'y' to "𝘆", 'z' to "𝘇"
     )
 
+    private val ITALIC_SANS_MAP = mapOf(
+        'A' to "𝘈", 'B' to "𝘉", 'C' to "𝘊", 'D' to "𝘋", 'E' to "𝘌", 'F' to "𝘍", 'G' to "𝘎", 'H' to "𝘏",
+        'I' to "𝘐", 'J' to "𝘑", 'K' to "𝘒", 'L' to "𝘓", 'M' to "𝘔", 'N' to "𝘕", 'O' to "𝘖", 'P' to "𝘗",
+        'Q' to "𝘘", 'R' to "𝘙", 'S' to "𝘚", 'T' to "𝘛", 'U' to "𝘜", 'V' to "𝘝", 'W' to "𝘞", 'X' to "𝘟",
+        'Y' to "𝘠", 'Z' to "𝘡",
+        'a' to "𝘢", 'b' to "𝘣", 'c' to "𝘤", 'd' to "𝘥", 'e' to "𝘦", 'f' to "𝘧", 'g' to "𝘨", 'h' to "𝘩",
+        'i' to "𝘪", 'j' to "𝘫", 'k' to "𝘬", 'l' to "𝘭", 'm' to "𝘮", 'n' to "𝘯", 'o' to "𝘰", 'p' to "𝘱",
+        'q' to "𝘲", 'r' to "𝘳", 's' to "𝓈", 't' to "𝘵", 'u' to "𝘶", 'v' to "𝘷", 'w' to "𝘸", 'x' to "𝘹",
+        'y' to "𝘺", 'z' to "𝘻"
+    )
+
+    private val MONOSPACE_MAP = mapOf(
+        'A' to "𝚃", 'B' to "𝙱", 'C' to "𝙲", 'D' to "𝙳", 'E' to "𝙴", 'F' to "𝙵", 'G' to "𝙶", 'H' to "𝙷",
+        'I' to "𝙸", 'J' to "𝙹", 'K' to "𝙺", 'L' to "𝙻", 'M' to "𝙼", 'N' to "𝙽", 'O' to "𝙾", 'P' to "𝙿",
+        'Q' to "𝚀", 'R' to "𝚁", 'S' to "𝚂", 'T' to "𝚃", 'U' to "𝚄", 'V' to "𝚅", 'W' to "𝚆", 'X' to "𝚇",
+        'Y' to "𝚈", 'Z' to "𝚉",
+        'a' to "𝚝", 'b' to "𝚋", 'c' to "𝚌", 'd' to "𝚍", 'e' to "𝚎", 'f' to "𝚏", 'g' to "𝚐", 'h' to "𝚑",
+        'i' to "𝚒", 'j' to "𝚓", 'k' to "𝚔", 'l' to "𝚕", 'm' to "𝚖", 'n' to "𝚗", 'o' to "𝚘", 'p' to "𝚙",
+        'q' to "𝚚", 'r' to "𝚛", 's' to "𝚜", 't' to "𝚝", 'u' to "𝚞", 'v' to "𝚟", 'w' to "𝚠", 'x' to "𝚡",
+        'y' to "𝚢", 'z' to "𝚣"
+    )
+
     private val GOTHIC_MAP = mapOf(
         'A' to "𝔄", 'B' to "𝔅", 'C' to "ℭ", 'D' to "𝔇", 'E' to "𝔈", 'F' to "𝔉", 'G' to "𝔊", 'H' to "ℌ",
         'I' to "ℑ", 'J' to "𝔍", 'K' to "𝔎", 'L' to "𝔏", 'M' to "𝔐", 'N' to "𝔑", 'O' to "𝔒", 'P' to "𝔓",
         'Q' to "𝔔", 'R' to "ℜ", 'S' to "𝔖", 'T' to "𝔗", 'U' to "𝔘", 'V' to "𝔙", 'W' to "𝔚", 'X' to "𝔛",
         'Y' to "𝔜", 'Z' to "ℨ",
         'a' to "𝔞", 'b' to "𝔟", 'c' to "𝔠", 'd' to "𝔡", 'e' to "𝔢", 'f' to "𝔣", 'g' to "𝔤", 'h' to "𝔥",
-        'i' to "𝔦", 'j' to "𝔧", 'k' to "𝔨", 'l' to "𝔩", 'm' to "𝔪", 'n' to "𝔫", 'o' to "𝔬", 'p' to "𝔭",
+        'i' to "𝔦", 'j' to "𝔧", 'k' to "𝔨", 'l' to "ل", 'm' to "𝔪", 'n' to "𝔫", 'o' to "𝔬", 'p' to "𝔭",
         'q' to "𝔮", 'r' to "𝔯", 's' to "𝔰", 't' to "𝔱", 'u' to "𝔲", 'v' to "𝔳", 'w' to "𝔴", 'x' to "𝔵",
         'y' to "𝔶", 'z' to "𝔷"
     )
@@ -201,16 +208,5 @@ object TextDecorator {
         'i' to "🄸", 'j' to "🄹", 'k' to "🄺", 'l' to "🄻", 'm' to "🄼", 'n' to "🄽", 'o' to "🄾", 'p' to "🄿",
         'q' to "🅀", 'r' to "🅁", 's' to "🅂", 't' to "🅃", 'u' to "🅄", 'v' to "🅅", 'w' to "🅆", 'x' to "🅇",
         'y' to "🅈", 'z' to "🅉"
-    )
-
-    private val FULLWIDTH_MAP = mapOf(
-        'A' to "Ａ", 'B' to "Ｂ", 'C' to "Ｃ", 'D' to "Ｄ", 'E' to "Ｅ", 'F' to "Ｆ", 'G' to "Ｇ", 'H' to "Ｈ",
-        'I' to "Ｉ", 'J' to "Ｊ", 'K' to "Ｋ", 'L' to "Ｌ", 'M' to "Ｍ", 'N' to "Ｎ", 'O' to "Ｏ", 'P' to "Ｐ",
-        'Q' to "Ｑ", 'R' to "Ｒ", 'S' to "Ｓ", 'T' to "Ｔ", 'U' to "Ｕ", 'V' to "Ｖ", 'W' to "Ｗ", 'X' to "Ｘ",
-        'Y' to "Ｙ", 'Z' to "Ｚ",
-        'a' to "ａ", 'b' to "ｂ", 'c' to "ｃ", 'd' to "ｄ", 'e' to "ｅ", 'f' to "ｆ", 'g' to "ｇ", 'h' to "ｈ",
-        'i' to "ｉ", 'j' to "ｊ", 'k' to "ｋ", 'l' to "ｌ", 'm' to "ｍ", 'n' to "ｎ", 'o' to "ｏ", 'p' to "ｐ",
-        'q' to "ｑ", 'r' to "ｒ", 's' to "ｓ", 't' to "ｔ", 'u' to "ｕ", 'v' to "ｖ", 'w' to "ｗ", 'x' to "ｘ",
-        'y' to "ｙ", 'z' to "ｚ"
     )
 }

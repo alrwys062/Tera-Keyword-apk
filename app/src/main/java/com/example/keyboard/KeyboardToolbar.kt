@@ -3,7 +3,9 @@ package com.example.keyboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,142 +24,183 @@ import androidx.compose.ui.unit.sp
 import com.example.model.KeyboardSubView
 import com.example.model.KeyboardTheme
 
-data class ToolbarButton(
-    val id: KeyboardSubView,
-    val titleAr: String,
-    val titleEn: String,
-    val icon: ImageVector,
-    val isPrimaryGlow: Boolean = false
-)
-
 @Composable
 fun KeyboardToolbar(
     theme: KeyboardTheme,
     activeSubView: KeyboardSubView,
+    isDecorationActive: Boolean,
+    isTranslationActive: Boolean,
+    isNightMode: Boolean = true,
     onSubViewSelected: (KeyboardSubView) -> Unit,
+    onToggleDecorationBar: () -> Unit,
+    onToggleTranslationBar: () -> Unit,
+    onToggleNightMode: () -> Unit,
     onVoiceClick: () -> Unit,
-    onThemeToggleClick: () -> Unit,
-    isArabic: Boolean
+    onOpenSettingsClick: () -> Unit
 ) {
-    val buttons = listOf(
-        ToolbarButton(KeyboardSubView.EMOJI, "أيموجي", "Emoji", Icons.Outlined.Mood),
-        ToolbarButton(KeyboardSubView.GIF, "GIF", "GIF", Icons.Outlined.Gif),
-        ToolbarButton(KeyboardSubView.TRANSLATE, "ترجمة", "Translate", Icons.Default.Translate, isPrimaryGlow = true),
-        ToolbarButton(KeyboardSubView.CLIPBOARD, "حافظة", "Clipboard", Icons.Outlined.ContentPaste),
-        ToolbarButton(KeyboardSubView.DECORATION, "زخرفة", "Decorate", Icons.Outlined.AutoAwesome)
-    )
+    val scrollState = rememberScrollState()
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp)
             .background(Color(theme.toolbarColor))
-            .padding(horizontal = 6.dp, vertical = 4.dp),
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Quick tools
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        // 1. إيموجي (Emoji)
+        val isEmojiActive = activeSubView == KeyboardSubView.EMOJI
+        ToolbarIconItem(
+            icon = Icons.Outlined.Mood,
+            label = "إيموجي",
+            isActive = isEmojiActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isEmojiActive) KeyboardSubView.NONE else KeyboardSubView.EMOJI)
+            }
+        )
+
+        // 2. GIF
+        val isGifActive = activeSubView == KeyboardSubView.GIF
+        ToolbarIconItem(
+            icon = Icons.Outlined.Gif,
+            label = "GIF",
+            isActive = isGifActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isGifActive) KeyboardSubView.NONE else KeyboardSubView.GIF)
+            }
+        )
+
+        // 3. صور والملصقات (Photos / Stickers)
+        val isPhotosActive = activeSubView == KeyboardSubView.PHOTOS
+        ToolbarIconItem(
+            icon = Icons.Outlined.PhotoLibrary,
+            label = "صور",
+            isActive = isPhotosActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isPhotosActive) KeyboardSubView.NONE else KeyboardSubView.PHOTOS)
+            }
+        )
+
+        // 4. ترجمة (Translation - with exact cyan rounded border when active, matching Screenshot 1)
+        ToolbarIconItem(
+            icon = Icons.Default.Translate,
+            label = "ترجمة",
+            isActive = isTranslationActive,
+            theme = theme,
+            onClick = onToggleTranslationBar
+        )
+
+        // 5. حافظة (Clipboard)
+        val isClipboardActive = activeSubView == KeyboardSubView.CLIPBOARD
+        ToolbarIconItem(
+            icon = Icons.Outlined.ContentPaste,
+            label = "حافظة",
+            isActive = isClipboardActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isClipboardActive) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD)
+            }
+        )
+
+        // 6. زخرفة (Decoration)
+        ToolbarIconItem(
+            icon = Icons.Outlined.AutoAwesome,
+            label = "زخرفة",
+            isActive = isDecorationActive,
+            theme = theme,
+            onClick = onToggleDecorationBar
+        )
+
+        // 7. ذكاء ونبرة (AI Tone & Smart Assistant)
+        val isAiActive = activeSubView == KeyboardSubView.AI_ASSISTANT
+        ToolbarIconItem(
+            icon = Icons.Outlined.Psychology,
+            label = "ذكاء ونبرة",
+            isActive = isAiActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isAiActive) KeyboardSubView.NONE else KeyboardSubView.AI_ASSISTANT)
+            }
+        )
+
+        // 8. صوت (Voice)
+        ToolbarIconItem(
+            icon = Icons.Default.Mic,
+            label = "صوت",
+            isActive = false,
+            theme = theme,
+            onClick = onVoiceClick
+        )
+
+        // 9. ليلي (Night Mode toggle)
+        ToolbarIconItem(
+            icon = Icons.Outlined.DarkMode,
+            label = "ليلي",
+            isActive = isNightMode,
+            theme = theme,
+            onClick = onToggleNightMode
+        )
+
+        // 10. إعدادات (Settings)
+        ToolbarIconItem(
+            icon = Icons.Outlined.Settings,
+            label = "إعدادات",
+            isActive = false,
+            theme = theme,
+            onClick = onOpenSettingsClick
+        )
+    }
+}
+
+@Composable
+private fun ToolbarIconItem(
+    icon: ImageVector,
+    label: String,
+    isActive: Boolean,
+    theme: KeyboardTheme,
+    onClick: () -> Unit
+) {
+    val activeColor = Color(theme.accentColor)
+    val inactiveTextColor = Color(theme.keyTextColor).copy(alpha = 0.85f)
+
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 2.dp)
+            .height(46.dp)
+            .wrapContentWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isActive) activeColor.copy(alpha = 0.2f) else Color.Transparent)
+            .border(
+                width = if (isActive) 1.dp else 0.dp,
+                color = if (isActive) activeColor else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            buttons.forEach { btn ->
-                val isSelected = activeSubView == btn.id
-                val isTranslate = btn.id == KeyboardSubView.TRANSLATE
-
-                Column(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            when {
-                                isSelected -> Color(theme.accentColor).copy(alpha = 0.25f)
-                                isTranslate -> Color(theme.enterButtonColor).copy(alpha = 0.2f)
-                                else -> Color.Transparent
-                            }
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = when {
-                                isSelected -> Color(theme.accentColor)
-                                isTranslate -> Color(theme.enterButtonColor).copy(alpha = 0.6f)
-                                else -> Color.Transparent
-                            },
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable {
-                            onSubViewSelected(if (isSelected) KeyboardSubView.NONE else btn.id)
-                        }
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = btn.icon,
-                        contentDescription = btn.titleAr,
-                        tint = when {
-                            isSelected -> Color(theme.accentColor)
-                            isTranslate -> Color(theme.accentColor)
-                            else -> Color(theme.subtextColor)
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = if (isArabic) btn.titleAr else btn.titleEn,
-                        color = when {
-                            isSelected -> Color(theme.accentColor)
-                            isTranslate -> Color(theme.accentColor)
-                            else -> Color(theme.subtextColor)
-                        },
-                        fontSize = 9.sp,
-                        fontWeight = if (isTranslate || isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            }
-
-            // Voice typing button
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onVoiceClick() }
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = "Voice",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = if (isArabic) "صوت" else "Voice",
-                    color = Color(theme.subtextColor),
-                    fontSize = 9.sp
-                )
-            }
-
-            // Night / Quick Theme button
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onThemeToggleClick() }
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.NightlightRound,
-                    contentDescription = "Theme",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = if (isArabic) "ليلي" else "Theme",
-                    color = Color(theme.subtextColor),
-                    fontSize = 9.sp
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive) activeColor else inactiveTextColor,
+                modifier = Modifier.size(19.dp)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = label,
+                color = if (isActive) activeColor else inactiveTextColor,
+                fontSize = 10.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+            )
         }
     }
 }

@@ -27,7 +27,7 @@ jobs:
           JAVA_MAJOR=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
           echo "Detected Java major version: $JAVA_MAJOR"
           if [ -z "$JAVA_MAJOR" ] || [ "$JAVA_MAJOR" -lt 17 ]; then
-            echo "Error: Active Java major version is lower than 17 or could not be detected." >&2
+            echo "Error: Active Java major version is lower than 17 ($JAVA_MAJOR)." >&2
             exit 1
           fi
           echo "Java environment verified: Java 17 or newer is active."
@@ -42,7 +42,7 @@ jobs:
           if [ -f "./debug.keystore" ]; then
             echo "Debug keystore already exists."
           else
-            echo "Generating temporary debug keystore..."
+            echo "Generating temporary debug keystore using keytool from Java 17..."
             "$JAVA_HOME/bin/keytool" -genkeypair \
               -v \
               -keystore ./debug.keystore \
@@ -58,16 +58,16 @@ jobs:
             echo "Error: ./debug.keystore does not exist and could not be created." >&2
             exit 1
           fi
-          echo "Confirmed: ./debug.keystore is present."
+          echo "Confirmed: ./debug.keystore exists."
 
-      - name: Build Debug APK
+      - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Verify debug APK exists
         run: |
           TARGET_APK="app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$TARGET_APK" ]; then
-            echo "Target debug APK found at $TARGET_APK"
+            echo "Confirmed: $TARGET_APK exists."
           else
             echo "Target debug APK not found at $TARGET_APK. Searching inside app/build/outputs/apk..."
             if [ -d "app/build/outputs/apk" ]; then
@@ -81,7 +81,7 @@ jobs:
             else
               echo "Directory app/build/outputs/apk does not exist."
             fi
-            echo "Error: Expected debug APK ($TARGET_APK) is missing." >&2
+            echo "Error: Debug APK was not found at $TARGET_APK." >&2
             exit 1
           fi
 

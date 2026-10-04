@@ -33,15 +33,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.example.data.InputLanguagesManager
 import com.example.data.LongPressVariantsManager
 import com.example.data.PredictionEngine
@@ -63,6 +67,8 @@ fun TurboKeyboardView(
     theme: KeyboardTheme = ThemePresets.CYBER_PRO,
     settings: KeyboardSettings = KeyboardSettings(),
     inputConnection: InputConnection? = null,
+    getCurrentInputConnection: (() -> InputConnection?)? = null,
+    onServiceDelete: (() -> Unit)? = null,
     onDirectInsertText: ((String) -> Unit)? = null,
     onDirectDeleteLastChar: (() -> Unit)? = null,
     onDirectClearAndReplaceText: ((String) -> Unit)? = null,
@@ -74,6 +80,8 @@ fun TurboKeyboardView(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val prefs = remember { prefsManager ?: PreferencesManager(context) }
+    var currentSettings by remember { mutableStateOf(settings) }
+    LaunchedEffect(settings) { currentSettings = settings }
 
     var currentLangCode by remember {
         mutableStateOf(InputLanguagesManager.getCurrentLanguageCode(context))
@@ -93,8 +101,8 @@ fun TurboKeyboardView(
     var isDecorationBarOpen by remember { mutableStateOf(false) }
 
     var isTranslationBarOpen by remember { mutableStateOf(false) }
-    var translationSource by remember { mutableStateOf(settings.translationSource) }
-    var translationTarget by remember { mutableStateOf(settings.translationTarget) }
+    var translationSource by remember { mutableStateOf(currentSettings.translationSource) }
+    var translationTarget by remember { mutableStateOf(currentSettings.translationTarget) }
 
     // Long-Press character variant popup state (Matching Screenshots 1, 2, 4)
     var longPressChar by remember { mutableStateOf<String?>(null) }
@@ -116,7 +124,7 @@ fun TurboKeyboardView(
 
     // Prediction suggestions + auto-correction + shortcuts expansion
     val suggestions = remember(currentComposingText, currentWorldLang, userWords, shortcuts) {
-        if (settings.suggestionsEnabled) {
+        if (currentSettings.suggestionsEnabled) {
             val lastWord = currentComposingText.trim().split(" ").lastOrNull() ?: ""
             val shortcutMatch = shortcuts.find { it.trigger.equals(lastWord, ignoreCase = true) }
             val baseList = PredictionEngine.getPredictionsWithCorrection(lastWord, isArabic, userWords)
@@ -132,11 +140,11 @@ fun TurboKeyboardView(
 
     // Sound & Haptic triggers
     fun performFeedback() {
-        if (settings.vibrationEnabled) {
+        if (currentSettings.vibrationEnabled) {
             try {
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
                 if (vibrator != null && vibrator.hasVibrator()) {
-                    val duration = settings.vibrationDurationMs.toLong().coerceAtLeast(10L)
+                    val duration = currentSettings.vibrationDurationMs.toLong().coerceAtLeast(10L)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
                     } else {
@@ -157,9 +165,16 @@ fun TurboKeyboardView(
         } else {
             text
         }
-        currentComposingText += textToInsert
-        if (inputConnection != null) {
-            inputConnection.commitText(textToInsert, 1)
+        currentComposingText = (currentComposingText + textToInsert).takeLast(80)
+        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+        if (ic != null) {
+            try {
+                ic.commitText(textToInsert, 1)
+            } catch (e: Exception) {
+                try {
+                    ic.commitText(textToInsert, 1)
+                } catch (_: Exception) {}
+            }
         } else {
             onDirectInsertText?.invoke(textToInsert)
         }
@@ -170,18 +185,52 @@ fun TurboKeyboardView(
         if (currentComposingText.isNotEmpty()) {
             currentComposingText = currentComposingText.dropLast(1)
         }
-        if (inputConnection != null) {
-            inputConnection.deleteSurroundingText(1, 0)
+        if (onServiceDelete != null) {
+            onServiceDelete.invoke()
         } else {
-            onDirectDeleteLastChar?.invoke()
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            if (ic != null) {
+                try {
+                    val selected = ic.getSelectedText(0)
+                    if (!selected.isNullOrEmpty()) {
+                        ic.commitText("", 1)
+                    } else {
+                        val before = ic.getTextBeforeCursor(1, 0)
+                        if (!before.isNullOrEmpty()) {
+                            val deleted = ic.deleteSurroundingText(1, 0)
+                            if (!deleted) {
+                                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+                                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                            }
+                        } else {
+                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                        }
+                    }
+                } catch (e: Exception) {
+                    try {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                    } catch (_: Exception) {}
+                }
+            } else {
+                onDirectDeleteLastChar?.invoke()
+            }
         }
     }
 
     fun sendEnter() {
         performFeedback()
-        if (inputConnection != null) {
-            inputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-            inputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+        if (ic != null) {
+            try {
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+            } catch (e: Exception) {
+                try {
+                    ic.commitText("\n", 1)
+                } catch (_: Exception) {}
+            }
         } else {
             onDirectInsertText?.invoke("\n")
         }
@@ -189,14 +238,21 @@ fun TurboKeyboardView(
     }
 
     fun replaceAllText(newText: String) {
-        currentComposingText = newText
-        if (inputConnection != null) {
-            inputConnection.beginBatchEdit()
-            val before = inputConnection.getTextBeforeCursor(2000, 0)?.length ?: 0
-            val after = inputConnection.getTextAfterCursor(2000, 0)?.length ?: 0
-            inputConnection.deleteSurroundingText(before, after)
-            inputConnection.commitText(newText, 1)
-            inputConnection.endBatchEdit()
+        currentComposingText = newText.takeLast(80)
+        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+        if (ic != null) {
+            try {
+                ic.beginBatchEdit()
+                val before = ic.getTextBeforeCursor(2000, 0)?.length ?: 0
+                val after = ic.getTextAfterCursor(2000, 0)?.length ?: 0
+                ic.deleteSurroundingText(before, after)
+                ic.commitText(newText, 1)
+                ic.endBatchEdit()
+            } catch (e: Exception) {
+                try {
+                    ic.commitText(newText, 1)
+                } catch (_: Exception) {}
+            }
         } else {
             onDirectClearAndReplaceText?.invoke(newText)
         }
@@ -392,6 +448,29 @@ fun TurboKeyboardView(
                         onClose = { activeSubView = KeyboardSubView.NONE }
                     )
                 }
+                KeyboardSubView.VOICE_INPUT -> {
+                    VoiceInputView(
+                        theme = theme,
+                        isArabic = isArabic,
+                        onInsertText = { sendText(it) },
+                        onClose = { activeSubView = KeyboardSubView.NONE }
+                    )
+                }
+                KeyboardSubView.SETTINGS -> {
+                    QuickSettingsView(
+                        theme = theme,
+                        settings = currentSettings,
+                        onUpdateSettings = { newSet ->
+                            currentSettings = newSet
+                            prefs.saveSettings(newSet)
+                        },
+                        onOpenFullSettings = {
+                            activeSubView = KeyboardSubView.NONE
+                            onOpenSettingsRequested?.invoke()
+                        },
+                        onClose = { activeSubView = KeyboardSubView.NONE }
+                    )
+                }
                 else -> {}
             }
         }
@@ -554,7 +633,7 @@ fun TurboKeyboardView(
                 }
 
                 // Optional Number Row
-                if (settings.numberRowEnabled) {
+                if (currentSettings.numberRowEnabled) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -566,6 +645,7 @@ fun TurboKeyboardView(
                                 key = key,
                                 theme = theme,
                                 isShifted = isShifted,
+                                showKeyPopup = currentSettings.keyPopupEnabled,
                                 modifier = Modifier.weight(key.weight),
                                 onClick = { sendText(digitChar) },
                                 onLongClick = {
@@ -598,6 +678,7 @@ fun TurboKeyboardView(
                             theme = theme,
                             isShifted = isShifted,
                             numberHint = hint,
+                            showKeyPopup = currentSettings.keyPopupEnabled,
                             modifier = Modifier.weight(key.weight),
                             onClick = {
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
@@ -628,6 +709,7 @@ fun TurboKeyboardView(
                             key = key,
                             theme = theme,
                             isShifted = isShifted,
+                            showKeyPopup = currentSettings.keyPopupEnabled,
                             modifier = Modifier.weight(key.weight),
                             onClick = {
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
@@ -714,6 +796,7 @@ fun TurboKeyboardView(
                                         key = key,
                                         theme = theme,
                                         isShifted = isShifted,
+                                        showKeyPopup = currentSettings.keyPopupEnabled,
                                         modifier = Modifier.weight(key.weight),
                                         onClick = {
                                             sendText(if (isShifted && !isArabic && !isSymbolsMode) char.uppercase() else char)
@@ -967,25 +1050,25 @@ fun KeyButton(
     isShifted: Boolean,
     numberHint: String? = null,
     customTextColor: Color? = null,
+    showKeyPopup: Boolean = true,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
     val char = (key.type as? KeyType.Character)?.primary ?: ""
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
     val displayChar = if (isShifted) char.uppercase() else char
     val dualHint = if (theme.dualLanguageHints) {
         enToArHintMap[char.lowercase()] ?: arToEnHintMap[char]
     } else null
+
+    var isTouching by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
             .height(48.dp)
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
             .background(
-                if (isPressed) Color(theme.keyPressedColor)
+                if (isTouching) Color(theme.keyPressedColor)
                 else Color(theme.keyBackgroundColor)
             )
             .border(
@@ -994,10 +1077,18 @@ fun KeyButton(
                 else Color(theme.borderColor).copy(alpha = theme.borderAlpha),
                 shape = RoundedCornerShape(theme.cornerRadius.dp)
             )
-            .pointerInput(displayChar) {
+            .pointerInput(displayChar, onLongClick) {
                 detectTapGestures(
-                    onTap = { onClick() },
+                    onPress = {
+                        isTouching = true
+                        val released = tryAwaitRelease()
+                        isTouching = false
+                        if (released) {
+                            onClick()
+                        }
+                    },
                     onLongPress = {
+                        isTouching = false
                         if (onLongClick != null) onLongClick()
                         else onClick()
                     }
@@ -1032,6 +1123,65 @@ fun KeyButton(
             color = customTextColor ?: Color(theme.keyTextColor),
             fontSize = if (numberHint != null || dualHint != null) 17.sp else 18.sp,
             fontWeight = FontWeight.SemiBold
+        )
+
+        // Magnificent Key Press Preview Bubble (Gboard / iOS style)
+        if (isTouching && showKeyPopup && displayChar.isNotBlank()) {
+            Popup(
+                alignment = Alignment.TopCenter,
+                offset = IntOffset(0, -145),
+                properties = PopupProperties(
+                    focusable = false,
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false
+                )
+            ) {
+                KeyPreviewBubble(
+                    char = displayChar,
+                    numberHint = numberHint,
+                    theme = theme
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun KeyPreviewBubble(
+    char: String,
+    numberHint: String?,
+    theme: KeyboardTheme
+) {
+    Box(
+        modifier = Modifier
+            .width(52.dp)
+            .height(58.dp)
+            .shadow(8.dp, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(theme.keyPressedColor))
+            .border(
+                1.5.dp,
+                Color(theme.accentColor),
+                RoundedCornerShape(12.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (numberHint != null) {
+            Text(
+                text = numberHint,
+                color = Color(theme.accentColor),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 2.dp, start = 4.dp)
+            )
+        }
+        Text(
+            text = char,
+            color = Color.White,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -1087,19 +1237,38 @@ fun BackspaceKeyButton(
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            onDelete()
+            delay(380)
+            while (isPressed) {
+                onDelete()
+                delay(50)
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .height(48.dp)
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(Color(theme.keyBackgroundColor).copy(alpha = 0.9f))
-            .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha), RoundedCornerShape(theme.cornerRadius.dp))
+            .background(
+                if (isPressed) Color(theme.keyPressedColor)
+                else Color(theme.keyBackgroundColor).copy(alpha = 0.9f)
+            )
+            .border(
+                1.dp,
+                if (isPressed) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha),
+                RoundedCornerShape(theme.cornerRadius.dp)
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
-                        onDelete()
-                    },
-                    onLongPress = {
-                        onDeleteWord()
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
                     }
                 )
             },
@@ -1108,7 +1277,7 @@ fun BackspaceKeyButton(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
             contentDescription = "Backspace",
-            tint = Color(theme.keyTextColor),
+            tint = Color(0xFF00B0FF),
             modifier = Modifier.size(20.dp)
         )
     }

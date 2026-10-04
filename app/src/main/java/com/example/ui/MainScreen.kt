@@ -44,7 +44,7 @@ enum class AppDestination {
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(initialTarget: AppDestination? = null) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember { PreferencesManager(context) }
@@ -55,12 +55,16 @@ fun MainScreen() {
     }
 
     // Auto-select Setup on first launch if not enabled
-    val initialDestination = remember {
-        if (keyboardStatus == KeyboardStatus.DISABLED) AppDestination.KEYBOARD_SETUP
+    val initialDestination = remember(initialTarget) {
+        if (initialTarget != null) initialTarget
+        else if (keyboardStatus == KeyboardStatus.DISABLED) AppDestination.KEYBOARD_SETUP
         else AppDestination.TOOLS
     }
 
     var currentDestination by remember { mutableStateOf(initialDestination) }
+    LaunchedEffect(initialTarget) {
+        if (initialTarget != null) currentDestination = initialTarget
+    }
 
     // Re-check status on resume
     DisposableEffect(lifecycleOwner) {
@@ -167,6 +171,7 @@ fun MainScreen() {
                     ChatSimulatorScreen(
                         prefs = prefs,
                         currentTheme = currentTheme,
+                        onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
                         onBack = { currentDestination = AppDestination.TOOLS }
                     )
                 }

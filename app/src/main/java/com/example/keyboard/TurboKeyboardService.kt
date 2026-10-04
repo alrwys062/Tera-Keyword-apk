@@ -103,18 +103,14 @@ class TurboKeyboardService : InputMethodService(),
                     theme = theme,
                     settings = settings,
                     inputConnection = currentIc ?: currentInputConnection,
+                    getCurrentInputConnection = { currentInputConnection },
+                    onServiceDelete = { performServiceDelete() },
                     onVoiceRequested = {
+                        // Voice view is activated directly in toolbar, or fallback to intent
                         launchVoiceRecognition()
                     },
                     onOpenSettingsRequested = {
-                        try {
-                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            if (intent != null) startActivity(intent)
-                        } catch (e: Exception) {
-                            // Ignore
-                        }
+                        openAppSettings()
                     },
                     prefsManager = prefs
                 )
@@ -137,6 +133,18 @@ class TurboKeyboardService : InputMethodService(),
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        activeInputConnectionState.value = currentInputConnection
+    }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int,
+        oldSelEnd: Int,
+        newSelStart: Int,
+        newSelEnd: Int,
+        candidatesStart: Int,
+        candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         activeInputConnectionState.value = currentInputConnection
     }
 
@@ -197,6 +205,46 @@ class TurboKeyboardService : InputMethodService(),
     override fun onFinishInput() {
         super.onFinishInput()
         activeInputConnectionState.value = null
+    }
+
+    private fun performServiceDelete() {
+        val ic = currentInputConnection
+        try {
+            if (ic != null) {
+                val selected = ic.getSelectedText(0)
+                if (!selected.isNullOrEmpty()) {
+                    ic.commitText("", 1)
+                    return
+                }
+                val before = ic.getTextBeforeCursor(1, 0)
+                if (!before.isNullOrEmpty()) {
+                    val deleted = ic.deleteSurroundingText(1, 0)
+                    if (deleted) return
+                }
+            }
+            sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_DEL)
+        } catch (e: Exception) {
+            try {
+                sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_DEL)
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun openAppSettings() {
+        try {
+            val intent = Intent(this, com.example.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("NAVIGATE_TO", "settings")
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (launchIntent != null) startActivity(launchIntent)
+            } catch (_: Exception) {}
+        }
     }
 
     private fun launchVoiceRecognition() {

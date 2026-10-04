@@ -80,5 +80,7 @@ enum class KeyboardSubView {
     CLIPBOARD,
     DECORATION,
     AI_ASSISTANT,
-    TOOLS_MORE
+    TOOLS_MORE,
+    VOICE_INPUT,
+    SETTINGS
 }

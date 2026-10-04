@@ -43,6 +43,7 @@ data class ChatMessage(
 fun ChatSimulatorScreen(
     prefs: PreferencesManager,
     currentTheme: KeyboardTheme,
+    onNavigateToSettings: (() -> Unit)? = null,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -333,6 +334,9 @@ fun ChatSimulatorScreen(
                 currentDraftText = newText
             },
             getCurrentText = { currentDraftText },
+            onOpenSettingsRequested = {
+                onNavigateToSettings?.invoke() ?: onBack()
+            },
             prefsManager = prefs
         )
     }

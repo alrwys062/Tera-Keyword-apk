@@ -130,12 +130,16 @@ fun KeyboardToolbar(
         )
 
         // 8. صوت (Voice Input)
+        val isVoiceActive = activeSubView == KeyboardSubView.VOICE_INPUT
         ToolbarFixedItem(
             icon = Icons.Default.Mic,
             label = "صوت",
-            isActive = false,
+            isActive = isVoiceActive,
             theme = theme,
-            onClick = onVoiceClick
+            onClick = {
+                onSubViewSelected(if (isVoiceActive) KeyboardSubView.NONE else KeyboardSubView.VOICE_INPUT)
+                onVoiceClick()
+            }
         )
 
         // 9. ليلي (Night Mode toggle)
@@ -148,12 +152,16 @@ fun KeyboardToolbar(
         )
 
         // 10. إعدادات (Settings)
+        val isSettingsActive = activeSubView == KeyboardSubView.SETTINGS
         ToolbarFixedItem(
             icon = Icons.Outlined.Settings,
             label = "إعدادات",
-            isActive = false,
+            isActive = isSettingsActive,
             theme = theme,
-            onClick = onOpenSettingsClick
+            onClick = {
+                onSubViewSelected(if (isSettingsActive) KeyboardSubView.NONE else KeyboardSubView.SETTINGS)
+                onOpenSettingsClick()
+            }
         )
     }
 }

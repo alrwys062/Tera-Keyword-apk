@@ -1,6 +1,11 @@
 package com.example.keyboard
 
+import android.content.Intent
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +39,7 @@ import com.example.data.PreferencesManager
 import com.example.data.TextDecorator
 import com.example.data.TranslationEngine
 import com.example.model.ClipboardItem
+import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
 import kotlinx.coroutines.launch
 
@@ -1253,6 +1259,473 @@ fun AiToneDrawer(
                 }
             }
         }
+    }
+}
+
+// -------------------------------------------------------------
+// 8. VOICE INPUT VIEW (تحويل الصوت إلى نص المباشر)
+// -------------------------------------------------------------
+@Composable
+fun VoiceInputView(
+    theme: KeyboardTheme,
+    isArabic: Boolean = true,
+    onInsertText: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isListening by remember { mutableStateOf(false) }
+    var recognizedText by remember { mutableStateOf("") }
+    var statusText by remember { mutableStateOf("اضغط على المايك للتحدث...") }
+    var speechRecognizer by remember { mutableStateOf<android.speech.SpeechRecognizer?>(null) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isListening) 1.28f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    fun startListening() {
+        try {
+            if (speechRecognizer == null) {
+                if (android.speech.SpeechRecognizer.isRecognitionAvailable(context)) {
+                    speechRecognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(context)
+                }
+            }
+            val recognizer = speechRecognizer
+            if (recognizer != null) {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (isArabic) "ar-SA" else "en-US")
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                }
+                recognizer.setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        isListening = true
+                        statusText = "جاري الاستماع... تحدث الآن بصوت واضح"
+                    }
+                    override fun onBeginningOfSpeech() {
+                        statusText = "جاري التقاط الصوت..."
+                    }
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onEndOfSpeech() {
+                        isListening = false
+                        statusText = "تم التقاط الصوت! اضغط إدراج"
+                    }
+                    override fun onError(error: Int) {
+                        isListening = false
+                        statusText = "اضغط على المايك أو اختر عبارة جاهزة"
+                    }
+                    override fun onResults(results: Bundle?) {
+                        isListening = false
+                        val matches = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
+                        if (!matches.isNullOrEmpty()) {
+                            recognizedText = matches[0]
+                            statusText = "تم التعرف بنجاح ✓"
+                        }
+                    }
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        val matches = partialResults?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
+                        if (!matches.isNullOrEmpty()) {
+                            recognizedText = matches[0]
+                        }
+                    }
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+                recognizer.startListening(intent)
+                isListening = true
+                statusText = "جاري فتح الميكروفون..."
+            } else {
+                statusText = "اختر من العبارات السريعة أدناه أو تحدث"
+            }
+        } catch (e: Exception) {
+            isListening = false
+            statusText = "تحدث أو اضغط على إحدى العبارات:"
+        }
+    }
+
+    fun stopListening() {
+        try {
+            speechRecognizer?.stopListening()
+        } catch (_: Exception) {}
+        isListening = false
+    }
+
+    DisposableEffect(Unit) {
+        startListening()
+        onDispose {
+            try {
+                speechRecognizer?.destroy()
+            } catch (_: Exception) {}
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(230.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Top Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "الكتابة بالصوت (Voice Typing)",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            IconButton(onClick = {
+                stopListening()
+                onClose()
+            }, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color(theme.subtextColor),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        // Animated Mic & Status
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size((56 * pulseScale).dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isListening) Color(theme.accentColor).copy(alpha = 0.25f)
+                        else Color(0xFF232B3B)
+                    )
+                    .clickable {
+                        if (isListening) stopListening() else startListening()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isListening) Icons.Default.Mic else Icons.Outlined.MicNone,
+                    contentDescription = "Mic",
+                    tint = if (isListening) Color(theme.accentColor) else Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = statusText,
+                color = if (isListening) Color(theme.accentColor) else Color(theme.subtextColor),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
+            )
+
+            if (recognizedText.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "\"$recognizedText\"",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        // Quick phrases chips + Actions
+        Column(modifier = Modifier.fillMaxWidth()) {
+            val samplePhrases = if (isArabic) {
+                listOf("السلام عليكم", "مرحباً كيف حالك", "شكراً جزيلاً", "تمام الحمد لله", "أنا في الطريق")
+            } else {
+                listOf("Hello there", "How are you doing?", "Thank you very much", "I will be there soon", "Sounds good")
+            }
+
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(samplePhrases) { phrase ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF1E2638))
+                            .border(1.dp, Color(theme.borderColor).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                            .clickable {
+                                recognizedText = phrase
+                                onInsertText(phrase + " ")
+                                onClose()
+                            }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(text = phrase, color = Color.White, fontSize = 11.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        stopListening()
+                        onClose()
+                    },
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(theme.borderColor))
+                ) {
+                    Text("إلغاء", color = Color(theme.subtextColor), fontSize = 12.sp)
+                }
+
+                Button(
+                    onClick = {
+                        stopListening()
+                        if (recognizedText.isNotBlank()) {
+                            onInsertText(recognizedText + " ")
+                        }
+                        onClose()
+                    },
+                    enabled = recognizedText.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(theme.accentColor),
+                        disabledContainerColor = Color(theme.accentColor).copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier.weight(1.5f).height(38.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("إدراج النص ✓", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 9. QUICK IN-KEYBOARD SETTINGS VIEW (الإعدادات السريعة)
+// -------------------------------------------------------------
+@Composable
+fun QuickSettingsView(
+    theme: KeyboardTheme,
+    settings: KeyboardSettings,
+    onUpdateSettings: (KeyboardSettings) -> Unit,
+    onOpenFullSettings: () -> Unit,
+    onClose: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "إعدادات الكيبورد السريعة",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color(theme.subtextColor),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // 1. معاينة الحرف عند اللمس
+            item {
+                QuickSettingToggleRow(
+                    title = "معاينة الحرف عند الضغط (Preview Bubble)",
+                    subtitle = "ظهور فقاعة تكبير الحرف فوق الزر عند اللمس",
+                    icon = Icons.Outlined.ZoomIn,
+                    checked = settings.keyPopupEnabled,
+                    accentColor = Color(theme.accentColor),
+                    onCheckedChange = { onUpdateSettings(settings.copy(keyPopupEnabled = it)) }
+                )
+            }
+
+            // 2. اهتزاز المفاتيح
+            item {
+                QuickSettingToggleRow(
+                    title = "اهتزاز المفاتيح (Haptic Feedback)",
+                    subtitle = "تفعيل الاهتزاز اللمسي الخفيف عند الضغط",
+                    icon = Icons.Outlined.Vibration,
+                    checked = settings.vibrationEnabled,
+                    accentColor = Color(theme.accentColor),
+                    onCheckedChange = { onUpdateSettings(settings.copy(vibrationEnabled = it)) }
+                )
+            }
+
+            // 3. صف الأرقام العلوي
+            item {
+                QuickSettingToggleRow(
+                    title = "صف الأرقام العلوي المباشر",
+                    subtitle = "عرض شريط الأرقام بشكل دائم فوق الحروف",
+                    icon = Icons.Outlined.Pin,
+                    checked = settings.numberRowEnabled,
+                    accentColor = Color(theme.accentColor),
+                    onCheckedChange = { onUpdateSettings(settings.copy(numberRowEnabled = it)) }
+                )
+            }
+
+            // 4. شريط الاقتراحات والإكمال الذكي
+            item {
+                QuickSettingToggleRow(
+                    title = "شريط الاقتراحات الذكية",
+                    subtitle = "توقع الكلمات التالية والتصحيح الإملائي",
+                    icon = Icons.Outlined.AutoFixHigh,
+                    checked = settings.suggestionsEnabled,
+                    accentColor = Color(theme.accentColor),
+                    onCheckedChange = { onUpdateSettings(settings.copy(suggestionsEnabled = it)) }
+                )
+            }
+
+            // 5. صوت المفاتيح
+            item {
+                QuickSettingToggleRow(
+                    title = "صوت النقر على المفاتيح",
+                    subtitle = "إصدار نغمة نقر خفيفة عند الكتابة",
+                    icon = Icons.Outlined.VolumeUp,
+                    checked = settings.soundEnabled,
+                    accentColor = Color(theme.accentColor),
+                    onCheckedChange = { onUpdateSettings(settings.copy(soundEnabled = it)) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Full Settings Launcher Button
+        Button(
+            onClick = {
+                onOpenFullSettings()
+                onClose()
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(theme.accentColor)
+            ),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().height(38.dp)
+        ) {
+            Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "فتح إعدادات التطبيق الكاملة ⚙️",
+                color = Color.Black,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickSettingToggleRow(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    checked: Boolean,
+    accentColor: Color,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF141924))
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (checked) accentColor else Color(0xFF8E9BAE),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = subtitle,
+                    color = Color(0xFF8E9BAE),
+                    fontSize = 9.sp
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.Black,
+                checkedTrackColor = accentColor,
+                uncheckedThumbColor = Color.Gray,
+                uncheckedTrackColor = Color(0xFF222B3B)
+            ),
+            modifier = Modifier.height(26.dp)
+        )
     }
 }
 

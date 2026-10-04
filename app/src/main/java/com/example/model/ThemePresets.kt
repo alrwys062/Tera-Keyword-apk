@@ -671,6 +671,181 @@ object ThemePresets {
         category = "dark_light"
     )
 
+    // Flagship & OS Themes (iOS 26, iOS 27, One UI 7, HyperOS, EMUI, MagicOS)
+    val IOS_26_DARK = KeyboardTheme(
+        id = "ios_26_dark",
+        nameAr = "آبل iOS 26 شفاف داكن",
+        nameEn = "iOS 26 Translucent Dark",
+        backgroundColor = 0xFF12141A,
+        keyBackgroundColor = 0xFF222634,
+        keyPressedColor = 0xFF343B4E,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xFF0F1217,
+        borderColor = 0xFF333E54,
+        cornerRadius = 9f,
+        borderAlpha = 0.6f,
+        isGlass = true,
+        keyStyle = "glass",
+        category = "systems"
+    )
+
+    val IOS_26_LIGHT = KeyboardTheme(
+        id = "ios_26_light",
+        nameAr = "آبل iOS 26 شفاف فاتح",
+        nameEn = "iOS 26 Translucent Light",
+        backgroundColor = 0xFFE2E8F0,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFCBD5E1,
+        keyTextColor = 0xFF0F172A,
+        subtextColor = 0xFF64748B,
+        accentColor = 0xFF2563EB,
+        enterButtonColor = 0xFF3B82F6,
+        toolbarColor = 0xFFD8E2EC,
+        borderColor = 0xFFCBD5E1,
+        cornerRadius = 9f,
+        borderAlpha = 0.6f,
+        isGlass = true,
+        keyStyle = "glass",
+        category = "systems"
+    )
+
+    val IOS_27_TITANIUM = KeyboardTheme(
+        id = "ios_27_titanium",
+        nameAr = "آبل iOS 27 تيتانيوم داكن",
+        nameEn = "iOS 27 Dark Titanium",
+        backgroundColor = 0xFF14171C,
+        keyBackgroundColor = 0xFF1F242C,
+        keyPressedColor = 0xFF2F3743,
+        keyTextColor = 0xFFF8FAFC,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFFF59E0B,
+        enterButtonColor = 0xFFD97706,
+        toolbarColor = 0xFF101317,
+        borderColor = 0xFF3E4756,
+        cornerRadius = 10f,
+        borderAlpha = 0.7f,
+        keyStyle = "rounded",
+        category = "systems"
+    )
+
+    val IOS_27_GLASS = KeyboardTheme(
+        id = "ios_27_glass",
+        nameAr = "آبل iOS 27 جلاسمورفيزم نيون",
+        nameEn = "iOS 27 Glassmorphism",
+        backgroundColor = 0xFF0B111E,
+        keyBackgroundColor = 0xFF172338,
+        keyPressedColor = 0xFF243656,
+        keyTextColor = 0xFFE0F2FE,
+        subtextColor = 0xFF7DD3FC,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xFF080D18,
+        borderColor = 0xFF0284C7,
+        cornerRadius = 10f,
+        borderAlpha = 0.75f,
+        isGlass = true,
+        keyStyle = "glass",
+        category = "systems"
+    )
+
+    val SAMSUNG_ONE_UI_7 = KeyboardTheme(
+        id = "samsung_oneui_7",
+        nameAr = "سامسونج One UI 7 الحديث",
+        nameEn = "Samsung One UI 7 Minimal",
+        backgroundColor = 0xFF191C24,
+        keyBackgroundColor = 0xFF252A36,
+        keyPressedColor = 0xFF373E4F,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF9CA3AF,
+        accentColor = 0xFF2563EB,
+        enterButtonColor = 0xFF1D4ED8,
+        toolbarColor = 0xFF13161C,
+        borderColor = 0xFF374151,
+        cornerRadius = 10f,
+        borderAlpha = 0.55f,
+        keyStyle = "rounded",
+        category = "systems"
+    )
+
+    val XIAOMI_HYPER_OS = KeyboardTheme(
+        id = "xiaomi_hyperos",
+        nameAr = "شاومي HyperOS الأنيق",
+        nameEn = "Xiaomi HyperOS Clean",
+        backgroundColor = 0xFF0F172A,
+        keyBackgroundColor = 0xFF1E293B,
+        keyPressedColor = 0xFF334155,
+        keyTextColor = 0xFFF8FAFC,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFFFF6900,
+        enterButtonColor = 0xFFEA580C,
+        toolbarColor = 0xFF0A0F1D,
+        borderColor = 0xFF334155,
+        cornerRadius = 11f,
+        borderAlpha = 0.6f,
+        keyStyle = "rounded",
+        category = "systems"
+    )
+
+    val HUAWEI_EMUI_NEW = KeyboardTheme(
+        id = "huawei_emui_new",
+        nameAr = "هواوي EMUI الجديد",
+        nameEn = "Huawei EMUI Modern",
+        backgroundColor = 0xFF111827,
+        keyBackgroundColor = 0xFF1F2937,
+        keyPressedColor = 0xFF374151,
+        keyTextColor = 0xFFF9FAFB,
+        subtextColor = 0xFF9CA3AF,
+        accentColor = 0xFFE11D48,
+        enterButtonColor = 0xFFBE123C,
+        toolbarColor = 0xFF0B0F19,
+        borderColor = 0xFF374151,
+        cornerRadius = 10f,
+        borderAlpha = 0.55f,
+        keyStyle = "rounded",
+        category = "systems"
+    )
+
+    val HONOR_MAGIC_OS = KeyboardTheme(
+        id = "honor_magicos_new",
+        nameAr = "هونر MagicOS الجديد",
+        nameEn = "Honor MagicOS New",
+        backgroundColor = 0xFF0A101D,
+        keyBackgroundColor = 0xFF162136,
+        keyPressedColor = 0xFF243352,
+        keyTextColor = 0xFFF0FDF4,
+        subtextColor = 0xFF86EFAC,
+        accentColor = 0xFF10B981,
+        enterButtonColor = 0xFF059669,
+        toolbarColor = 0xFF070B14,
+        borderColor = 0xFF1F3252,
+        cornerRadius = 10f,
+        borderAlpha = 0.6f,
+        keyStyle = "rounded",
+        category = "systems"
+    )
+
+    val AMOLED_GOLD_LUXURY = KeyboardTheme(
+        id = "amoled_gold_luxury",
+        nameAr = "أموليد أسود وذهب ملكي",
+        nameEn = "AMOLED Black & Gold Luxury",
+        backgroundColor = 0xFF000000,
+        keyBackgroundColor = 0xFF101010,
+        keyPressedColor = 0xFF262010,
+        keyTextColor = 0xFFFFDF7A,
+        subtextColor = 0xFFD4AF37,
+        accentColor = 0xFFFFD700,
+        enterButtonColor = 0xFFD4AF37,
+        toolbarColor = 0xFF050505,
+        borderColor = 0xFFFFD700,
+        cornerRadius = 10f,
+        borderAlpha = 0.8f,
+        keyStyle = "neon",
+        category = "elegant"
+    )
+
     val AMOLED_PURE_BLACK = KeyboardTheme(
         id = "amoled_pure_black",
         nameAr = "أموليد سواد فائق (AMOLED Black)",
@@ -708,7 +883,18 @@ object ThemePresets {
     )
 
     val allPresets = listOf(
-        // iOS Themes
+        // Modern Systems & Flagship OS
+        IOS_27_GLASS,
+        IOS_27_TITANIUM,
+        IOS_26_DARK,
+        IOS_26_LIGHT,
+        SAMSUNG_ONE_UI_7,
+        XIAOMI_HYPER_OS,
+        HUAWEI_EMUI_NEW,
+        HONOR_MAGIC_OS,
+        AMOLED_GOLD_LUXURY,
+
+        // Classic iOS Themes
         IOS_DARK,
         IOS_LIGHT,
         AMOLED_PURE_BLACK,

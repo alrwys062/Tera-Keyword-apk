@@ -140,80 +140,82 @@ fun InlineTranslationBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
-            .background(Color(0xFF161C28))
-            .padding(horizontal = 8.dp),
+            .height(34.dp)
+            .background(Color(theme.toolbarColor))
+            .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Close button (Red circular X like Screenshot 20)
-        IconButton(
-            onClick = onClose,
+        // Close button (Mini compact circular X)
+        Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(16.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                .clickable(onClick = onClose),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Close Translation",
                 tint = Color.White,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(9.dp)
             )
         }
 
         // Language selectors and Swap (Screenshot 20: [Target ▼] ⇄ [Source ▼])
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Source Language Selector
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF222B3D),
-                border = BorderStroke(1.dp, Color(0xFF32415C)),
+                shape = RoundedCornerShape(6.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
                 modifier = Modifier.clickable { showSourcePickerModal = true }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(sourceLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                    Text(sourceLabel, color = Color(theme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(theme.keyTextColor).copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
                 }
             }
 
-            // Swap icon ⇄
-            IconButton(
-                onClick = onSwapLanguages,
+            // Swap icon ⇄ (Mini compact circular button)
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(18.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF222B3D))
+                    .background(Color(theme.keyBackgroundColor))
+                    .clickable(onClick = onSwapLanguages),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.SwapHoriz,
                     contentDescription = "Swap Languages",
-                    tint = Color(0xFF00E5FF),
-                    modifier = Modifier.size(18.dp)
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(11.dp)
                 )
             }
 
             // Target Language Selector
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF222B3D),
-                border = BorderStroke(1.dp, Color(0xFF32415C)),
+                shape = RoundedCornerShape(6.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
                 modifier = Modifier.clickable { showTargetPickerModal = true }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(targetLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                    Text(targetLabel, color = Color(theme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(theme.keyTextColor).copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
                 }
             }
         }
@@ -245,51 +247,52 @@ fun InlineDecorationBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(44.dp)
-                .background(Color(0xFF161C28))
-                .padding(horizontal = 8.dp),
+                .height(38.dp)
+                .background(Color(theme.toolbarColor))
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Close red X button (Screenshot 19)
-            IconButton(
-                onClick = onClose,
+            // Close red X button (Mini compact & sleek)
+            Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(16.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close Decoration",
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(9.dp)
                 )
             }
 
             // Text Style button (Screenshot 19: "Text Style ▼")
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF222B3D),
-                border = BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(6.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.5f)),
                 modifier = Modifier.clickable { showStylesMenu = !showStylesMenu }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = activeItem.preview,
-                        color = Color.White,
-                        fontSize = 13.sp,
+                        color = Color(theme.keyTextColor),
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = if (showStylesMenu) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                         contentDescription = null,
                         tint = Color(theme.accentColor),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -400,80 +403,96 @@ fun ClipboardDrawer(
         modifier = Modifier
             .fillMaxWidth()
             .height(260.dp)
-            .background(Color(0xFF0F141E))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
-        // Top Toolbar of Clipboard matching Screenshot 21:
+        // Top Toolbar of Clipboard:
         // [⚙️ Settings] [🗑️ Clear] [📋 Paste] [✂️ Cut] [❌ Close]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(42.dp)
-                .background(Color(0xFF161E2E), RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp),
+                .height(36.dp)
+                .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Settings
-                IconButton(
-                    onClick = { /* Settings handled in main */ },
-                    modifier = Modifier.size(30.dp)
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
+                        .clickable { /* Settings handled in main */ },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color.LightGray, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
                 }
 
                 // Delete all non-pinned
-                IconButton(
-                    onClick = {
-                        prefs.clearClipboardHistory()
-                        items = prefs.getClipboardItems()
-                    },
-                    modifier = Modifier.size(30.dp)
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                        .clickable {
+                            prefs.clearClipboardHistory()
+                            items = prefs.getClipboardItems()
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Delete, contentDescription = "Clear History", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.Delete, contentDescription = "Clear History", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
                 }
 
                 // Copy all / current
-                IconButton(
-                    onClick = {
-                        // Quick info / paste first
-                        if (items.isNotEmpty()) {
-                            onItemInserted(items[0].text)
-                            onClose() // Auto-close upon paste
-                        }
-                    },
-                    modifier = Modifier.size(30.dp)
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color(theme.accentColor).copy(alpha = 0.15f))
+                        .clickable {
+                            if (items.isNotEmpty()) {
+                                onItemInserted(items[0].text)
+                                onClose() // Auto-close upon paste
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.ContentPaste, contentDescription = "Paste Recent", tint = Color(0xFF00E5FF), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.ContentPaste, contentDescription = "Paste Recent", tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
                 }
 
-                // Cut icon (Screenshot 21)
-                IconButton(
-                    onClick = {
-                        if (items.isNotEmpty()) {
-                            val first = items[0]
-                            onItemInserted(first.text)
-                            prefs.deleteClipboardItem(first.id)
-                            items = prefs.getClipboardItems()
-                            onClose() // Auto-close
-                        }
-                    },
-                    modifier = Modifier.size(30.dp)
+                // Cut icon
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
+                        .clickable {
+                            if (items.isNotEmpty()) {
+                                val first = items[0]
+                                onItemInserted(first.text)
+                                prefs.deleteClipboardItem(first.id)
+                                items = prefs.getClipboardItems()
+                                onClose() // Auto-close
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.ContentCut, contentDescription = "Cut/Pop", tint = Color.LightGray, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.ContentCut, contentDescription = "Cut/Pop", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
                 }
             }
 
             // Close Button ❌
-            IconButton(
-                onClick = onClose,
+            Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(16.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF222B3D))
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
             }
         }
 
@@ -483,7 +502,7 @@ fun ClipboardDrawer(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "الحافظة فارغة (يتم حفظ كل ما تنسخه تلقائياً للأبد)",
-                    color = Color(0xFF8E9BAE),
+                    color = Color(theme.subtextColor),
                     fontSize = 12.sp
                 )
             }
@@ -499,10 +518,10 @@ fun ClipboardDrawer(
                 items(filteredItems, key = { it.id }) { clip ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF192233),
+                        color = Color(theme.keyBackgroundColor),
                         border = BorderStroke(
                             1.dp,
-                            if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF28364F)
+                            if (clip.isPinned) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -517,7 +536,7 @@ fun ClipboardDrawer(
                         Box(modifier = Modifier.padding(6.dp)) {
                             Text(
                                 text = clip.text,
-                                color = Color.White,
+                                color = Color(theme.keyTextColor),
                                 fontSize = 11.sp,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
@@ -530,7 +549,7 @@ fun ClipboardDrawer(
                                 Icon(
                                     imageVector = Icons.Default.PushPin,
                                     contentDescription = "Pinned",
-                                    tint = Color(0xFF00E5FF),
+                                    tint = Color(theme.accentColor),
                                     modifier = Modifier
                                         .size(12.dp)
                                         .align(Alignment.BottomEnd)
@@ -633,17 +652,20 @@ fun EmojiPickerView(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            IconButton(
-                onClick = onClose,
+            // Emoji picker close button
+            Box(
                 modifier = Modifier
-                    .size(34.dp)
-                    .background(Color(theme.keyBackgroundColor), CircleShape)
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
                     tint = Color(theme.keyTextColor),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(9.dp)
                 )
             }
         }
@@ -761,8 +783,15 @@ fun GifPickerView(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("رموز Kaomoji و GIF سريعة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null, tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
@@ -854,8 +883,15 @@ fun MediaPickerView(
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
-            IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
             }
         }
 
@@ -1070,18 +1106,19 @@ fun AiToneDrawer(
                 )
             }
 
-            IconButton(
-                onClick = onClose,
+            Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(16.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E283A))
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    tint = Color(theme.keyTextColor),
+                    modifier = Modifier.size(9.dp)
                 )
             }
         }
@@ -1397,15 +1434,22 @@ fun VoiceInputView(
                     fontWeight = FontWeight.Bold
                 )
             }
-            IconButton(onClick = {
-                stopListening()
-                onClose()
-            }, modifier = Modifier.size(28.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = {
+                        stopListening()
+                        onClose()
+                    }),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier.size(18.dp)
+                    tint = Color(theme.keyTextColor),
+                    modifier = Modifier.size(9.dp)
                 )
             }
         }
@@ -1568,12 +1612,19 @@ fun QuickSettingsView(
                     fontWeight = FontWeight.Bold
                 )
             }
-            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier.size(18.dp)
+                    tint = Color(theme.keyTextColor),
+                    modifier = Modifier.size(9.dp)
                 )
             }
         }
@@ -1784,8 +1835,15 @@ fun DecoratedPhrasesView(
                 }
             }
 
-            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(9.dp))
             }
         }
 
@@ -1869,8 +1927,15 @@ fun CalculatorPadView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(9.dp))
             }
 
             Column(horizontalAlignment = Alignment.End) {

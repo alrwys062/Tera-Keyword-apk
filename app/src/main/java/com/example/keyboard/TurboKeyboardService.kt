@@ -186,7 +186,10 @@ class TurboKeyboardService : InputMethodService(),
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         ensureLifecyclePausedAndStopped()
-        activeInputConnectionState.value = null
+        // Do not force-null activeInputConnectionState on transient focus changes (like screenshots)
+        if (finishingInput) {
+            activeInputConnectionState.value = currentInputConnection
+        }
     }
 
     private fun ensureLifecyclePausedAndStopped() {
@@ -204,7 +207,7 @@ class TurboKeyboardService : InputMethodService(),
 
     override fun onFinishInput() {
         super.onFinishInput()
-        activeInputConnectionState.value = null
+        activeInputConnectionState.value = currentInputConnection
     }
 
     private fun performServiceDelete() {

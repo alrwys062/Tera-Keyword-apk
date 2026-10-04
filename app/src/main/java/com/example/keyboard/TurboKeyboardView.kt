@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import coil.compose.AsyncImage
 import com.example.data.InputLanguagesManager
 import com.example.data.LongPressVariantsManager
 import com.example.data.PredictionEngine
@@ -283,12 +285,27 @@ fun TurboKeyboardView(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(bgModifier)
-            .navigationBarsPadding()
-    ) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        if (!theme.backgroundImageUri.isNullOrBlank()) {
+            AsyncImage(
+                model = theme.backgroundImageUri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = theme.backgroundDim))
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (theme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
+                .navigationBarsPadding()
+        ) {
         // Top status/alert banner when 4-sec translate is active
         AnimatedVisibility(visible = enterHoldMessage.isNotEmpty() || enterHoldProgress > 0.1f) {
             Box(
@@ -1052,6 +1069,7 @@ fun TurboKeyboardView(
         }
         Spacer(modifier = Modifier.height(4.dp))
     }
+    }
 }
 
 private val arabicSecondaryHintMap = mapOf(
@@ -1117,13 +1135,15 @@ fun KeyButton(
         }
     }
 
+    val keyAlpha = if (theme.keyOpacity < 1.0f) theme.keyOpacity else 1.0f
+
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(49.dp)
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
             .background(
-                if (isTouching) Color(theme.keyPressedColor)
-                else Color(theme.keyBackgroundColor)
+                if (isTouching) Color(theme.keyPressedColor).copy(alpha = keyAlpha)
+                else Color(theme.keyBackgroundColor).copy(alpha = keyAlpha)
             )
             .border(
                 width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
@@ -1290,21 +1310,25 @@ fun BackspaceKeyButton(
     LaunchedEffect(isPressed) {
         if (isPressed) {
             onDelete()
-            delay(380)
+            delay(300)
+            var deleteCount = 0
             while (isPressed) {
                 onDelete()
-                delay(50)
+                deleteCount++
+                val interval = if (deleteCount > 25) 25L else if (deleteCount > 10) 35L else 45L
+                delay(interval)
             }
         }
     }
 
+    val keyAlpha = if (theme.keyOpacity < 1.0f) theme.keyOpacity else 0.9f
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(49.dp)
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
             .background(
-                if (isPressed) Color(theme.keyPressedColor)
-                else Color(theme.keyBackgroundColor).copy(alpha = 0.9f)
+                if (isPressed) Color(theme.keyPressedColor).copy(alpha = keyAlpha)
+                else Color(theme.keyBackgroundColor).copy(alpha = keyAlpha)
             )
             .border(
                 1.dp,
@@ -1325,7 +1349,7 @@ fun BackspaceKeyButton(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
             contentDescription = "Backspace",
-            tint = Color(0xFF00B0FF),
+            tint = Color(theme.accentColor),
             modifier = Modifier.size(20.dp)
         )
     }

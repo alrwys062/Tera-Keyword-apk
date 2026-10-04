@@ -18,8 +18,10 @@ data class KeyboardTheme(
     val cornerRadius: Float = 10f,
     val borderAlpha: Float = 0.5f,
     val backgroundImageUri: String? = null,
+    val backgroundDim: Float = 0.45f,
+    val keyOpacity: Float = 1.0f,
     val keyStyle: String = "rounded", // "rounded", "glass", "neon", "bubble", "carbon", "gold", "retro"
-    val category: String = "modern", // "dark_light", "neon", "minimal", "gradient", "glass", "gaming", "elegant", "colorful", "anime"
+    val category: String = "modern", // "dark_light", "neon", "minimal", "gradient", "glass", "gaming", "elegant", "colorful", "anime", "systems"
     val isGlass: Boolean = false,
     val dualLanguageHints: Boolean = true,
     val specialKeyColor: Long? = null

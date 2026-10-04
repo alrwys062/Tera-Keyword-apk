@@ -46,12 +46,13 @@ fun ThemesScreen(
 
     val categories = listOf(
         "الكل",
+        "أنظمة وهواتف",
         "داكن وفاتح",
         "نيون وسايبر",
+        "فخم وراقي",
         "تدرجات لونية",
         "زجاجي شفاف",
         "ألعاب وجيمينج",
-        "فخم وراقي",
         "ألوان ومرح",
         "مينيمال",
         "مخصص"
@@ -70,6 +71,7 @@ fun ThemesScreen(
 
             val matchCategory = when (selectedCategory) {
                 "الكل" -> true
+                "أنظمة وهواتف" -> theme.category == "systems"
                 "داكن وفاتح" -> theme.category == "dark_light"
                 "نيون وسايبر" -> theme.category == "neon"
                 "تدرجات لونية" -> theme.category == "gradient"

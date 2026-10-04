@@ -634,7 +634,86 @@ object ThemePresets {
         category = "colorful"
     )
 
+    // New requested Apple iOS & AMOLED Themes
+    val IOS_DARK = KeyboardTheme(
+        id = "ios_dark",
+        nameAr = "آيفون داكن (iOS Dark)",
+        nameEn = "iPhone Dark iOS",
+        backgroundColor = 0xFF1C1C1E,
+        keyBackgroundColor = 0xFF2C2C2E,
+        keyPressedColor = 0xFF3A3A3C,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF8E8E93,
+        accentColor = 0xFF0A84FF,
+        enterButtonColor = 0xFF0A84FF,
+        toolbarColor = 0xFF161618,
+        borderColor = 0xFF3A3A3C,
+        cornerRadius = 8f,
+        keyStyle = "rounded",
+        category = "dark_light"
+    )
+
+    val IOS_LIGHT = KeyboardTheme(
+        id = "ios_light",
+        nameAr = "آيفون فاتح (iOS Light)",
+        nameEn = "iPhone Light iOS",
+        backgroundColor = 0xFFD1D5DB,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE5E7EB,
+        keyTextColor = 0xFF000000,
+        subtextColor = 0xFF6B7280,
+        accentColor = 0xFF007AFF,
+        enterButtonColor = 0xFF007AFF,
+        toolbarColor = 0xFFCBD5E1,
+        borderColor = 0xFF9CA3AF,
+        cornerRadius = 8f,
+        keyStyle = "rounded",
+        category = "dark_light"
+    )
+
+    val AMOLED_PURE_BLACK = KeyboardTheme(
+        id = "amoled_pure_black",
+        nameAr = "أموليد سواد فائق (AMOLED Black)",
+        nameEn = "AMOLED Pure Black",
+        backgroundColor = 0xFF000000,
+        keyBackgroundColor = 0xFF0D0D0D,
+        keyPressedColor = 0xFF1F1F1F,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF737373,
+        accentColor = 0xFF00E5FF,
+        enterButtonColor = 0xFF00B0FF,
+        toolbarColor = 0xFF000000,
+        borderColor = 0xFF262626,
+        cornerRadius = 10f,
+        keyStyle = "neon",
+        category = "neon"
+    )
+
+    val ROYAL_PURPLE = KeyboardTheme(
+        id = "royal_purple",
+        nameAr = "أرجواني ملكي (Royal Purple)",
+        nameEn = "Royal Purple",
+        backgroundColor = 0xFF10091D,
+        keyBackgroundColor = 0xFF1F1235,
+        keyPressedColor = 0xFF311C54,
+        keyTextColor = 0xFFF3E8FF,
+        subtextColor = 0xFFA855F7,
+        accentColor = 0xFFC084FC,
+        enterButtonColor = 0xFF9333EA,
+        toolbarColor = 0xFF160C29,
+        borderColor = 0xFF3B1D6A,
+        cornerRadius = 10f,
+        keyStyle = "rounded",
+        category = "colorful"
+    )
+
     val allPresets = listOf(
+        // iOS Themes
+        IOS_DARK,
+        IOS_LIGHT,
+        AMOLED_PURE_BLACK,
+        ROYAL_PURPLE,
+
         // Neon & Cyber
         CYBER_PRO,
         NEON_NIGHT,

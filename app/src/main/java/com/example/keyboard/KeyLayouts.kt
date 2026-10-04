@@ -29,26 +29,48 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    // عربي اساسي (Transboard Default - Screenshots 7, 14)
-    val arabicRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").map {
+    // Standard Arabic Layout (Gboard / Samsung / Transboard Familiar Standard)
+    val arabicRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
         KeyModel(KeyType.Character(it))
     }
 
-    val arabicRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك").map {
+    val arabicRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
         KeyModel(KeyType.Character(it))
     }
 
     val arabicRow3 = listOf(
-        KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Character("ط")),
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("د")),
-        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ئ")),
+        KeyModel(KeyType.Character("ء")),
+        KeyModel(KeyType.Character("ؤ")),
         KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("لا")),
         KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Backspace, weight = 1.4f)
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ظ")),
+        KeyModel(KeyType.Backspace, weight = 1.3f)
+    )
+
+    // Long press popup characters for Arabic & English (تشكيل، همزات، أرقام ورموز)
+    val charPopupMap = mapOf(
+        "ا" to listOf("أ", "إ", "آ", "ء", "ٱ", "1"),
+        "و" to listOf("ؤ", "9"),
+        "ي" to listOf("ئ", "ى", "8"),
+        "ت" to listOf("ة", "4"),
+        "ه" to listOf("ة", "6"),
+        "لا" to listOf("لأ", "لإ", "لآ"),
+        "ب" to listOf("پ", "2"),
+        "ج" to listOf("چ"),
+        "ف" to listOf("ڤ"),
+        "ك" to listOf("گ"),
+        "ز" to listOf("ژ"),
+        "س" to listOf("َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ّ", "ْ", "ـ"),
+        "q" to listOf("1"), "w" to listOf("2"), "e" to listOf("3", "é", "è", "ê", "ë"),
+        "r" to listOf("4"), "t" to listOf("5"), "y" to listOf("6"), "u" to listOf("7", "ú", "ù", "û", "ü"),
+        "i" to listOf("8", "í", "ì", "î", "ï"), "o" to listOf("9", "ó", "ò", "ô", "ö", "õ"),
+        "p" to listOf("0"), "a" to listOf("á", "à", "â", "ä", "ã", "å"), "s" to listOf("ß", "$"),
+        "c" to listOf("ç"), "n" to listOf("ñ")
     )
 
     // Tashkeel / Diacritics

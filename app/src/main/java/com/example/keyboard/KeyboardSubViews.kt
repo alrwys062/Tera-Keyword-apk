@@ -537,7 +537,7 @@ fun ClipboardDrawer(
 }
 
 // -------------------------------------------------------------
-// 4. EMOJI PICKER VIEW
+// 4. EMOJI PICKER VIEW (مع قسم الإيموجي المستعملة 🕒 وإيموجي آيفون وأندرويد)
 // -------------------------------------------------------------
 @Composable
 fun EmojiPickerView(
@@ -545,16 +545,24 @@ fun EmojiPickerView(
     onEmojiSelected: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    var selectedCategoryIndex by remember { mutableIntStateOf(0) }
-    var searchQuery by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val recentEmojiManager = remember { com.example.data.RecentEmojiManager(context) }
+    var recentEmojisList by remember { mutableStateOf(recentEmojiManager.getRecentEmojis()) }
 
-    val currentEmojis = remember(selectedCategoryIndex, searchQuery) {
+    // -1 = Recent Emojis 🕒, 0..N = Standard Categories
+    var selectedCategoryIndex by remember { mutableIntStateOf(-1) }
+    var searchQuery by remember { mutableStateOf("") }
+    var isIosStyle by remember { mutableStateOf(true) }
+
+    val currentEmojis = remember(selectedCategoryIndex, searchQuery, recentEmojisList) {
         if (searchQuery.isNotBlank()) {
-            EmojiData.categories.flatMap { it.emojis }
+            (recentEmojisList + EmojiData.categories.flatMap { it.emojis })
                 .distinct()
                 .filter { it.contains(searchQuery.trim()) }
+        } else if (selectedCategoryIndex == -1) {
+            recentEmojisList
         } else {
-            EmojiData.categories[selectedCategoryIndex].emojis
+            EmojiData.categories.getOrNull(selectedCategoryIndex)?.emojis ?: emptyList()
         }
     }
 
@@ -565,7 +573,7 @@ fun EmojiPickerView(
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        // Top search & close row
+        // Top search & style toggle & close row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -578,7 +586,7 @@ fun EmojiPickerView(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(46.dp),
+                    .height(44.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(theme.accentColor),
@@ -597,7 +605,25 @@ fun EmojiPickerView(
                 }
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // iOS / Android emoji style toggle
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (isIosStyle) Color(0xFF0A84FF).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, if (isIosStyle) Color(0xFF0A84FF) else Color(theme.borderColor)),
+                modifier = Modifier.clickable { isIosStyle = !isIosStyle }
+            ) {
+                Text(
+                    text = if (isIosStyle) "🍏 آيفون" else "🤖 أندرويد",
+                    color = if (isIosStyle) Color(0xFF0A84FF) else Color(theme.keyTextColor),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
 
             IconButton(
                 onClick = onClose,
@@ -616,11 +642,40 @@ fun EmojiPickerView(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Categories Tab
+        // Categories Tab: 🕒 Recent first, then normal categories
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Recent Emojis 🕒 Tab
+            item {
+                val isRecentSelected = selectedCategoryIndex == -1
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isRecentSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isRecentSelected) Color(theme.accentColor) else Color(theme.borderColor)
+                    ),
+                    modifier = Modifier.clickable { selectedCategoryIndex = -1 }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "🕒", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "المستعملة",
+                            color = if (isRecentSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
+                            fontSize = 10.sp,
+                            fontWeight = if (isRecentSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
             items(EmojiData.categories.indices.toList()) { index ->
                 val cat = EmojiData.categories[index]
                 val isSelected = index == selectedCategoryIndex
@@ -656,7 +711,11 @@ fun EmojiPickerView(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onEmojiSelected(emoji) },
+                        .clickable {
+                            recentEmojiManager.addEmoji(emoji)
+                            recentEmojisList = recentEmojiManager.getRecentEmojis()
+                            onEmojiSelected(emoji)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = emoji, fontSize = 22.sp)

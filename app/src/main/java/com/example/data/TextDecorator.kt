@@ -209,4 +209,42 @@ object TextDecorator {
         'q' to "🅀", 'r' to "🅁", 's' to "🅂", 't' to "🅃", 'u' to "🅄", 'v' to "🅅", 'w' to "🅆", 'x' to "🅇",
         'y' to "🅈", 'z' to "🅉"
     )
+
+    // زخرفة أسماء ألعاب وبرامج تواصل (ببجي، فري فاير، فيسبوك، انستا، تيك توك)
+    fun generateGameAndSocialNicknames(name: String): List<String> {
+        val base = if (name.isBlank()) "الـمـلـك" else name.trim()
+        val ornate = ornateArabicLetters(base)
+        val elongated = elongateArabic(base)
+
+        return listOf(
+            "꧁༺ $base ༻꧂",
+            "★彡 $base 彡★",
+            "亗『 $base 』亗",
+            "⚔️ ⦅ $base ⦆ ⚔️",
+            "♛ $base ♛",
+            "★ᴾᴿᴼ★ $base",
+            "乡 $base 乡",
+            "🔥『 $ornate 』🔥",
+            "『ツ』$base",
+            "༺LeGeNd༻ $base",
+            "亗 $base 亗",
+            "〆 $base 〆",
+            "۝ $base ۝",
+            "⚡ $base ⚡",
+            "👑 $ornate 👑",
+            "【 $base 】",
+            "⫷ $base ⫸",
+            "•°¯`•• $base ••´¯°•",
+            "««—(¯`v´¯)—»» $base",
+            "░▒▓█ $base █▓▒░",
+            "★ $elongated ★",
+            "✧ $base ✧",
+            "༺ $base ༻",
+            "ッ $base",
+            "𝒯𝓊𝓇𝒷ℴ | $base",
+            "『V I P』$base",
+            "★ $base ★",
+            "ღ $base ღ"
+        )
+    }
 }

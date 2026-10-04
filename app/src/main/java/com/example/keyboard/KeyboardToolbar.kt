@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.KeyboardSubView
@@ -43,16 +44,16 @@ fun KeyboardToolbar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(48.dp)
             .background(Color(theme.toolbarColor))
             .horizontalScroll(scrollState)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. إيموجي (Emoji)
         val isEmojiActive = activeSubView == KeyboardSubView.EMOJI
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.Mood,
             label = "إيموجي",
             isActive = isEmojiActive,
@@ -64,7 +65,7 @@ fun KeyboardToolbar(
 
         // 2. GIF
         val isGifActive = activeSubView == KeyboardSubView.GIF
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.Gif,
             label = "GIF",
             isActive = isGifActive,
@@ -76,7 +77,7 @@ fun KeyboardToolbar(
 
         // 3. صور والملصقات (Photos / Stickers)
         val isPhotosActive = activeSubView == KeyboardSubView.PHOTOS
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.PhotoLibrary,
             label = "صور",
             isActive = isPhotosActive,
@@ -86,8 +87,8 @@ fun KeyboardToolbar(
             }
         )
 
-        // 4. ترجمة (Translation - with exact cyan rounded border when active, matching Screenshot 1)
-        ToolbarIconItem(
+        // 4. ترجمة (Translation)
+        ToolbarFixedItem(
             icon = Icons.Default.Translate,
             label = "ترجمة",
             isActive = isTranslationActive,
@@ -97,7 +98,7 @@ fun KeyboardToolbar(
 
         // 5. حافظة (Clipboard)
         val isClipboardActive = activeSubView == KeyboardSubView.CLIPBOARD
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.ContentPaste,
             label = "حافظة",
             isActive = isClipboardActive,
@@ -108,7 +109,7 @@ fun KeyboardToolbar(
         )
 
         // 6. زخرفة (Decoration)
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.AutoAwesome,
             label = "زخرفة",
             isActive = isDecorationActive,
@@ -118,9 +119,9 @@ fun KeyboardToolbar(
 
         // 7. ذكاء ونبرة (AI Tone & Smart Assistant)
         val isAiActive = activeSubView == KeyboardSubView.AI_ASSISTANT
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.Psychology,
-            label = "ذكاء ونبرة",
+            label = "ذكاء",
             isActive = isAiActive,
             theme = theme,
             onClick = {
@@ -128,8 +129,8 @@ fun KeyboardToolbar(
             }
         )
 
-        // 8. صوت (Voice)
-        ToolbarIconItem(
+        // 8. صوت (Voice Input)
+        ToolbarFixedItem(
             icon = Icons.Default.Mic,
             label = "صوت",
             isActive = false,
@@ -138,7 +139,7 @@ fun KeyboardToolbar(
         )
 
         // 9. ليلي (Night Mode toggle)
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.DarkMode,
             label = "ليلي",
             isActive = isNightMode,
@@ -147,7 +148,7 @@ fun KeyboardToolbar(
         )
 
         // 10. إعدادات (Settings)
-        ToolbarIconItem(
+        ToolbarFixedItem(
             icon = Icons.Outlined.Settings,
             label = "إعدادات",
             isActive = false,
@@ -158,7 +159,7 @@ fun KeyboardToolbar(
 }
 
 @Composable
-private fun ToolbarIconItem(
+private fun ToolbarFixedItem(
     icon: ImageVector,
     label: String,
     isActive: Boolean,
@@ -170,18 +171,17 @@ private fun ToolbarIconItem(
 
     Box(
         modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .height(46.dp)
-            .wrapContentWidth()
+            .width(52.dp)
+            .height(44.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) activeColor.copy(alpha = 0.2f) else Color.Transparent)
+            .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
             .border(
                 width = if (isActive) 1.dp else 0.dp,
                 color = if (isActive) activeColor else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .padding(vertical = 3.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -199,7 +199,9 @@ private fun ToolbarIconItem(
                 text = label,
                 color = if (isActive) activeColor else inactiveTextColor,
                 fontSize = 10.sp,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

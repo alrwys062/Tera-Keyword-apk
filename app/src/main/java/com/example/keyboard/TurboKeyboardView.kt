@@ -15,12 +15,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.ContentPaste
@@ -40,6 +43,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.InputLanguagesManager
+import com.example.data.LongPressVariantsManager
 import com.example.data.PredictionEngine
 import com.example.data.PreferencesManager
 import com.example.data.TextDecorator
@@ -91,6 +95,10 @@ fun TurboKeyboardView(
     var isTranslationBarOpen by remember { mutableStateOf(false) }
     var translationSource by remember { mutableStateOf(settings.translationSource) }
     var translationTarget by remember { mutableStateOf(settings.translationTarget) }
+
+    // Long-Press character variant popup state (Matching Screenshots 1, 2, 4)
+    var longPressChar by remember { mutableStateOf<String?>(null) }
+    var longPressVariants by remember { mutableStateOf<List<String>>(emptyList()) }
 
     // Live text tracking for prediction and special 4-sec translate
     var currentComposingText by remember { mutableStateOf("") }
@@ -261,7 +269,7 @@ fun TurboKeyboardView(
             }
         }
 
-        // 1. TOP TOOLBAR matching Screenshot 1 Turbo Keyboard design
+        // 1. TOP TOOLBAR matching previous Transboard design
         KeyboardToolbar(
             theme = theme,
             activeSubView = activeSubView,
@@ -463,6 +471,88 @@ fun TurboKeyboardView(
                         .padding(horizontal = 4.dp, vertical = 3.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
+                // Long-Press Character Popup Overlay (Matching Screenshots 1, 2, 4)
+                AnimatedVisibility(
+                    visible = longPressChar != null && longPressVariants.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF141A26),
+                            border = BorderStroke(1.5.dp, Color(0xFF00B0FF)),
+                            shadowElevation = 8.dp
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                longPressVariants.forEach { variant ->
+                                    val isCurrent = variant == longPressChar
+                                    Box(
+                                        modifier = Modifier
+                                            .size(width = 38.dp, height = 44.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (isCurrent) Color(0xFF007ACC)
+                                                else Color(0xFF1F293B)
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isCurrent) Color(0xFF00B0FF) else Color(0xFF2E3E58),
+                                                RoundedCornerShape(6.dp)
+                                            )
+                                            .clickable {
+                                                performFeedback()
+                                                sendText(variant)
+                                                longPressChar = null
+                                                longPressVariants = emptyList()
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = variant,
+                                            color = Color.White,
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                // Dismiss X button
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 32.dp, height = 44.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(0xFF2D1E26))
+                                        .border(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            longPressChar = null
+                                            longPressVariants = emptyList()
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Dismiss",
+                                        tint = Color(0xFFFF5252),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Optional Number Row
                 if (settings.numberRowEnabled) {
                     Row(
@@ -471,18 +561,25 @@ fun TurboKeyboardView(
                     ) {
                         val row = if (isArabic) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
                         row.forEach { key ->
+                            val digitChar = (key.type as KeyType.Character).primary
                             KeyButton(
                                 key = key,
                                 theme = theme,
                                 isShifted = isShifted,
                                 modifier = Modifier.weight(key.weight),
-                                onClick = { sendText((key.type as KeyType.Character).primary) }
+                                onClick = { sendText(digitChar) },
+                                onLongClick = {
+                                    performFeedback()
+                                    val variants = LongPressVariantsManager.getVariants(digitChar)
+                                    longPressChar = digitChar
+                                    longPressVariants = variants
+                                }
                             )
                         }
                     }
                 }
 
-                // Row 1
+                // Row 1 (With number hints matching Screenshots 3 & 4)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -493,14 +590,23 @@ fun TurboKeyboardView(
                         else -> worldR1
                     }
                     row.forEach { key ->
+                        val char = (key.type as KeyType.Character).primary
+                        val hint = if (isArabic) LongPressVariantsManager.arabicRow1Hints[char]
+                                   else LongPressVariantsManager.englishRow1Hints[char.lowercase()]
                         KeyButton(
                             key = key,
                             theme = theme,
                             isShifted = isShifted,
+                            numberHint = hint,
                             modifier = Modifier.weight(key.weight),
                             onClick = {
-                                val char = (key.type as KeyType.Character).primary
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
+                            },
+                            onLongClick = {
+                                performFeedback()
+                                val variants = LongPressVariantsManager.getVariants(char)
+                                longPressChar = char
+                                longPressVariants = variants
                             }
                         )
                     }
@@ -517,14 +623,20 @@ fun TurboKeyboardView(
                         else -> worldR2
                     }
                     row.forEach { key ->
+                        val char = (key.type as KeyType.Character).primary
                         KeyButton(
                             key = key,
                             theme = theme,
                             isShifted = isShifted,
                             modifier = Modifier.weight(key.weight),
                             onClick = {
-                                val char = (key.type as KeyType.Character).primary
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
+                            },
+                            onLongClick = {
+                                performFeedback()
+                                val variants = LongPressVariantsManager.getVariants(char)
+                                longPressChar = char
+                                longPressVariants = variants
                             }
                         )
                     }
@@ -597,14 +709,20 @@ fun TurboKeyboardView(
                                         }
                                     )
                                 } else {
+                                    val char = key.type.primary
                                     KeyButton(
                                         key = key,
                                         theme = theme,
                                         isShifted = isShifted,
                                         modifier = Modifier.weight(key.weight),
                                         onClick = {
-                                            val char = key.type.primary
                                             sendText(if (isShifted && !isArabic && !isSymbolsMode) char.uppercase() else char)
+                                        },
+                                        onLongClick = {
+                                            performFeedback()
+                                            val variants = LongPressVariantsManager.getVariants(char)
+                                            longPressChar = char
+                                            longPressVariants = variants
                                         }
                                     )
                                 }
@@ -614,8 +732,8 @@ fun TurboKeyboardView(
                     }
                 }
 
-                // Row 4: Exact Transboard bottom row requested:
-                // [ 123!#() ] [ 📋 ] [ .com ] [   Spacebar   ] [ / ] [ . ] [ ↵ Enter on far right ]
+                // Row 4: Exact bottom row from Screenshots 1, 2, 4, 5:
+                // [ ١٢٣ / ?123 (cyan) ] [ 🌐 Language (cyan) ] [ 📋 Clipboard ] [   Spacebar   ] [ . ] [ 😊 ] [ ✓ Enter (cyan) ]
                 var enterJob: Job? by remember { mutableStateOf(null) }
 
                 Row(
@@ -847,15 +965,18 @@ fun KeyButton(
     key: KeyModel,
     theme: KeyboardTheme,
     isShifted: Boolean,
+    numberHint: String? = null,
+    customTextColor: Color? = null,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
     val char = (key.type as? KeyType.Character)?.primary ?: ""
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val displayChar = if (isShifted) char.uppercase() else char
-    val hint = if (theme.dualLanguageHints) {
+    val dualHint = if (theme.dualLanguageHints) {
         enToArHintMap[char.lowercase()] ?: arToEnHintMap[char]
     } else null
 
@@ -873,16 +994,30 @@ fun KeyButton(
                 else Color(theme.borderColor).copy(alpha = theme.borderAlpha),
                 shape = RoundedCornerShape(theme.cornerRadius.dp)
             )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
+            .pointerInput(displayChar) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onLongPress = {
+                        if (onLongClick != null) onLongClick()
+                        else onClick()
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
-        if (hint != null) {
+        if (numberHint != null) {
             Text(
-                text = hint,
+                text = numberHint,
+                color = Color(0xFF00B0FF).copy(alpha = 0.85f),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 1.dp, start = 3.dp)
+            )
+        } else if (dualHint != null) {
+            Text(
+                text = dualHint,
                 color = Color(theme.subtextColor).copy(alpha = 0.75f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Medium,
@@ -894,8 +1029,8 @@ fun KeyButton(
 
         Text(
             text = displayChar,
-            color = Color(theme.keyTextColor),
-            fontSize = if (hint != null) 17.sp else 18.sp,
+            color = customTextColor ?: Color(theme.keyTextColor),
+            fontSize = if (numberHint != null || dualHint != null) 17.sp else 18.sp,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -907,6 +1042,7 @@ fun SpecialKeyButton(
     text: String? = null,
     theme: KeyboardTheme,
     isActive: Boolean = false,
+    customIconColor: Color? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -930,7 +1066,7 @@ fun SpecialKeyButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isActive) Color(theme.accentColor) else Color(theme.keyTextColor),
+                tint = customIconColor ?: if (isActive) Color(theme.accentColor) else Color(theme.keyTextColor),
                 modifier = Modifier.size(20.dp)
             )
         } else if (text != null) {
@@ -970,7 +1106,7 @@ fun BackspaceKeyButton(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            imageVector = Icons.AutoMirrored.Filled.Backspace,
             contentDescription = "Backspace",
             tint = Color(theme.keyTextColor),
             modifier = Modifier.size(20.dp)

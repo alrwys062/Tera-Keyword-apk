@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PredictionEngine
@@ -114,62 +114,35 @@ private fun SuggestionItem(
                     text = "حفظ: ${result.word}",
                     color = Color(0xFF10B981),
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    } else if (isCenter) {
-        Box(
-            modifier = modifier
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    if (result.isCorrection) Color(0xFF10B981).copy(alpha = 0.25f)
-                    else Color(theme.enterButtonColor).copy(alpha = 0.35f)
-                )
-                .border(
-                    1.dp,
-                    if (result.isCorrection) Color(0xFF10B981).copy(alpha = 0.8f)
-                    else Color(theme.accentColor).copy(alpha = 0.6f),
-                    RoundedCornerShape(12.dp)
-                )
-                .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (result.isCorrection) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Correction",
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
-                Text(
-                    text = result.word,
-                    color = if (result.isCorrection) Color(0xFF34D399) else Color(theme.keyTextColor),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
     } else {
+        val activeBg = Color(theme.accentColor).copy(alpha = if (isCenter) 0.25f else 0.1f)
+        val activeBorder = if (isCenter) Color(theme.accentColor) else Color.Transparent
+
         Box(
             modifier = modifier
                 .fillMaxHeight()
+                .padding(horizontal = 2.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(activeBg)
+                .border(1.dp, activeBorder, RoundedCornerShape(8.dp))
                 .clickable(onClick = onClick)
                 .padding(horizontal = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "⟨ ${result.word} ⟩",
-                color = Color(theme.subtextColor),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Normal
+                text = result.word,
+                color = if (isCenter) Color(theme.accentColor) else Color(theme.keyTextColor),
+                fontSize = if (isCenter) 14.sp else 13.sp,
+                fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
-

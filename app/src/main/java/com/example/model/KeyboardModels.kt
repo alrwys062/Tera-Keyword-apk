@@ -79,6 +79,8 @@ enum class KeyboardSubView {
     TRANSLATE,
     CLIPBOARD,
     DECORATION,
+    PHRASES,
+    CALCULATOR,
     AI_ASSISTANT,
     TOOLS_MORE,
     VOICE_INPUT,

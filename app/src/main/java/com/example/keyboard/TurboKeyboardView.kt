@@ -456,6 +456,25 @@ fun TurboKeyboardView(
                         onClose = { activeSubView = KeyboardSubView.NONE }
                     )
                 }
+                KeyboardSubView.PHRASES -> {
+                    DecoratedPhrasesView(
+                        theme = theme,
+                        onPhraseSelected = { phrase ->
+                            sendText(phrase)
+                            activeSubView = KeyboardSubView.NONE
+                        },
+                        onClose = { activeSubView = KeyboardSubView.NONE }
+                    )
+                }
+                KeyboardSubView.CALCULATOR -> {
+                    CalculatorPadView(
+                        theme = theme,
+                        onInsertText = { mathText ->
+                            sendText(mathText)
+                        },
+                        onClose = { activeSubView = KeyboardSubView.NONE }
+                    )
+                }
                 KeyboardSubView.SETTINGS -> {
                     QuickSettingsView(
                         theme = theme,

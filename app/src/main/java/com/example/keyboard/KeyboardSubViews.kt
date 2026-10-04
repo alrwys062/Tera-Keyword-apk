@@ -10,6 +10,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -1727,5 +1729,334 @@ private fun QuickSettingToggleRow(
             modifier = Modifier.height(26.dp)
         )
     }
+}
+
+@Composable
+fun DecoratedPhrasesView(
+    theme: KeyboardTheme,
+    onPhraseSelected: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    val categories = com.example.data.DecoratedPhrasesData.categories
+    var selectedCatId by remember { mutableStateOf(categories.first().id) }
+    val currentCategory = categories.find { it.id == selectedCatId } ?: categories.first()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(260.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        // Top Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(Color(0xFF141926), RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                categories.forEach { cat ->
+                    val isSelected = cat.id == selectedCatId
+                    Surface(
+                        modifier = Modifier
+                            .clickable { selectedCatId = cat.id },
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color.Transparent,
+                        border = if (isSelected) BorderStroke(1.dp, Color(theme.accentColor)) else null
+                    ) {
+                        Text(
+                            text = "${cat.icon} ${cat.nameAr}",
+                            color = if (isSelected) Color(theme.accentColor) else Color.LightGray,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Phrases Grid
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(currentCategory.phrases.size) { idx ->
+                val phrase = currentCategory.phrases[idx]
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onPhraseSelected(phrase) },
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = phrase,
+                            color = Color(theme.keyTextColor),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CalculatorPadView(
+    theme: KeyboardTheme,
+    onInsertText: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    var expression by remember { mutableStateOf("") }
+    var result by remember { mutableStateOf("") }
+
+    fun evaluate(expr: String): String {
+        return try {
+            if (expr.isBlank()) return ""
+            val cleanExpr = expr.replace("×", "*").replace("÷", "/")
+            // Simple arithmetic evaluator
+            val res = evaluateSimpleMath(cleanExpr)
+            if (res % 1.0 == 0.0) res.toLong().toString() else "%.4f".format(res).trimEnd('0').trimEnd('.')
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(260.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        // Screen display
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .background(Color(0xFF0F1420), RoundedCornerShape(8.dp))
+                .border(1.dp, Color(theme.borderColor).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFFFF5252), modifier = Modifier.size(18.dp))
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = expression.ifEmpty { "0" },
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                if (result.isNotEmpty()) {
+                    Text(
+                        text = "= $result",
+                        color = Color(theme.accentColor),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Actions Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (result.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        onInsertText(result)
+                        onClose()
+                    },
+                    modifier = Modifier.weight(1f).height(32.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor))
+                ) {
+                    Text("إدراج الناتج ($result)", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        onInsertText("$expression = $result")
+                        onClose()
+                    },
+                    modifier = Modifier.weight(1f).height(32.dp),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text("إدراج المعادلة كاملة", color = Color(theme.accentColor), fontSize = 10.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Calc grid
+        val buttons = listOf(
+            listOf("C", "(", ")", "÷"),
+            listOf("7", "8", "9", "×"),
+            listOf("4", "5", "6", "-"),
+            listOf("1", "2", "3", "+"),
+            listOf("0", ".", "=", "⌫")
+        )
+
+        buttons.forEach { row ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                row.forEach { btn ->
+                    val isOp = btn in listOf("÷", "×", "-", "+", "=")
+                    val isAction = btn in listOf("C", "⌫")
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable {
+                                when (btn) {
+                                    "C" -> {
+                                        expression = ""
+                                        result = ""
+                                    }
+                                    "⌫" -> {
+                                        if (expression.isNotEmpty()) {
+                                            expression = expression.dropLast(1)
+                                            result = evaluate(expression)
+                                        }
+                                    }
+                                    "=" -> {
+                                        if (expression.isNotEmpty()) {
+                                            result = evaluate(expression)
+                                            if (result.isNotEmpty()) expression = result
+                                        }
+                                    }
+                                    else -> {
+                                        expression += btn
+                                        result = evaluate(expression)
+                                    }
+                                }
+                            },
+                        shape = RoundedCornerShape(6.dp),
+                        color = when {
+                            btn == "=" -> Color(theme.enterButtonColor)
+                            isOp -> Color(0xFF1E2838)
+                            isAction -> Color(0xFF2D1820)
+                            else -> Color(theme.keyBackgroundColor)
+                        },
+                        border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.5f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = btn,
+                                color = when {
+                                    btn == "=" -> Color.White
+                                    isOp -> Color(theme.accentColor)
+                                    isAction -> Color(0xFFFF5252)
+                                    else -> Color(theme.keyTextColor)
+                                },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+    }
+}
+
+private fun evaluateSimpleMath(expr: String): Double {
+    val tokens = mutableListOf<String>()
+    var numberBuffer = StringBuilder()
+
+    for (ch in expr) {
+        if (ch.isDigit() || ch == '.') {
+            numberBuffer.append(ch)
+        } else if (ch in "+-*/%") {
+            if (numberBuffer.isNotEmpty()) {
+                tokens.add(numberBuffer.toString())
+                numberBuffer = StringBuilder()
+            }
+            tokens.add(ch.toString())
+        }
+    }
+    if (numberBuffer.isNotEmpty()) {
+        tokens.add(numberBuffer.toString())
+    }
+
+    if (tokens.isEmpty()) return 0.0
+
+    // Multiply, divide, modulo
+    val pass1 = mutableListOf<String>()
+    var i = 0
+    while (i < tokens.size) {
+        val t = tokens[i]
+        if (t == "*" || t == "/" || t == "%") {
+            val left = pass1.removeAt(pass1.size - 1).toDoubleOrNull() ?: 0.0
+            val right = tokens.getOrNull(i + 1)?.toDoubleOrNull() ?: 1.0
+            val res = when (t) {
+                "*" -> left * right
+                "/" -> if (right != 0.0) left / right else 0.0
+                else -> left % right
+            }
+            pass1.add(res.toString())
+            i += 2
+        } else {
+            pass1.add(t)
+            i++
+        }
+    }
+
+    // Add and subtract
+    var total = pass1.firstOrNull()?.toDoubleOrNull() ?: 0.0
+    var j = 1
+    while (j < pass1.size) {
+        val op = pass1[j]
+        val num = pass1.getOrNull(j + 1)?.toDoubleOrNull() ?: 0.0
+        if (op == "+") total += num
+        else if (op == "-") total -= num
+        j += 2
+    }
+
+    return total
 }
 

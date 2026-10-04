@@ -89,7 +89,31 @@ fun KeyboardToolbar(
             }
         )
 
-        // 4. إيموجي (Emoji)
+        // 4. كليشات وعبارات (Decorated Phrases)
+        val isPhrasesActive = activeSubView == KeyboardSubView.PHRASES
+        ToolbarFixedItem(
+            icon = Icons.Outlined.FavoriteBorder,
+            label = "كليشات",
+            isActive = isPhrasesActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isPhrasesActive) KeyboardSubView.NONE else KeyboardSubView.PHRASES)
+            }
+        )
+
+        // 5. حاسبة (Calculator)
+        val isCalcActive = activeSubView == KeyboardSubView.CALCULATOR
+        ToolbarFixedItem(
+            icon = Icons.Outlined.Calculate,
+            label = "حاسبة",
+            isActive = isCalcActive,
+            theme = theme,
+            onClick = {
+                onSubViewSelected(if (isCalcActive) KeyboardSubView.NONE else KeyboardSubView.CALCULATOR)
+            }
+        )
+
+        // 6. إيموجي (Emoji)
         val isEmojiActive = activeSubView == KeyboardSubView.EMOJI
         ToolbarFixedItem(
             icon = Icons.Outlined.Mood,

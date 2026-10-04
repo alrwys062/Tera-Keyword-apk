@@ -138,13 +138,13 @@ fun TurboKeyboardView(
         }
     }
 
-    // Sound & Haptic triggers
-    fun performFeedback() {
+    // Sound & Haptic triggers (15ms tactile vibration)
+    fun performFeedback(durationMs: Long = 15L) {
         if (currentSettings.vibrationEnabled) {
             try {
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
                 if (vibrator != null && vibrator.hasVibrator()) {
-                    val duration = currentSettings.vibrationDurationMs.toLong().coerceAtLeast(10L)
+                    val duration = if (durationMs > 0) durationMs else currentSettings.vibrationDurationMs.toLong().coerceAtLeast(15L)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
                     } else {
@@ -152,7 +152,7 @@ fun TurboKeyboardView(
                         vibrator.vibrate(duration)
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Ignore
             }
         }
@@ -678,13 +678,14 @@ fun TurboKeyboardView(
                             theme = theme,
                             isShifted = isShifted,
                             numberHint = hint,
+                            isArabicLayout = isArabic,
                             showKeyPopup = currentSettings.keyPopupEnabled,
                             modifier = Modifier.weight(key.weight),
                             onClick = {
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
                             },
                             onLongClick = {
-                                performFeedback()
+                                performFeedback(25L)
                                 val variants = LongPressVariantsManager.getVariants(char)
                                 longPressChar = char
                                 longPressVariants = variants
@@ -709,13 +710,14 @@ fun TurboKeyboardView(
                             key = key,
                             theme = theme,
                             isShifted = isShifted,
+                            isArabicLayout = isArabic,
                             showKeyPopup = currentSettings.keyPopupEnabled,
                             modifier = Modifier.weight(key.weight),
                             onClick = {
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
                             },
                             onLongClick = {
-                                performFeedback()
+                                performFeedback(25L)
                                 val variants = LongPressVariantsManager.getVariants(char)
                                 longPressChar = char
                                 longPressVariants = variants
@@ -796,13 +798,14 @@ fun TurboKeyboardView(
                                         key = key,
                                         theme = theme,
                                         isShifted = isShifted,
+                                        isArabicLayout = isArabic,
                                         showKeyPopup = currentSettings.keyPopupEnabled,
                                         modifier = Modifier.weight(key.weight),
                                         onClick = {
                                             sendText(if (isShifted && !isArabic && !isSymbolsMode) char.uppercase() else char)
                                         },
                                         onLongClick = {
-                                            performFeedback()
+                                            performFeedback(25L)
                                             val variants = LongPressVariantsManager.getVariants(char)
                                             longPressChar = char
                                             longPressVariants = variants
@@ -1032,16 +1035,24 @@ fun TurboKeyboardView(
     }
 }
 
-private val enToArHintMap = mapOf(
-    "q" to "ض", "w" to "ص", "e" to "ث", "r" to "ق", "t" to "ف",
-    "y" to "غ", "u" to "ع", "i" to "ه", "o" to "خ", "p" to "ح",
-    "a" to "ش", "s" to "س", "d" to "ي", "f" to "ب", "g" to "ل",
-    "h" to "ا", "j" to "ت", "k" to "ن", "l" to "م",
-    "z" to "ئ", "x" to "ء", "c" to "ؤ", "v" to "ر", "b" to "لا",
-    "n" to "ى", "m" to "ة"
+private val arabicSecondaryHintMap = mapOf(
+    "ض" to "1", "ص" to "2", "ث" to "3", "ق" to "4", "ف" to "5",
+    "غ" to "6", "ع" to "7", "ه" to "8", "خ" to "9", "ح" to "0",
+    "ج" to "ـ", "د" to "؛",
+    "ش" to "َ", "س" to "ً", "ي" to "ُ", "ب" to "ٌ", "ل" to "ِ",
+    "ا" to "ٍ", "ت" to "ّ", "ن" to "ْ", "م" to "«", "ك" to "»", "ط" to "؟",
+    "ذ" to "!", "ئ" to "@", "ء" to "#", "ؤ" to "$", "ر" to "%",
+    "لا" to "&", "ى" to "*", "ة" to "(", "و" to ")", "ز" to "-", "ظ" to "+"
 )
 
-private val arToEnHintMap = enToArHintMap.entries.associate { (k, v) -> v to k }
+private val englishSecondaryHintMap = mapOf(
+    "q" to "1", "w" to "2", "e" to "3", "r" to "4", "t" to "5",
+    "y" to "6", "u" to "7", "i" to "8", "o" to "9", "p" to "0",
+    "a" to "@", "s" to "#", "d" to "$", "f" to "%", "g" to "&",
+    "h" to "*", "j" to "-", "k" to "+", "l" to "=",
+    "z" to "!", "x" to "\"", "c" to "'", "v" to ":", "b" to ";",
+    "n" to "/", "m" to "?"
+)
 
 @Composable
 fun KeyButton(
@@ -1049,19 +1060,43 @@ fun KeyButton(
     theme: KeyboardTheme,
     isShifted: Boolean,
     numberHint: String? = null,
+    isArabicLayout: Boolean = false,
     customTextColor: Color? = null,
     showKeyPopup: Boolean = true,
     modifier: Modifier = Modifier,
+    onPerformFeedback: ((Long) -> Unit)? = null,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     val char = (key.type as? KeyType.Character)?.primary ?: ""
     val displayChar = if (isShifted) char.uppercase() else char
-    val dualHint = if (theme.dualLanguageHints) {
-        enToArHintMap[char.lowercase()] ?: arToEnHintMap[char]
-    } else null
+    val secondaryHint = if (isArabicLayout) {
+        arabicSecondaryHintMap[char]
+    } else {
+        englishSecondaryHintMap[char.lowercase()]
+    }
 
     var isTouching by remember { mutableStateOf(false) }
+    var isLongPressActive by remember { mutableStateOf(false) }
+
+    fun triggerFeedback(durationMs: Long) {
+        if (onPerformFeedback != null) {
+            onPerformFeedback(durationMs)
+        } else {
+            try {
+                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                if (vibrator != null && vibrator.hasVibrator()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(durationMs)
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     Box(
         modifier = modifier
@@ -1080,53 +1115,47 @@ fun KeyButton(
             .pointerInput(displayChar, onLongClick) {
                 detectTapGestures(
                     onPress = {
+                        isLongPressActive = false
                         isTouching = true
+                        triggerFeedback(15L)
                         val released = tryAwaitRelease()
                         isTouching = false
-                        if (released) {
+                        if (released && !isLongPressActive) {
                             onClick()
                         }
                     },
                     onLongPress = {
+                        isLongPressActive = true
                         isTouching = false
-                        if (onLongClick != null) onLongClick()
-                        else onClick()
+                        triggerFeedback(25L)
+                        onLongClick?.invoke()
                     }
                 )
             },
         contentAlignment = Alignment.Center
     ) {
-        if (numberHint != null) {
+        val hintText = numberHint ?: secondaryHint
+        if (hintText != null) {
             Text(
-                text = numberHint,
-                color = Color(0xFF00B0FF).copy(alpha = 0.85f),
+                text = hintText,
+                color = Color(theme.accentColor).copy(alpha = 0.75f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(top = 1.dp, start = 3.dp)
             )
-        } else if (dualHint != null) {
-            Text(
-                text = dualHint,
-                color = Color(theme.subtextColor).copy(alpha = 0.75f),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 2.dp, end = 4.dp)
-            )
         }
 
         Text(
             text = displayChar,
             color = customTextColor ?: Color(theme.keyTextColor),
-            fontSize = if (numberHint != null || dualHint != null) 17.sp else 18.sp,
+            fontSize = if (hintText != null) 17.sp else 18.sp,
             fontWeight = FontWeight.SemiBold
         )
 
         // Magnificent Key Press Preview Bubble (Gboard / iOS style)
-        if (isTouching && showKeyPopup && displayChar.isNotBlank()) {
+        if (isTouching && showKeyPopup && displayChar.isNotBlank() && !isLongPressActive) {
             Popup(
                 alignment = Alignment.TopCenter,
                 offset = IntOffset(0, -145),
@@ -1138,7 +1167,7 @@ fun KeyButton(
             ) {
                 KeyPreviewBubble(
                     char = displayChar,
-                    numberHint = numberHint,
+                    numberHint = hintText,
                     theme = theme
                 )
             }

@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout complete repository
         uses: actions/checkout@v4
 
       - name: Set up Temurin Java 17
@@ -25,9 +25,9 @@ jobs:
           java -version
           echo "JAVA_HOME: $JAVA_HOME"
           JAVA_MAJOR=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
-          echo "Detected Java major version: $JAVA_MAJOR"
+          echo "Active Java major version: $JAVA_MAJOR"
           if [ -z "$JAVA_MAJOR" ] || [ "$JAVA_MAJOR" -lt 17 ]; then
-            echo "Error: Active Java major version is lower than 17 ($JAVA_MAJOR)." >&2
+            echo "Error: Active Java version ($JAVA_MAJOR) is lower than 17." >&2
             exit 1
           fi
           echo "Java environment verified: Java 17 or newer is active."
@@ -40,9 +40,9 @@ jobs:
       - name: Create temporary debug keystore
         run: |
           if [ -f "./debug.keystore" ]; then
-            echo "Debug keystore already exists."
+            echo "Debug keystore already exists at ./debug.keystore."
           else
-            echo "Generating temporary debug keystore using keytool from Java 17..."
+            echo "Generating temporary debug keystore using Java 17 keytool..."
             "$JAVA_HOME/bin/keytool" -genkeypair \
               -v \
               -keystore ./debug.keystore \
@@ -60,28 +60,28 @@ jobs:
           fi
           echo "Confirmed: ./debug.keystore exists."
 
-      - name: Build debug APK
+      - name: Build Debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Verify debug APK exists
+      - name: Verify debug APK output
         run: |
           TARGET_APK="app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$TARGET_APK" ]; then
             echo "Confirmed: $TARGET_APK exists."
           else
-            echo "Target debug APK not found at $TARGET_APK. Searching inside app/build/outputs/apk..."
+            echo "Target debug APK was not found at $TARGET_APK. Searching inside app/build/outputs/apk..."
             if [ -d "app/build/outputs/apk" ]; then
               DISCOVERED_APKS=$(find app/build/outputs/apk -type f -name "*.apk")
               if [ -n "$DISCOVERED_APKS" ]; then
                 echo "Discovered APKs:"
                 echo "$DISCOVERED_APKS"
               else
-                echo "No APK files found inside app/build/outputs/apk."
+                echo "No APK files discovered in app/build/outputs/apk."
               fi
             else
               echo "Directory app/build/outputs/apk does not exist."
             fi
-            echo "Error: Debug APK was not found at $TARGET_APK." >&2
+            echo "Error: No debug APK found at $TARGET_APK." >&2
             exit 1
           fi
 

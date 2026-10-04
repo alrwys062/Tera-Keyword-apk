@@ -135,6 +135,47 @@ fun KeyboardSetupScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Hero Icon Card displaying the Turbo Keyboard icon
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF0F1424))
+                .border(1.5.dp, Brush.horizontalGradient(listOf(Color(0xFF00E5FF), Color(0xFFD500F9))), RoundedCornerShape(20.dp))
+                .padding(14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.turbo_keyboard_icon_1791119766162),
+                    contentDescription = "Turbo Keyboard Icon",
+                    modifier = Modifier
+                        .size(68.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "كيبورد Turbo الخارق ⚡",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "أسرع كيبورد احترافي مع ترجمة وحافظة وزخرفة فورية",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Current status banner matching requirements 5 & 13
         AnimatedContent(targetState = keyboardStatus, label = "StatusBanner") { status ->
             when (status) {

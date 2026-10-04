@@ -39,6 +39,7 @@ object KeyLayouts {
     }
 
     val arabicRow3 = listOf(
+        KeyModel(KeyType.Character("ذ")),
         KeyModel(KeyType.Character("ئ")),
         KeyModel(KeyType.Character("ء")),
         KeyModel(KeyType.Character("ؤ")),

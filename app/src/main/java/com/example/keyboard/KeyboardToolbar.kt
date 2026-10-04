@@ -44,11 +44,11 @@ fun KeyboardToolbar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(46.dp)
+            .height(48.dp)
             .background(Color(theme.toolbarColor))
             .horizontalScroll(scrollState)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. ترجمة (Translation)
@@ -211,8 +211,8 @@ private fun ToolbarFixedItem(
 
     Box(
         modifier = Modifier
-            .width(54.dp)
-            .height(48.dp)
+            .width(50.dp)
+            .fillMaxHeight()
             .clip(RoundedCornerShape(8.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
             .border(
@@ -221,7 +221,7 @@ private fun ToolbarFixedItem(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick)
-            .padding(vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -232,13 +232,13 @@ private fun ToolbarFixedItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) activeColor else inactiveTextColor,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = label,
                 color = if (isActive) activeColor else inactiveTextColor,
-                fontSize = 10.sp,
+                fontSize = 9.5.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

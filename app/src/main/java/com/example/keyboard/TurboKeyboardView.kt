@@ -566,8 +566,8 @@ fun TurboKeyboardView(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 3.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                        .padding(horizontal = 2.dp, vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                 // Long-Press Character Popup Overlay (Matching Screenshots 1, 2, 4)
                 AnimatedVisibility(
@@ -578,7 +578,7 @@ fun TurboKeyboardView(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 6.dp),
+                            .padding(bottom = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Surface(
@@ -590,8 +590,8 @@ fun TurboKeyboardView(
                             Row(
                                 modifier = Modifier
                                     .horizontalScroll(rememberScrollState())
-                                    .padding(horizontal = 6.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    .padding(horizontal = 4.dp, vertical = 5.dp),
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 longPressVariants.forEach { variant ->
@@ -655,7 +655,7 @@ fun TurboKeyboardView(
                 if (currentSettings.numberRowEnabled) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                     ) {
                         val row = if (isArabic) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
                         row.forEach { key ->
@@ -681,7 +681,7 @@ fun TurboKeyboardView(
                 // Row 1 (With number hints matching Screenshots 3 & 4)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                 ) {
                     val row = when {
                         isSymbolsMode && !isMoreSymbolsMode -> KeyLayouts.symbolsRow1
@@ -716,7 +716,7 @@ fun TurboKeyboardView(
                 // Row 2
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                 ) {
                     val row = when {
                         isSymbolsMode && !isMoreSymbolsMode -> KeyLayouts.symbolsRow2
@@ -748,7 +748,7 @@ fun TurboKeyboardView(
                 // Row 3
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val row = when {
@@ -844,8 +844,8 @@ fun TurboKeyboardView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        .height(50.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 1. ModeChange key 123!#() on FAR LEFT

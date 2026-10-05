@@ -17,8 +17,11 @@ class PreferencesManager(context: Context) {
     fun getSettings(): KeyboardSettings {
         return KeyboardSettings(
             vibrationEnabled = prefs.getBoolean("vibrationEnabled", true),
-            vibrationDurationMs = prefs.getInt("vibrationDurationMs", 20),
-            soundEnabled = prefs.getBoolean("soundEnabled", false),
+            vibrationDurationMs = prefs.getInt("vibrationDurationMs", 30),
+            soundEnabled = prefs.getBoolean("soundEnabled", true),
+            soundProfile = prefs.getString("soundProfile", "ios_16") ?: "ios_16",
+            soundVolume = prefs.getFloat("soundVolume", 0.85f),
+            keyPressTimingStyle = prefs.getString("keyPressTimingStyle", "ios_balanced") ?: "ios_balanced",
             keyPopupEnabled = prefs.getBoolean("keyPopupEnabled", true),
             autoCapitalization = prefs.getBoolean("autoCapitalization", true),
             doubleSpacePeriod = prefs.getBoolean("doubleSpacePeriod", true),
@@ -64,6 +67,9 @@ class PreferencesManager(context: Context) {
             .putBoolean("vibrationEnabled", settings.vibrationEnabled)
             .putInt("vibrationDurationMs", settings.vibrationDurationMs)
             .putBoolean("soundEnabled", settings.soundEnabled)
+            .putString("soundProfile", settings.soundProfile)
+            .putFloat("soundVolume", settings.soundVolume)
+            .putString("keyPressTimingStyle", settings.keyPressTimingStyle)
             .putBoolean("keyPopupEnabled", settings.keyPopupEnabled)
             .putBoolean("autoCapitalization", settings.autoCapitalization)
             .putBoolean("doubleSpacePeriod", settings.doubleSpacePeriod)

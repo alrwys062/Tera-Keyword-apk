@@ -2,6 +2,13 @@ package com.example.model
 
 object ThemePresets {
 
+    fun isLightColor(colorLong: Long): Boolean {
+        val r = ((colorLong shr 16) and 0xFF) / 255.0
+        val g = ((colorLong shr 8) and 0xFF) / 255.0
+        val b = (colorLong and 0xFF) / 255.0
+        return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5
+    }
+
     // 1. Dark & Light Themes
     val MINIMAL_DARK = KeyboardTheme(
         id = "minimal_dark",

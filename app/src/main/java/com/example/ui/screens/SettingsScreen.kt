@@ -29,6 +29,12 @@ import com.example.data.TextDecorator
 import com.example.keyboard.allKeyboardToolbarTools
 import com.example.model.KeyboardSettings
 import com.example.model.TextShortcut
+import com.example.model.ThemePresets
+import com.example.sound.KeyboardSoundEngine
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 
 @Composable
 fun SettingsScreen(
@@ -1258,63 +1264,362 @@ fun SettingsScreen(
         )
     }
 
-    // 11. SOUND & HAPTIC DIALOG (Screenshot 12)
+    // 11. SOUND & HAPTIC DIALOG (أصوات واهتزازات الكيبورد المخصصة)
     if (activeDialog == "SOUND_HAPTIC") {
+        val currentTheme = remember(settings.currentThemeId) { prefs.getActiveTheme() }
+        val isLight = remember(currentTheme) { ThemePresets.isLightColor(currentTheme.backgroundColor) }
+        val dBg = if (isLight) Color(currentTheme.backgroundColor) else Color(0xFF141A28)
+        val dText = if (isLight) Color(0xFF0F172A) else Color.White
+        val dSub = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+        val dCard = if (isLight) Color.White else Color(0xFF1B2333)
+        val dAccent = Color(currentTheme.accentColor)
+
+        val vibrator = remember {
+            try {
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            } catch (_: Exception) { null }
+        }
+
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("الصوت والإهتزاز", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("استخدم اهتزاز النظام", color = Color.White, fontSize = 13.sp)
-                        Checkbox(
-                            checked = settings.vibrationEnabled,
-                            onCheckedChange = { updateSettings(settings.copy(vibrationEnabled = it)) }
-                        )
-                    }
-
-                    Text("اهتزاز عند النقر على مفتاح (${settings.vibrationDurationMs} مللي ثانية)", color = Color.White, fontSize = 12.sp)
-                    Slider(
-                        value = settings.vibrationDurationMs.toFloat(),
-                        onValueChange = { updateSettings(settings.copy(vibrationDurationMs = it.toInt())) },
-                        valueRange = 0f..100f
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.VolumeUp,
+                        contentDescription = null,
+                        tint = dAccent,
+                        modifier = Modifier.size(24.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "أصوات واهتزازات الكيبورد",
+                        color = dText,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // --- 1. قسم الأصوات ---
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = dCard,
+                            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("أصوات النقر أثناء الكتابة", color = dText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text("تشغيل نغمة صوتية واقعية عند لمس كل زر", color = dSub, fontSize = 10.sp)
+                                    }
+                                    Switch(
+                                        checked = settings.soundEnabled,
+                                        onCheckedChange = {
+                                            updateSettings(settings.copy(soundEnabled = it))
+                                            if (it) {
+                                                KeyboardSoundEngine.initialize(context)
+                                                KeyboardSoundEngine.playKeySound(settings.soundProfile, settings.soundVolume)
+                                            }
+                                        }
+                                    )
+                                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("صوت عند النقر على المفاتيح", color = Color.White, fontSize = 13.sp)
-                        Checkbox(
-                            checked = settings.soundEnabled,
-                            onCheckedChange = { updateSettings(settings.copy(soundEnabled = it)) }
-                        )
+                                if (settings.soundEnabled) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Text("اختر صوت الكيبورد المفضل لديك:", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        KeyboardSoundEngine.AVAILABLE_PROFILES.forEach { prof ->
+                                            val isSelected = settings.soundProfile == prof.id
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = if (isSelected) dAccent.copy(alpha = 0.18f) else if (isLight) Color(0xFFF8FAFC) else Color(0xFF141924),
+                                                border = BorderStroke(
+                                                    width = if (isSelected) 1.5.dp else 0.8.dp,
+                                                    color = if (isSelected) dAccent else if (isLight) Color(0xFFCBD5E1) else Color(0xFF26334A)
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        updateSettings(settings.copy(soundProfile = prof.id))
+                                                        KeyboardSoundEngine.initialize(context)
+                                                        KeyboardSoundEngine.playKeySound(prof.id, settings.soundVolume)
+                                                    }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        RadioButton(
+                                                            selected = isSelected,
+                                                            onClick = {
+                                                                updateSettings(settings.copy(soundProfile = prof.id))
+                                                                KeyboardSoundEngine.initialize(context)
+                                                                KeyboardSoundEngine.playKeySound(prof.id, settings.soundVolume)
+                                                            },
+                                                            colors = RadioButtonDefaults.colors(selectedColor = dAccent)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = prof.nameAr,
+                                                            color = if (isSelected) dAccent else dText,
+                                                            fontSize = 11.sp,
+                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                        )
+                                                    }
+
+                                                    // استماع سريع
+                                                    IconButton(
+                                                        onClick = {
+                                                            KeyboardSoundEngine.initialize(context)
+                                                            KeyboardSoundEngine.playKeySound(prof.id, settings.soundVolume)
+                                                        },
+                                                        modifier = Modifier.size(28.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.VolumeUp, contentDescription = "تجربة", tint = dAccent, modifier = Modifier.size(16.dp))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("مستوى صوت المفاتيح", color = dText, fontSize = 11.sp)
+                                        Text("${(settings.soundVolume * 100).toInt()}%", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = settings.soundVolume,
+                                        onValueChange = { updateSettings(settings.copy(soundVolume = it)) },
+                                        onValueChangeFinished = {
+                                            KeyboardSoundEngine.initialize(context)
+                                            KeyboardSoundEngine.playKeySound(settings.soundProfile, settings.soundVolume)
+                                        },
+                                        valueRange = 0.1f..1.0f
+                                    )
+                                }
+                            }
+                        }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("انبثاق عند الضغط على المفاتيح", color = Color.White, fontSize = 13.sp)
-                        Checkbox(
-                            checked = settings.keyPopupEnabled,
-                            onCheckedChange = { updateSettings(settings.copy(keyPopupEnabled = it)) }
-                        )
+                    // --- 2. قسم الاهتزاز اللمسي ---
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = dCard,
+                            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("الاهتزاز اللمسي (Haptic Feedback)", color = dText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text("اهتزاز ملموس ومريح عند الضغط على الأحرف", color = dSub, fontSize = 10.sp)
+                                    }
+                                    Switch(
+                                        checked = settings.vibrationEnabled,
+                                        onCheckedChange = {
+                                            updateSettings(settings.copy(vibrationEnabled = it))
+                                            if (it && vibrator != null && vibrator.hasVibrator()) {
+                                                try {
+                                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                        vibrator.vibrate(VibrationEffect.createOneShot(settings.vibrationDurationMs.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+                                                    } else {
+                                                        @Suppress("DEPRECATION")
+                                                        vibrator.vibrate(settings.vibrationDurationMs.toLong())
+                                                    }
+                                                } catch (_: Exception) {}
+                                            }
+                                        }
+                                    )
+                                }
+
+                                if (settings.vibrationEnabled) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Text("قوة الاهتزاز السريعة:", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Quick Presets (خفيف، متوسط آيفون، قوي، قوي جداً)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        listOf(
+                                            Pair("خفيف (15ms)", 15),
+                                            Pair("متوسط (30ms)", 30),
+                                            Pair("قوي (45ms)", 45),
+                                            Pair("شديد (60ms)", 60)
+                                        ).forEach { (label, ms) ->
+                                            val isSel = settings.vibrationDurationMs == ms
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = if (isSel) dAccent else if (isLight) Color(0xFFF1F5F9) else Color(0xFF141924),
+                                                border = BorderStroke(0.8.dp, if (isSel) dAccent else if (isLight) Color(0xFFCBD5E1) else Color(0xFF26334A)),
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clickable {
+                                                        updateSettings(settings.copy(vibrationDurationMs = ms))
+                                                        if (vibrator != null && vibrator.hasVibrator()) {
+                                                            try {
+                                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                                    vibrator.vibrate(VibrationEffect.createOneShot(ms.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+                                                                } else {
+                                                                    @Suppress("DEPRECATION")
+                                                                    vibrator.vibrate(ms.toLong())
+                                                                }
+                                                            } catch (_: Exception) {}
+                                                        }
+                                                    }
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.padding(vertical = 6.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = label,
+                                                        color = if (isSel) Color.Black else dText,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("تعديل دقيق بالمللي ثانية:", color = dText, fontSize = 11.sp)
+                                        Text("${settings.vibrationDurationMs} ms", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = settings.vibrationDurationMs.toFloat(),
+                                        onValueChange = { updateSettings(settings.copy(vibrationDurationMs = it.toInt())) },
+                                        onValueChangeFinished = {
+                                            if (vibrator != null && vibrator.hasVibrator()) {
+                                                try {
+                                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                        vibrator.vibrate(VibrationEffect.createOneShot(settings.vibrationDurationMs.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+                                                    } else {
+                                                        @Suppress("DEPRECATION")
+                                                        vibrator.vibrate(settings.vibrationDurationMs.toLong())
+                                                    }
+                                                } catch (_: Exception) {}
+                                            }
+                                        },
+                                        valueRange = 5f..80f
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // --- 3. استجابة وتوقيت الضغط مثل كيبورد iOS 16 ---
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = dCard,
+                            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("إحساس وتوقيت الضغط على الأزرار:", color = dText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("اختر بين الاستجابة السلسة المتوازنة (مثل آيفون 16) أو الفائقة السرعة:", color = dSub, fontSize = 10.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    // نمط آيفون المتوازن
+                                    val isIos = settings.keyPressTimingStyle == "ios_balanced"
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isIos) dAccent.copy(alpha = 0.2f) else if (isLight) Color(0xFFF1F5F9) else Color(0xFF141924),
+                                        border = BorderStroke(if (isIos) 1.5.dp else 0.8.dp, if (isIos) dAccent else if (isLight) Color(0xFFCBD5E1) else Color(0xFF26334A)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { updateSettings(settings.copy(keyPressTimingStyle = "ios_balanced")) }
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Text("🍏 آيفون iOS 16", color = if (isIos) dAccent else dText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("متوسط وسلس بدون ثقل، مريح جداً للكتابة", color = dSub, fontSize = 9.sp)
+                                        }
+                                    }
+
+                                    // نمط فائق السرعة
+                                    val isFast = settings.keyPressTimingStyle == "ultra_fast"
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isFast) dAccent.copy(alpha = 0.2f) else if (isLight) Color(0xFFF1F5F9) else Color(0xFF141924),
+                                        border = BorderStroke(if (isFast) 1.5.dp else 0.8.dp, if (isFast) dAccent else if (isLight) Color(0xFFCBD5E1) else Color(0xFF26334A)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { updateSettings(settings.copy(keyPressTimingStyle = "ultra_fast")) }
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Text("⚡ فائق السرعة", color = if (isFast) dAccent else dText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("استجابة فورية 0ms للمحترفين", color = dSub, fontSize = 9.sp)
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("معاينة الحرف العائم (Popup Preview)", color = dText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("ظهور فقاعة الحرف بانسيابية فوق المفتاح عند اللمس", color = dSub, fontSize = 9.5.sp)
+                                    }
+                                    Switch(
+                                        checked = settings.keyPopupEnabled,
+                                        onCheckedChange = { updateSettings(settings.copy(keyPopupEnabled = it)) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                Button(
+                    onClick = { activeDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = dAccent),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("تم وحفظ الإعدادات ✓", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             },
-            containerColor = Color(0xFF141A28)
+            containerColor = dBg
         )
     }
 

@@ -64,6 +64,7 @@ import com.example.model.KeyboardSettings
 import com.example.model.KeyboardSubView
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
+import com.example.sound.KeyboardSoundEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -154,6 +155,10 @@ fun TurboKeyboardView(
         }
     }
 
+    LaunchedEffect(Unit) {
+        KeyboardSoundEngine.initialize(context)
+    }
+
     // Cached vibrator reference to prevent heavy IPC getSystemService calls on every single keystroke
     val vibrator = remember {
         try {
@@ -163,11 +168,16 @@ fun TurboKeyboardView(
         }
     }
 
-    // Instant tactile feedback with zero system service lookup overhead
-    fun performFeedback(durationMs: Long = 12L) {
+    // Instant tactile feedback and rich sound engine matching iOS 16 feel
+    fun performFeedback(
+        durationMs: Long = currentSettings.vibrationDurationMs.toLong(),
+        isSpecial: Boolean = false,
+        isSpace: Boolean = false,
+        isDelete: Boolean = false
+    ) {
         if (currentSettings.vibrationEnabled && vibrator != null && vibrator.hasVibrator()) {
             try {
-                val duration = if (durationMs > 0) durationMs else currentSettings.vibrationDurationMs.toLong().coerceAtLeast(10L)
+                val duration = if (durationMs > 0) durationMs else currentSettings.vibrationDurationMs.toLong().coerceAtLeast(15L)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
                 } else {
@@ -177,6 +187,15 @@ fun TurboKeyboardView(
             } catch (_: Exception) {
                 // Ignore
             }
+        }
+        if (currentSettings.soundEnabled) {
+            KeyboardSoundEngine.playKeySound(
+                profile = currentSettings.soundProfile,
+                volume = currentSettings.soundVolume,
+                isSpecial = isSpecial,
+                isSpace = isSpace,
+                isDelete = isDelete
+            )
         }
     }
 
@@ -202,7 +221,7 @@ fun TurboKeyboardView(
     }
 
     fun sendDelete() {
-        performFeedback()
+        performFeedback(isDelete = true)
         if (currentComposingText.isNotEmpty()) {
             currentComposingText = currentComposingText.dropLast(1)
         }
@@ -241,7 +260,7 @@ fun TurboKeyboardView(
     }
 
     fun sendEnter() {
-        performFeedback()
+        performFeedback(isSpecial = true)
         val ic = getCurrentInputConnection?.invoke() ?: inputConnection
         if (ic != null) {
             try {
@@ -1013,7 +1032,7 @@ fun TurboKeyboardView(
                                 }
                             }
                             .clickable {
-                                performFeedback()
+                                performFeedback(isSpace = true)
                                 sendText(" ")
                             },
                         contentAlignment = Alignment.Center
@@ -1116,7 +1135,7 @@ fun TurboKeyboardView(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                             contentDescription = "Enter",
-                            tint = Color.White,
+                            tint = if (ThemePresets.isLightColor(theme.enterButtonColor)) Color(0xFF0F172A) else Color.White,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -1174,21 +1193,34 @@ fun KeyButton(
 
     var isTouching by remember { mutableStateOf(false) }
     var isLongPressActive by remember { mutableStateOf(false) }
+    var showPopupState by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isTouching) {
+        if (isTouching) {
+            showPopupState = true
+        } else {
+            delay(35) // iOS 16 natural graceful release retention
+            showPopupState = false
+        }
+    }
 
     fun triggerFeedback(durationMs: Long) {
         onPerformFeedback?.invoke(durationMs)
     }
 
     val keyAlpha = if (theme.keyOpacity < 1.0f) theme.keyOpacity else 1.0f
+    val animatedKeyColor by animateColorAsState(
+        targetValue = if (isTouching) Color(theme.keyPressedColor).copy(alpha = keyAlpha)
+        else Color(theme.keyBackgroundColor).copy(alpha = keyAlpha),
+        animationSpec = tween(durationMillis = 65),
+        label = "keyBgColor"
+    )
 
     Box(
         modifier = modifier
             .height(keyHeight)
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(
-                if (isTouching) Color(theme.keyPressedColor).copy(alpha = keyAlpha)
-                else Color(theme.keyBackgroundColor).copy(alpha = keyAlpha)
-            )
+            .background(animatedKeyColor)
             .border(
                 width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
                 color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.75f)
@@ -1200,7 +1232,7 @@ fun KeyButton(
                     onPress = {
                         isLongPressActive = false
                         isTouching = true
-                        triggerFeedback(12L)
+                        triggerFeedback(0L)
                         val released = tryAwaitRelease()
                         isTouching = false
                         if (released && !isLongPressActive) {
@@ -1211,7 +1243,7 @@ fun KeyButton(
                         {
                             isLongPressActive = true
                             isTouching = false
-                            triggerFeedback(22L)
+                            triggerFeedback(35L)
                             onLongClick()
                         }
                     } else null
@@ -1240,8 +1272,8 @@ fun KeyButton(
             fontWeight = FontWeight.SemiBold
         )
 
-        // Magnificent Key Press Preview Bubble (Gboard / iOS style)
-        if (isTouching && showKeyPopup && displayChar.isNotBlank() && !isLongPressActive) {
+        // Magnificent Key Press Preview Bubble (iOS 16 style)
+        if (showPopupState && showKeyPopup && displayChar.isNotBlank() && !isLongPressActive) {
             Popup(
                 alignment = Alignment.TopCenter,
                 offset = IntOffset(0, -145),

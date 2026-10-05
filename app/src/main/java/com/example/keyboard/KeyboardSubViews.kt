@@ -43,6 +43,7 @@ import com.example.data.TranslationEngine
 import com.example.model.ClipboardItem
 import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
+import com.example.sound.KeyboardSoundEngine
 import kotlinx.coroutines.launch
 
 private fun isLightColor(colorLong: Long): Boolean {
@@ -1595,12 +1596,19 @@ fun QuickSettingsView(
     onCustomizeToolbar: () -> Unit = {},
     onClose: () -> Unit
 ) {
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+    val rowBg = if (isLight) Color(theme.keyBackgroundColor) else Color(0xFF141924)
+    val rowBorder = if (isLight) Color(theme.borderColor).copy(alpha = 0.6f) else Color(0xFF26334A).copy(alpha = 0.4f)
+    val accentCol = Color(theme.accentColor)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp)
+            .height(255.dp)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         // Header
         Row(
@@ -1612,13 +1620,13 @@ fun QuickSettingsView(
                 Icon(
                     imageVector = Icons.Outlined.Settings,
                     contentDescription = null,
-                    tint = Color(theme.accentColor),
+                    tint = accentCol,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "إعدادات الكيبورد السريعة",
-                    color = Color.White,
+                    color = textColor,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1648,63 +1656,167 @@ fun QuickSettingsView(
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // 1. معاينة الحرف عند اللمس
+            // 1. صوت المفاتيح ونوع الصوت
             item {
-                QuickSettingToggleRow(
-                    title = "معاينة الحرف عند الضغط (Preview Bubble)",
-                    subtitle = "ظهور فقاعة تكبير الحرف فوق الزر عند اللمس",
-                    icon = Icons.Outlined.ZoomIn,
-                    checked = settings.keyPopupEnabled,
-                    accentColor = Color(theme.accentColor),
-                    onCheckedChange = { onUpdateSettings(settings.copy(keyPopupEnabled = it)) }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.VolumeUp, contentDescription = null, tint = if (settings.soundEnabled) accentCol else subTextColor, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("أصوات المفاتيح المخصصة", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("نغمة واقعية عند لمس كل حرف", color = subTextColor, fontSize = 9.sp)
+                            }
+                        }
+                        Switch(
+                            checked = settings.soundEnabled,
+                            onCheckedChange = { onUpdateSettings(settings.copy(soundEnabled = it)) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = accentCol),
+                            modifier = Modifier.height(26.dp)
+                        )
+                    }
+
+                    if (settings.soundEnabled) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            KeyboardSoundEngine.AVAILABLE_PROFILES.forEach { prof ->
+                                val isSel = settings.soundProfile == prof.id
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                    modifier = Modifier.clickable {
+                                        onUpdateSettings(settings.copy(soundProfile = prof.id))
+                                        KeyboardSoundEngine.playKeySound(prof.id, settings.soundVolume)
+                                    }
+                                ) {
+                                    Text(
+                                        text = prof.nameAr.take(16),
+                                        color = if (isSel) Color.Black else textColor,
+                                        fontSize = 9.5.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // 2. اهتزاز المفاتيح
             item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Vibration, contentDescription = null, tint = if (settings.vibrationEnabled) accentCol else subTextColor, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("الاهتزاز اللمسي (${settings.vibrationDurationMs}ms)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("اهتزاز ملموس ومريح عند الضغط", color = subTextColor, fontSize = 9.sp)
+                            }
+                        }
+                        Switch(
+                            checked = settings.vibrationEnabled,
+                            onCheckedChange = { onUpdateSettings(settings.copy(vibrationEnabled = it)) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = accentCol),
+                            modifier = Modifier.height(26.dp)
+                        )
+                    }
+
+                    if (settings.vibrationEnabled) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(Pair("خفيف", 15), Pair("متوسط آيفون 16", 30), Pair("قوي", 45)).forEach { (lbl, dur) ->
+                                val isSel = settings.vibrationDurationMs == dur
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                    modifier = Modifier.weight(1f).clickable {
+                                        onUpdateSettings(settings.copy(vibrationDurationMs = dur))
+                                    }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                        Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 9.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. معاينة الحرف عند اللمس
+            item {
                 QuickSettingToggleRow(
-                    title = "اهتزاز المفاتيح (Haptic Feedback)",
-                    subtitle = "تفعيل الاهتزاز اللمسي الخفيف عند الضغط",
-                    icon = Icons.Outlined.Vibration,
-                    checked = settings.vibrationEnabled,
-                    accentColor = Color(theme.accentColor),
-                    onCheckedChange = { onUpdateSettings(settings.copy(vibrationEnabled = it)) }
+                    title = "معاينة الحرف العائم (Preview Bubble)",
+                    subtitle = "ظهور فقاعة تكبير الحرف فوق الزر عند اللمس",
+                    icon = Icons.Outlined.ZoomIn,
+                    checked = settings.keyPopupEnabled,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(keyPopupEnabled = it)) }
                 )
             }
 
-            // 3. صف الأرقام العلوي
+            // 4. صف الأرقام العلوي
             item {
                 QuickSettingToggleRow(
                     title = "صف الأرقام العلوي المباشر",
                     subtitle = "عرض شريط الأرقام بشكل دائم فوق الحروف",
                     icon = Icons.Outlined.Pin,
                     checked = settings.numberRowEnabled,
-                    accentColor = Color(theme.accentColor),
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
                     onCheckedChange = { onUpdateSettings(settings.copy(numberRowEnabled = it)) }
                 )
             }
 
-            // 4. شريط الاقتراحات والإكمال الذكي
+            // 5. شريط الاقتراحات والإكمال الذكي
             item {
                 QuickSettingToggleRow(
                     title = "شريط الاقتراحات الذكية",
                     subtitle = "توقع الكلمات التالية والتصحيح الإملائي",
                     icon = Icons.Outlined.AutoFixHigh,
                     checked = settings.suggestionsEnabled,
-                    accentColor = Color(theme.accentColor),
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
                     onCheckedChange = { onUpdateSettings(settings.copy(suggestionsEnabled = it)) }
-                )
-            }
-
-            // 5. صوت المفاتيح
-            item {
-                QuickSettingToggleRow(
-                    title = "صوت النقر على المفاتيح",
-                    subtitle = "إصدار نغمة نقر خفيفة عند الكتابة",
-                    icon = Icons.Outlined.VolumeUp,
-                    checked = settings.soundEnabled,
-                    accentColor = Color(theme.accentColor),
-                    onCheckedChange = { onUpdateSettings(settings.copy(soundEnabled = it)) }
                 )
             }
 
@@ -1714,21 +1826,21 @@ fun QuickSettingsView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(theme.accentColor).copy(alpha = 0.12f))
+                        .background(accentCol.copy(alpha = 0.15f))
                         .clickable { onCustomizeToolbar() }
                         .padding(horizontal = 10.dp, vertical = 7.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Tune, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Outlined.Tune, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text("تخصيص شريط الأدوات العلوي ⚙️", color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
-                            Text("تقليل الأيقونات وإخفاء الأدوات غير المستخدمة", color = Color(0xFF8E9BAE), fontSize = 9.sp)
+                            Text("تخصيص شريط الأدوات العلوي ⚙️", color = textColor, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                            Text("تقليل الأيقونات وإخفاء الأدوات غير المستخدمة", color = subTextColor, fontSize = 9.sp)
                         }
                     }
-                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = accentCol, modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -1742,17 +1854,17 @@ fun QuickSettingsView(
                 onClose()
             },
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(theme.accentColor)
+                containerColor = accentCol
             ),
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().height(38.dp)
+            modifier = Modifier.fillMaxWidth().height(36.dp)
         ) {
             Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = "فتح إعدادات التطبيق الكاملة ⚙️",
                 color = Color.Black,
-                fontSize = 12.sp,
+                fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -1766,13 +1878,18 @@ private fun QuickSettingToggleRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     checked: Boolean,
     accentColor: Color,
+    textColor: Color,
+    subTextColor: Color,
+    cardBg: Color,
+    cardBorder: Color,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF141924))
+            .background(cardBg)
+            .border(1.dp, cardBorder, RoundedCornerShape(8.dp))
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1785,20 +1902,20 @@ private fun QuickSettingToggleRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (checked) accentColor else Color(0xFF8E9BAE),
+                tint = if (checked) accentColor else subTextColor,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = textColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = subtitle,
-                    color = Color(0xFF8E9BAE),
+                    color = subTextColor,
                     fontSize = 9.sp
                 )
             }

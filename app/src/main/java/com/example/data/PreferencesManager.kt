@@ -22,6 +22,9 @@ class PreferencesManager(context: Context) {
             soundProfile = prefs.getString("soundProfile", "ios_16") ?: "ios_16",
             soundVolume = prefs.getFloat("soundVolume", 0.85f),
             keyPressTimingStyle = prefs.getString("keyPressTimingStyle", "ios_balanced") ?: "ios_balanced",
+            typingSpeedMode = prefs.getString("typingSpeedMode", "medium") ?: "medium",
+            keyRepeatSpeedMs = prefs.getInt("keyRepeatSpeedMs", 45),
+            longPressDelayMs = prefs.getInt("longPressDelayMs", 340),
             keyPopupEnabled = prefs.getBoolean("keyPopupEnabled", true),
             autoCapitalization = prefs.getBoolean("autoCapitalization", true),
             doubleSpacePeriod = prefs.getBoolean("doubleSpacePeriod", true),
@@ -70,6 +73,9 @@ class PreferencesManager(context: Context) {
             .putString("soundProfile", settings.soundProfile)
             .putFloat("soundVolume", settings.soundVolume)
             .putString("keyPressTimingStyle", settings.keyPressTimingStyle)
+            .putString("typingSpeedMode", settings.typingSpeedMode)
+            .putInt("keyRepeatSpeedMs", settings.keyRepeatSpeedMs)
+            .putInt("longPressDelayMs", settings.longPressDelayMs)
             .putBoolean("keyPopupEnabled", settings.keyPopupEnabled)
             .putBoolean("autoCapitalization", settings.autoCapitalization)
             .putBoolean("doubleSpacePeriod", settings.doubleSpacePeriod)

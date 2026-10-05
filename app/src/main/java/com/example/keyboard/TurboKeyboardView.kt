@@ -648,12 +648,14 @@ fun TurboKeyboardView(
                         .padding(horizontal = 2.dp, vertical = 2.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                // Long-Press Character Popup Overlay (Matching Screenshots 1, 2, 4)
+                // Long-Press Character Popup Overlay matching active theme colors!
                 AnimatedVisibility(
                     visible = longPressChar != null && longPressVariants.isNotEmpty(),
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
+                    val isLight = isLightColor(theme.backgroundColor)
+                    val popupTextCol = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -661,16 +663,16 @@ fun TurboKeyboardView(
                         contentAlignment = Alignment.Center
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF141A26),
-                            border = BorderStroke(1.5.dp, Color(0xFF00B0FF)),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(theme.backgroundColor),
+                            border = BorderStroke(1.5.dp, Color(theme.accentColor)),
                             shadowElevation = 8.dp
                         ) {
                             Row(
                                 modifier = Modifier
                                     .horizontalScroll(rememberScrollState())
                                     .padding(horizontal = 4.dp, vertical = 5.dp),
-                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 longPressVariants.forEach { variant ->
@@ -678,15 +680,15 @@ fun TurboKeyboardView(
                                     Box(
                                         modifier = Modifier
                                             .size(width = 38.dp, height = 44.dp)
-                                            .clip(RoundedCornerShape(6.dp))
+                                            .clip(RoundedCornerShape(8.dp))
                                             .background(
-                                                if (isCurrent) Color(0xFF007ACC)
-                                                else Color(0xFF1F293B)
+                                                if (isCurrent) Color(theme.keyPressedColor)
+                                                else Color(theme.keyBackgroundColor)
                                             )
                                             .border(
                                                 1.dp,
-                                                if (isCurrent) Color(0xFF00B0FF) else Color(0xFF2E3E58),
-                                                RoundedCornerShape(6.dp)
+                                                if (isCurrent) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha),
+                                                RoundedCornerShape(8.dp)
                                             )
                                             .clickable {
                                                 performFeedback()
@@ -698,7 +700,7 @@ fun TurboKeyboardView(
                                     ) {
                                         Text(
                                             text = variant,
-                                            color = Color.White,
+                                            color = if (isCurrent) Color(theme.accentColor) else popupTextCol,
                                             fontSize = 17.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -709,9 +711,9 @@ fun TurboKeyboardView(
                                 Box(
                                     modifier = Modifier
                                         .size(width = 32.dp, height = 44.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFF2D1E26))
-                                        .border(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(theme.keyPressedColor).copy(alpha = 0.7f))
+                                        .border(1.dp, Color(0xFFFF5252).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                                         .clickable {
                                             longPressChar = null
                                             longPressVariants = emptyList()
@@ -865,6 +867,7 @@ fun TurboKeyboardView(
                                 BackspaceKeyButton(
                                     theme = theme,
                                     modifier = Modifier.weight(key.weight),
+                                    repeatSpeedMs = currentSettings.keyRepeatSpeedMs.toLong(),
                                     onDelete = { sendDelete() },
                                     onDeleteWord = {
                                         performFeedback()
@@ -1386,20 +1389,24 @@ fun SpecialKeyButton(
 fun BackspaceKeyButton(
     theme: KeyboardTheme,
     modifier: Modifier = Modifier,
+    repeatSpeedMs: Long = 45L,
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isPressed) {
+    LaunchedEffect(isPressed, repeatSpeedMs) {
         if (isPressed) {
             onDelete()
-            delay(300)
+            delay(280)
             var deleteCount = 0
+            val baseSpeed = repeatSpeedMs.coerceIn(20L, 100L)
             while (isPressed) {
                 onDelete()
                 deleteCount++
-                val interval = if (deleteCount > 25) 25L else if (deleteCount > 10) 35L else 45L
+                val interval = if (deleteCount > 20) (baseSpeed * 0.6).toLong().coerceAtLeast(18L)
+                               else if (deleteCount > 8) (baseSpeed * 0.8).toLong().coerceAtLeast(25L)
+                               else baseSpeed
                 delay(interval)
             }
         }

@@ -1700,18 +1700,86 @@ fun QuickSettingsView(
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
                                     color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                    border = BorderStroke(if (isSel) 1.2.dp else 0.8.dp, if (isSel) accentCol else rowBorder),
                                     modifier = Modifier.clickable {
                                         onUpdateSettings(settings.copy(soundProfile = prof.id))
                                         KeyboardSoundEngine.playKeySound(prof.id, settings.soundVolume)
                                     }
                                 ) {
                                     Text(
-                                        text = prof.nameAr.take(16),
+                                        text = prof.nameAr,
                                         color = if (isSel) Color.Black else textColor,
                                         fontSize = 9.5.sp,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 1.1 سرعة الكتابة واستجابة الأزرار
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Speed, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("سرعة الكتابة واستجابة الأزرار", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    when (settings.typingSpeedMode) {
+                                        "fast" -> "⚡ فائق السرعة واستجابة فورية"
+                                        "slow" -> "🧘 هادئ وبطيء لعدم الخطأ"
+                                        else -> "🍏 متوسط متوازن (مثل كيبورد آيفون 16)"
+                                    },
+                                    color = accentCol,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            Triple("⚡ فائق السرعة", "fast", Pair(25, 200)),
+                            Triple("🍏 متوازن (آيفون 16)", "medium", Pair(45, 340)),
+                            Triple("🧘 هادئ ودقيق", "slow", Pair(80, 520))
+                        ).forEach { (lbl, mode, timings) ->
+                            val isSel = settings.typingSpeedMode == mode
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                border = BorderStroke(if (isSel) 1.2.dp else 0.8.dp, if (isSel) accentCol else rowBorder),
+                                modifier = Modifier.weight(1f).clickable {
+                                    onUpdateSettings(
+                                        settings.copy(
+                                            typingSpeedMode = mode,
+                                            keyRepeatSpeedMs = timings.first,
+                                            longPressDelayMs = timings.second,
+                                            keyPressTimingStyle = if (mode == "fast") "ultra_fast" else "ios_balanced"
+                                        )
+                                    )
+                                    KeyboardSoundEngine.playKeySound(settings.soundProfile, settings.soundVolume)
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 5.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }

@@ -44,9 +44,12 @@ data class KeyboardSettings(
     val vibrationEnabled: Boolean = true,
     val vibrationDurationMs: Int = 30, // Solid medium-to-strong haptic as requested
     val soundEnabled: Boolean = true, // Enabled with custom sounds
-    val soundProfile: String = "ios_16", // "ios_16", "mechanical", "modern_soft", "water_drop", "classic_typewriter", "system_default"
+    val soundProfile: String = "ios_16", // "ios_16", "mechanical", "modern_soft", "water_drop", "pop_bubble", "wood_block", "cyber_scifi", "classic_typewriter", "system_default"
     val soundVolume: Float = 0.85f,
     val keyPressTimingStyle: String = "ios_balanced", // "ios_balanced" (iOS 16 natural feel), "ultra_fast"
+    val typingSpeedMode: String = "medium", // "fast", "medium" (iOS 16), "slow", "custom"
+    val keyRepeatSpeedMs: Int = 45, // 25ms (fast), 45ms (medium), 80ms (slow)
+    val longPressDelayMs: Int = 340, // 200ms (fast), 340ms (medium), 520ms (slow)
     val keyPopupEnabled: Boolean = true,
     val autoCapitalization: Boolean = true,
     val doubleSpacePeriod: Boolean = true,

@@ -273,9 +273,19 @@ fun SettingsScreen(
             item {
                 TransboardSettingsRow(
                     title = "الصوت والإهتزاز",
-                    subtitle = "التحكم في أصوات المفاتيح والاهتزاز بالملي ثانية",
+                    subtitle = "التحكم في أصوات المفاتيح ونغمات النقر والاهتزاز بالملي ثانية",
                     icon = Icons.Outlined.VolumeUp,
                     onClick = { activeDialog = "SOUND_HAPTIC" }
+                )
+            }
+
+            // 11.1 سرعة الكتابة واستجابة الأزرار
+            item {
+                TransboardSettingsRow(
+                    title = "سرعة الكتابة واستجابة الأزرار",
+                    subtitle = "زيادة أو تقليل سرعة الكتابة، تكرار الحذف، وتوقيت الضغط مثل آيفون 16",
+                    icon = Icons.Outlined.Speed,
+                    onClick = { activeDialog = "TYPING_SPEED" }
                 )
             }
 
@@ -1617,6 +1627,172 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("تم وحفظ الإعدادات ✓", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            },
+            containerColor = dBg
+        )
+    }
+
+    // 11.1 TYPING SPEED & KEY TIMINGS DIALOG
+    if (activeDialog == "TYPING_SPEED") {
+        val currentTheme = remember(settings.currentThemeId) { prefs.getActiveTheme() }
+        val isLight = remember(currentTheme) { ThemePresets.isLightColor(currentTheme.backgroundColor) }
+        val dBg = if (isLight) Color(currentTheme.backgroundColor) else Color(0xFF141A28)
+        val dText = if (isLight) Color(0xFF0F172A) else Color.White
+        val dSub = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+        val dCard = if (isLight) Color.White else Color(0xFF1B2333)
+        val dAccent = Color(currentTheme.accentColor)
+
+        AlertDialog(
+            onDismissRequest = { activeDialog = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Speed,
+                        contentDescription = null,
+                        tint = dAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "سرعة الكتابة واستجابة الأزرار",
+                        color = dText,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 440.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // أنماط السرعة الجاهزة
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = dCard,
+                            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("أنماط سرعة الاستجابة الجاهزة:", color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                Text("اختر النمط المناسب لأسلوب كتابتك:", color = dSub, fontSize = 10.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                val speedPresets = listOf(
+                                    Triple("⚡ فائق السرعة", "fast", "استجابة فورية 0ms وسرعة حذف خارقة"),
+                                    Triple("🍏 متوسط متوازن (مثل آيفون 16)", "medium", "سلس ومتوازن بدون ثقل أو خطأ (موصى به)"),
+                                    Triple("🧘 هادئ وبطيء ودقيق", "slow", "كتابة متأنية لتقليل الأخطاء الإملائية")
+                                )
+
+                                speedPresets.forEach { (title, mode, desc) ->
+                                    val isSelected = settings.typingSpeedMode == mode
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) dAccent.copy(alpha = 0.2f) else if (isLight) Color(0xFFF8FAFC) else Color(0xFF141924),
+                                        border = BorderStroke(if (isSelected) 1.5.dp else 0.8.dp, if (isSelected) dAccent else if (isLight) Color(0xFFCBD5E1) else Color(0xFF26334A)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 3.dp)
+                                            .clickable {
+                                                val (rep, longD) = when (mode) {
+                                                    "fast" -> Pair(25, 200)
+                                                    "slow" -> Pair(80, 520)
+                                                    else -> Pair(45, 340)
+                                                }
+                                                updateSettings(
+                                                    settings.copy(
+                                                        typingSpeedMode = mode,
+                                                        keyRepeatSpeedMs = rep,
+                                                        longPressDelayMs = longD,
+                                                        keyPressTimingStyle = if (mode == "fast") "ultra_fast" else "ios_balanced"
+                                                    )
+                                                )
+                                                KeyboardSoundEngine.initialize(context)
+                                                KeyboardSoundEngine.playKeySound(settings.soundProfile, settings.soundVolume)
+                                            }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(title, color = if (isSelected) dAccent else dText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                Text(desc, color = dSub, fontSize = 9.5.sp)
+                                            }
+                                            if (isSelected) {
+                                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = dAccent, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // التعديل اليدوي المتقدم للسرعة
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = dCard,
+                            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("تخصيص دقيق بالمللي ثانية:", color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Slider 1: سرعة تكرار الحذف
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("سرعة تكرار الحذف (Backspace Repeat)", color = dText, fontSize = 11.sp)
+                                    Text("${settings.keyRepeatSpeedMs} ms", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Slider(
+                                    value = settings.keyRepeatSpeedMs.toFloat(),
+                                    onValueChange = {
+                                        updateSettings(settings.copy(keyRepeatSpeedMs = it.toInt(), typingSpeedMode = "custom"))
+                                    },
+                                    valueRange = 20f..100f
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Slider 2: تأخير الضغط المطول
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("تأخير الضغط المطول للحركات والرموز", color = dText, fontSize = 11.sp)
+                                    Text("${settings.longPressDelayMs} ms", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Slider(
+                                    value = settings.longPressDelayMs.toFloat(),
+                                    onValueChange = {
+                                        updateSettings(settings.copy(longPressDelayMs = it.toInt(), typingSpeedMode = "custom"))
+                                    },
+                                    valueRange = 150f..600f
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { activeDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = dAccent),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("تم وحفظ سرعة الكتابة ✓", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             },
             containerColor = dBg

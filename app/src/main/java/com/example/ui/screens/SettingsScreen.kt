@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PreferencesManager
 import com.example.data.TextDecorator
+import com.example.keyboard.allKeyboardToolbarTools
 import com.example.model.KeyboardSettings
 import com.example.model.TextShortcut
 
@@ -249,6 +250,16 @@ fun SettingsScreen(
                     subtitle = "إظهار صف الأرقام العلوي والتحكم بالصف السفلي وشريط الأدوات",
                     icon = Icons.Outlined.ViewStream,
                     onClick = { activeDialog = "ROWS_TOOLBAR" }
+                )
+            }
+
+            // 10.1 تخصيص شريط الأدوات العلوي (تقليل الأيقونات وإزالة الزحمة)
+            item {
+                TransboardSettingsRow(
+                    title = "تخصيص شريط الأدوات العلوي",
+                    subtitle = "تقليل عدد الأيقونات، إخفاء الأدوات غير المستخدمة، واختيار الأدوات التي تظهر فقط",
+                    icon = Icons.Outlined.Tune,
+                    onClick = { activeDialog = "CUSTOMIZE_TOOLBAR" }
                 )
             }
 
@@ -835,6 +846,154 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
                     Text("تم", color = Color(0xFF00E5FF))
+                }
+            },
+            containerColor = Color(0xFF141A28)
+        )
+    }
+
+    // 10.1 CUSTOMIZE TOOLBAR DIALOG (تخصيص وتقليل أيقونات شريط الأدوات)
+    if (activeDialog == "CUSTOMIZE_TOOLBAR") {
+        val currentTools = settings.visibleToolbarTools.toSet()
+
+        AlertDialog(
+            onDismissRequest = { activeDialog = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Tune, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("تخصيص شريط الأدوات العلوي", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.heightIn(max = 420.dp)) {
+                    Text(
+                        "اختر الأدوات التي تريد ظهورها في الشريط أعلى الكيبورد لتقليل الزحمة وجعل الكيبورد خفيفاً وسريعاً:",
+                        color = Color(0xFF8E9BAE),
+                        fontSize = 11.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Presets
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val next = listOf("translate", "clipboard", "decoration", "emoji", "settings")
+                                updateSettings(settings.copy(visibleToolbarTools = next))
+                            },
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF).copy(alpha = 0.18f)),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("⚡ خفيف (5)", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                val next = listOf("translate", "clipboard", "decoration", "voice", "phrases")
+                                updateSettings(settings.copy(visibleToolbarTools = next))
+                            },
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26334A)),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("📝 كتابة (5)", color = Color.White, fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                val next = allKeyboardToolbarTools.map { it.id }
+                                updateSettings(settings.copy(visibleToolbarTools = next))
+                            },
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26334A)),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("🌟 الكل (12)", color = Color.White, fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(allKeyboardToolbarTools) { tool ->
+                            val isChecked = tool.id in currentTools
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isChecked) Color(0xFF1E283A) else Color(0xFF101520),
+                                border = BorderStroke(1.dp, if (isChecked) Color(0xFF00E5FF).copy(alpha = 0.35f) else Color(0xFF26334A).copy(alpha = 0.3f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val next = if (isChecked) {
+                                            if (currentTools.size > 1) currentTools - tool.id else currentTools
+                                        } else {
+                                            currentTools + tool.id
+                                        }
+                                        updateSettings(settings.copy(visibleToolbarTools = allKeyboardToolbarTools.map { it.id }.filter { it in next }))
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        Icon(
+                                            imageVector = tool.icon,
+                                            contentDescription = null,
+                                            tint = if (isChecked) Color(0xFF00E5FF) else Color(0xFF8E9BAE),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = tool.nameAr,
+                                                color = if (isChecked) Color.White else Color(0xFF8E9BAE),
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                            Text(
+                                                text = tool.description,
+                                                color = Color(0xFF64748B),
+                                                fontSize = 9.5.sp
+                                            )
+                                        }
+                                    }
+
+                                    Switch(
+                                        checked = isChecked,
+                                        onCheckedChange = { checked ->
+                                            val next = if (checked) {
+                                                currentTools + tool.id
+                                            } else {
+                                                if (currentTools.size > 1) currentTools - tool.id else currentTools
+                                            }
+                                            updateSettings(settings.copy(visibleToolbarTools = allKeyboardToolbarTools.map { it.id }.filter { it in next }))
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { activeDialog = null }) {
+                    Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color(0xFF141A28)

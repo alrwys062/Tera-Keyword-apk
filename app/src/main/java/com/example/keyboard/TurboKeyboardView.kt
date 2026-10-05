@@ -13,8 +13,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -41,6 +44,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -60,9 +64,19 @@ import com.example.model.KeyboardSettings
 import com.example.model.KeyboardSubView
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+
+private fun isLightColor(colorLong: Long): Boolean {
+    val r = ((colorLong shr 16) and 0xFF) / 255.0
+    val g = ((colorLong shr 8) and 0xFF) / 255.0
+    val b = (colorLong and 0xFF) / 255.0
+    val luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return luminance > 0.5
+}
 
 @Composable
 fun TurboKeyboardView(
@@ -140,19 +154,25 @@ fun TurboKeyboardView(
         }
     }
 
-    // Sound & Haptic triggers (15ms tactile vibration)
-    fun performFeedback(durationMs: Long = 15L) {
-        if (currentSettings.vibrationEnabled) {
+    // Cached vibrator reference to prevent heavy IPC getSystemService calls on every single keystroke
+    val vibrator = remember {
+        try {
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    // Instant tactile feedback with zero system service lookup overhead
+    fun performFeedback(durationMs: Long = 12L) {
+        if (currentSettings.vibrationEnabled && vibrator != null && vibrator.hasVibrator()) {
             try {
-                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                if (vibrator != null && vibrator.hasVibrator()) {
-                    val duration = if (durationMs > 0) durationMs else currentSettings.vibrationDurationMs.toLong().coerceAtLeast(15L)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
-                    } else {
-                        @Suppress("DEPRECATION")
-                        vibrator.vibrate(duration)
-                    }
+                val duration = if (durationMs > 0) durationMs else currentSettings.vibrationDurationMs.toLong().coerceAtLeast(10L)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(duration)
                 }
             } catch (_: Exception) {
                 // Ignore
@@ -161,7 +181,6 @@ fun TurboKeyboardView(
     }
 
     fun sendText(text: String) {
-        performFeedback()
         val textToInsert = if (activeDecorationStyle != "none" && text.length == 1) {
             TextDecorator.decorateChar(text, activeDecorationStyle)
         } else {
@@ -349,30 +368,40 @@ fun TurboKeyboardView(
             isDecorationActive = isDecorationBarOpen || activeDecorationStyle != "none",
             isTranslationActive = isTranslationBarOpen,
             isNightMode = isNightMode,
+            visibleTools = currentSettings.visibleToolbarTools,
             onSubViewSelected = { sub ->
-                activeSubView = sub
-                if (sub != KeyboardSubView.NONE) {
+                if (activeSubView == sub) {
+                    activeSubView = KeyboardSubView.NONE
+                } else {
+                    activeSubView = sub
                     isDecorationBarOpen = false
                     isTranslationBarOpen = false
                 }
             },
             onToggleDecorationBar = {
+                activeSubView = KeyboardSubView.NONE
+                isTranslationBarOpen = false
                 isDecorationBarOpen = !isDecorationBarOpen
-                if (isDecorationBarOpen) activeSubView = KeyboardSubView.NONE
             },
             onToggleTranslationBar = {
+                activeSubView = KeyboardSubView.NONE
+                isDecorationBarOpen = false
                 isTranslationBarOpen = !isTranslationBarOpen
-                if (isTranslationBarOpen) activeSubView = KeyboardSubView.NONE
             },
             onToggleNightMode = {
                 isNightMode = !isNightMode
             },
             onVoiceClick = { onVoiceRequested?.invoke() },
-            onOpenSettingsClick = { onOpenSettingsRequested?.invoke() }
+            onOpenSettingsClick = { onOpenSettingsRequested?.invoke() },
+            onCustomizeToolbar = {
+                activeSubView = if (activeSubView == KeyboardSubView.CUSTOMIZE_TOOLBAR) KeyboardSubView.NONE else KeyboardSubView.CUSTOMIZE_TOOLBAR
+                isDecorationBarOpen = false
+                isTranslationBarOpen = false
+            }
         )
 
-        // 2. INLINE TRANSLATION BAR (Screenshot 20)
-        AnimatedVisibility(visible = isTranslationBarOpen) {
+        // 2. INLINE TRANSLATION BAR (Instant display without jank)
+        if (isTranslationBarOpen) {
             InlineTranslationBar(
                 theme = theme,
                 sourceLang = translationSource,
@@ -388,8 +417,8 @@ fun TurboKeyboardView(
             )
         }
 
-        // 3. INLINE TEXT DECORATION BAR & DROPDOWN (Screenshots 18 & 19)
-        AnimatedVisibility(visible = isDecorationBarOpen) {
+        // 3. INLINE TEXT DECORATION BAR & DROPDOWN (Instant display)
+        if (isDecorationBarOpen) {
             InlineDecorationBar(
                 theme = theme,
                 activeStyleId = activeDecorationStyle,
@@ -405,109 +434,123 @@ fun TurboKeyboardView(
             )
         }
 
-        // Sub-views drawers (Clipboard, Emoji, GIF, AI Assistant, Photos)
-        AnimatedVisibility(
-            visible = activeSubView != KeyboardSubView.NONE,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
-        ) {
-            when (activeSubView) {
-                KeyboardSubView.EMOJI -> {
-                    EmojiPickerView(
-                        theme = theme,
-                        onEmojiSelected = {
-                            prefs.addRecentEmoji(it)
-                            sendText(it)
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
+        // Sub-views drawers (Clipboard, Emoji, GIF, AI Assistant, Photos, Customize Toolbar)
+        // Instant 0ms display: completely solves lag when opening clipboard or translation
+        if (activeSubView != KeyboardSubView.NONE) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                when (activeSubView) {
+                    KeyboardSubView.EMOJI -> {
+                        EmojiPickerView(
+                            theme = theme,
+                            onEmojiSelected = {
+                                prefs.addRecentEmoji(it)
+                                sendText(it)
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.GIF -> {
+                        GifPickerView(
+                            theme = theme,
+                            onGifSelected = { sendText(" $it ") },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.PHOTOS -> {
+                        MediaPickerView(
+                            theme = theme,
+                            onMediaSelected = { mediaText ->
+                                sendText(" $mediaText ")
+                                activeSubView = KeyboardSubView.NONE
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.CLIPBOARD -> {
+                        // Clipboard matching Screenshot 21:
+                        // 2-column grid, closes on paste, maintains scroll position, saves forever
+                        ClipboardDrawer(
+                            theme = theme,
+                            prefs = prefs,
+                            onItemInserted = { text ->
+                                sendText(text)
+                                // Auto-close on paste requested by user
+                                activeSubView = KeyboardSubView.NONE
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.AI_ASSISTANT -> {
+                        AiToneDrawer(
+                            theme = theme,
+                            currentText = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText,
+                            onReplaceText = { replaceAllText(it) },
+                            onAddWordToDictionary = { word ->
+                                userDict.addWord(word)
+                                userWords = userDict.getUserWords()
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.VOICE_INPUT -> {
+                        VoiceInputView(
+                            theme = theme,
+                            isArabic = isArabic,
+                            onInsertText = { sendText(it) },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.PHRASES -> {
+                        DecoratedPhrasesView(
+                            theme = theme,
+                            onPhraseSelected = { phrase ->
+                                sendText(phrase)
+                                activeSubView = KeyboardSubView.NONE
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.CALCULATOR -> {
+                        CalculatorPadView(
+                            theme = theme,
+                            onInsertText = { mathText ->
+                                sendText(mathText)
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.SETTINGS -> {
+                        QuickSettingsView(
+                            theme = theme,
+                            settings = currentSettings,
+                            onUpdateSettings = { newSet ->
+                                currentSettings = newSet
+                                prefs.saveSettings(newSet)
+                            },
+                            onOpenFullSettings = {
+                                activeSubView = KeyboardSubView.NONE
+                                onOpenSettingsRequested?.invoke()
+                            },
+                            onCustomizeToolbar = {
+                                activeSubView = KeyboardSubView.CUSTOMIZE_TOOLBAR
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    KeyboardSubView.CUSTOMIZE_TOOLBAR -> {
+                        CustomizeToolbarDrawer(
+                            theme = theme,
+                            visibleTools = currentSettings.visibleToolbarTools,
+                            onUpdateTools = { newTools ->
+                                val updated = currentSettings.copy(visibleToolbarTools = newTools)
+                                currentSettings = updated
+                                prefs.saveSettings(updated)
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
+                    else -> {}
                 }
-                KeyboardSubView.GIF -> {
-                    GifPickerView(
-                        theme = theme,
-                        onGifSelected = { sendText(" $it ") },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.PHOTOS -> {
-                    MediaPickerView(
-                        theme = theme,
-                        onMediaSelected = { mediaText ->
-                            sendText(" $mediaText ")
-                            activeSubView = KeyboardSubView.NONE
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.CLIPBOARD -> {
-                    // Clipboard matching Screenshot 21:
-                    // 2-column grid, closes on paste, maintains scroll position, saves forever
-                    ClipboardDrawer(
-                        theme = theme,
-                        prefs = prefs,
-                        onItemInserted = { text ->
-                            sendText(text)
-                            // Auto-close on paste requested by user
-                            activeSubView = KeyboardSubView.NONE
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.AI_ASSISTANT -> {
-                    AiToneDrawer(
-                        theme = theme,
-                        currentText = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText,
-                        onReplaceText = { replaceAllText(it) },
-                        onAddWordToDictionary = { word ->
-                            userDict.addWord(word)
-                            userWords = userDict.getUserWords()
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.VOICE_INPUT -> {
-                    VoiceInputView(
-                        theme = theme,
-                        isArabic = isArabic,
-                        onInsertText = { sendText(it) },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.PHRASES -> {
-                    DecoratedPhrasesView(
-                        theme = theme,
-                        onPhraseSelected = { phrase ->
-                            sendText(phrase)
-                            activeSubView = KeyboardSubView.NONE
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.CALCULATOR -> {
-                    CalculatorPadView(
-                        theme = theme,
-                        onInsertText = { mathText ->
-                            sendText(mathText)
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                KeyboardSubView.SETTINGS -> {
-                    QuickSettingsView(
-                        theme = theme,
-                        settings = currentSettings,
-                        onUpdateSettings = { newSet ->
-                            currentSettings = newSet
-                            prefs.saveSettings(newSet)
-                        },
-                        onOpenFullSettings = {
-                            activeSubView = KeyboardSubView.NONE
-                            onOpenSettingsRequested?.invoke()
-                        },
-                        onClose = { activeSubView = KeyboardSubView.NONE }
-                    )
-                }
-                else -> {}
             }
         }
 
@@ -668,6 +711,8 @@ fun TurboKeyboardView(
                     }
                 }
 
+                val calculatedKeyHeight = (47.dp * currentSettings.keyHeightFactor)
+
                 // Optional Number Row
                 if (currentSettings.numberRowEnabled) {
                     Row(
@@ -682,6 +727,9 @@ fun TurboKeyboardView(
                                 theme = theme,
                                 isShifted = isShifted,
                                 showKeyPopup = currentSettings.keyPopupEnabled,
+                                keyHeight = calculatedKeyHeight,
+                                keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                onPerformFeedback = { performFeedback(it) },
                                 modifier = Modifier.weight(key.weight),
                                 onClick = { sendText(digitChar) },
                                 onLongClick = {
@@ -716,12 +764,15 @@ fun TurboKeyboardView(
                             numberHint = hint,
                             isArabicLayout = isArabic,
                             showKeyPopup = currentSettings.keyPopupEnabled,
+                            keyHeight = calculatedKeyHeight,
+                            keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                            onPerformFeedback = { performFeedback(it) },
                             modifier = Modifier.weight(key.weight),
                             onClick = {
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
                             },
                             onLongClick = {
-                                performFeedback(25L)
+                                performFeedback(22L)
                                 val variants = LongPressVariantsManager.getVariants(char)
                                 longPressChar = char
                                 longPressVariants = variants
@@ -748,12 +799,15 @@ fun TurboKeyboardView(
                             isShifted = isShifted,
                             isArabicLayout = isArabic,
                             showKeyPopup = currentSettings.keyPopupEnabled,
+                            keyHeight = calculatedKeyHeight,
+                            keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                            onPerformFeedback = { performFeedback(it) },
                             modifier = Modifier.weight(key.weight),
                             onClick = {
                                 sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
                             },
                             onLongClick = {
-                                performFeedback(25L)
+                                performFeedback(22L)
                                 val variants = LongPressVariantsManager.getVariants(char)
                                 longPressChar = char
                                 longPressVariants = variants
@@ -836,12 +890,15 @@ fun TurboKeyboardView(
                                         isShifted = isShifted,
                                         isArabicLayout = isArabic,
                                         showKeyPopup = currentSettings.keyPopupEnabled,
+                                        keyHeight = calculatedKeyHeight,
+                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        onPerformFeedback = { performFeedback(it) },
                                         modifier = Modifier.weight(key.weight),
                                         onClick = {
                                             sendText(if (isShifted && !isArabic && !isSymbolsMode) char.uppercase() else char)
                                         },
                                         onLongClick = {
-                                            performFeedback(25L)
+                                            performFeedback(22L)
                                             val variants = LongPressVariantsManager.getVariants(char)
                                             longPressChar = char
                                             longPressVariants = variants
@@ -861,7 +918,7 @@ fun TurboKeyboardView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(49.dp * currentSettings.keyHeightFactor),
                     horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1100,12 +1157,13 @@ fun KeyButton(
     isArabicLayout: Boolean = false,
     customTextColor: Color? = null,
     showKeyPopup: Boolean = true,
+    keyHeight: Dp = 48.dp,
+    keyFontSizeFactor: Float = 1.0f,
     modifier: Modifier = Modifier,
     onPerformFeedback: ((Long) -> Unit)? = null,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
     val char = (key.type as? KeyType.Character)?.primary ?: ""
     val displayChar = if (isShifted) char.uppercase() else char
     val secondaryHint = if (isArabicLayout) {
@@ -1118,28 +1176,14 @@ fun KeyButton(
     var isLongPressActive by remember { mutableStateOf(false) }
 
     fun triggerFeedback(durationMs: Long) {
-        if (onPerformFeedback != null) {
-            onPerformFeedback(durationMs)
-        } else {
-            try {
-                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                if (vibrator != null && vibrator.hasVibrator()) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
-                    } else {
-                        @Suppress("DEPRECATION")
-                        vibrator.vibrate(durationMs)
-                    }
-                }
-            } catch (_: Exception) {}
-        }
+        onPerformFeedback?.invoke(durationMs)
     }
 
     val keyAlpha = if (theme.keyOpacity < 1.0f) theme.keyOpacity else 1.0f
 
     Box(
         modifier = modifier
-            .height(49.dp)
+            .height(keyHeight)
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
             .background(
                 if (isTouching) Color(theme.keyPressedColor).copy(alpha = keyAlpha)
@@ -1156,19 +1200,21 @@ fun KeyButton(
                     onPress = {
                         isLongPressActive = false
                         isTouching = true
-                        triggerFeedback(15L)
+                        triggerFeedback(12L)
                         val released = tryAwaitRelease()
                         isTouching = false
                         if (released && !isLongPressActive) {
                             onClick()
                         }
                     },
-                    onLongPress = {
-                        isLongPressActive = true
-                        isTouching = false
-                        triggerFeedback(25L)
-                        onLongClick?.invoke()
-                    }
+                    onLongPress = if (onLongClick != null) {
+                        {
+                            isLongPressActive = true
+                            isTouching = false
+                            triggerFeedback(22L)
+                            onLongClick()
+                        }
+                    } else null
                 )
             },
         contentAlignment = Alignment.Center
@@ -1186,10 +1232,11 @@ fun KeyButton(
             )
         }
 
+        val baseFontSize = if (hintText != null) 16.5.sp else 17.5.sp
         Text(
             text = displayChar,
             color = customTextColor ?: Color(theme.keyTextColor),
-            fontSize = if (hintText != null) 17.sp else 18.sp,
+            fontSize = (baseFontSize.value * keyFontSizeFactor).sp,
             fontWeight = FontWeight.SemiBold
         )
 
@@ -1222,15 +1269,14 @@ fun KeyPreviewBubble(
 ) {
     Box(
         modifier = Modifier
-            .width(52.dp)
-            .height(58.dp)
-            .shadow(8.dp, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
+            .width(50.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(Color(theme.keyPressedColor))
             .border(
                 1.5.dp,
                 Color(theme.accentColor),
-                RoundedCornerShape(12.dp)
+                RoundedCornerShape(10.dp)
             ),
         contentAlignment = Alignment.Center
     ) {

@@ -40,11 +40,26 @@ class PreferencesManager(context: Context) {
             keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "basic_ar") ?: "basic_ar",
             translationSource = prefs.getString("translationSource", "ar") ?: "ar",
             translationTarget = prefs.getString("translationTarget", "en") ?: "en",
-            autoTranslateOnCopy = prefs.getBoolean("autoTranslateOnCopy", false)
+            autoTranslateOnCopy = prefs.getBoolean("autoTranslateOnCopy", false),
+            visibleToolbarTools = getVisibleToolbarTools()
         )
     }
 
+    fun getVisibleToolbarTools(): List<String> {
+        val raw = prefs.getString("visibleToolbarTools", null)
+        return if (raw.isNullOrBlank()) {
+            listOf("translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
+        } else {
+            raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        }
+    }
+
+    fun saveVisibleToolbarTools(tools: List<String>) {
+        prefs.edit().putString("visibleToolbarTools", tools.joinToString(",")).apply()
+    }
+
     fun saveSettings(settings: KeyboardSettings) {
+        saveVisibleToolbarTools(settings.visibleToolbarTools)
         prefs.edit()
             .putBoolean("vibrationEnabled", settings.vibrationEnabled)
             .putInt("vibrationDurationMs", settings.vibrationDurationMs)
@@ -208,8 +223,14 @@ class PreferencesManager(context: Context) {
         return getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
     }
 
-    // Permanent Clipboard storage ("حفظ النصوص للأبد")
+    @Volatile
+    private var cachedClipboardItems: List<ClipboardItem>? = null
+
+    // Permanent Clipboard storage ("حفظ النصوص للأبد") with in-memory 0ms cache
     fun getClipboardItems(): List<ClipboardItem> {
+        val cached = cachedClipboardItems
+        if (cached != null) return cached
+
         val json = prefs.getString("clipboard_history", null)
         if (json == null) {
             val initial = listOf(
@@ -220,6 +241,7 @@ class PreferencesManager(context: Context) {
                 ClipboardItem(text = "أنا بخير، شكراً لك! 😊", isPinned = false),
                 ClipboardItem(text = "https://google.com", isPinned = false)
             )
+            cachedClipboardItems = initial
             saveClipboardItems(initial)
             return initial
         }
@@ -241,10 +263,12 @@ class PreferencesManager(context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        cachedClipboardItems = list
         return list
     }
 
     fun saveClipboardItems(items: List<ClipboardItem>) {
+        cachedClipboardItems = items
         val arr = JSONArray()
         for (item in items) {
             val obj = JSONObject().apply {

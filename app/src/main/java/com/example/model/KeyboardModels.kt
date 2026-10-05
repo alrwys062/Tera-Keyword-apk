@@ -65,7 +65,10 @@ data class KeyboardSettings(
     val keyboardLayoutStyle: String = "basic_ar", // "basic_ar", "samsung", "aosp", "linux", "swift"
     val translationSource: String = "ar",
     val translationTarget: String = "en",
-    val autoTranslateOnCopy: Boolean = false
+    val autoTranslateOnCopy: Boolean = false,
+    val visibleToolbarTools: List<String> = listOf(
+        "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings"
+    )
 )
 
 enum class KeyboardLanguage(val code: String, val displayName: String, val nativeName: String) {
@@ -86,5 +89,6 @@ enum class KeyboardSubView {
     AI_ASSISTANT,
     TOOLS_MORE,
     VOICE_INPUT,
-    SETTINGS
+    SETTINGS,
+    CUSTOMIZE_TOOLBAR
 }

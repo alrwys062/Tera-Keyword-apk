@@ -21,6 +21,14 @@ import androidx.compose.ui.unit.sp
 import com.example.data.PredictionEngine
 import com.example.model.KeyboardTheme
 
+private fun isLightColor(colorLong: Long): Boolean {
+    val r = ((colorLong shr 16) and 0xFF) / 255.0
+    val g = ((colorLong shr 8) and 0xFF) / 255.0
+    val b = (colorLong and 0xFF) / 255.0
+    val luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return luminance > 0.5
+}
+
 @Composable
 fun KeyboardSuggestionsBar(
     theme: KeyboardTheme,
@@ -35,7 +43,7 @@ fun KeyboardSuggestionsBar(
             .fillMaxWidth()
             .height(44.dp)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -90,6 +98,11 @@ private fun SuggestionItem(
     onClick: () -> Unit,
     onAddWord: ((String) -> Unit)?
 ) {
+    val isBgLight = androidx.compose.runtime.remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val inactiveTextColor = androidx.compose.runtime.remember(theme.backgroundColor, isBgLight) {
+        if (isBgLight) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+    }
+
     if (result.isCustomCandidate && onAddWord != null) {
         // Quick add to dictionary button
         Box(
@@ -121,8 +134,8 @@ private fun SuggestionItem(
             }
         }
     } else {
-        val activeBg = Color(theme.accentColor).copy(alpha = if (isCenter) 0.25f else 0.1f)
-        val activeBorder = if (isCenter) Color(theme.accentColor) else Color.Transparent
+        val activeBg = if (isCenter) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor).copy(alpha = 0.45f)
+        val activeBorder = if (isCenter) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.4f)
 
         Box(
             modifier = modifier
@@ -137,9 +150,9 @@ private fun SuggestionItem(
         ) {
             Text(
                 text = result.word,
-                color = if (isCenter) Color(theme.accentColor) else Color(theme.keyTextColor),
-                fontSize = if (isCenter) 14.sp else 13.sp,
-                fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
+                color = if (isCenter) Color(theme.accentColor) else inactiveTextColor,
+                fontSize = if (isCenter) 14.sp else 12.5.sp,
+                fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

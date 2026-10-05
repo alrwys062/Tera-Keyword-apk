@@ -393,10 +393,12 @@ fun ClipboardDrawer(
         initialFirstVisibleItemScrollOffset = initialOffset
     )
 
-    // Continuously save scroll position as user scrolls so upon reopening it returns to exact position
-    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
-        prefs.setLastClipboardScrollIndex(gridState.firstVisibleItemIndex)
-        prefs.setLastClipboardScrollOffset(gridState.firstVisibleItemScrollOffset)
+    // Save scroll position when user stops scrolling to eliminate frame drops and disk I/O lag
+    LaunchedEffect(gridState.isScrollInProgress) {
+        if (!gridState.isScrollInProgress) {
+            prefs.setLastClipboardScrollIndex(gridState.firstVisibleItemIndex)
+            prefs.setLastClipboardScrollOffset(gridState.firstVisibleItemScrollOffset)
+        }
     }
 
     Column(
@@ -1582,6 +1584,7 @@ fun QuickSettingsView(
     settings: KeyboardSettings,
     onUpdateSettings: (KeyboardSettings) -> Unit,
     onOpenFullSettings: () -> Unit,
+    onCustomizeToolbar: () -> Unit = {},
     onClose: () -> Unit
 ) {
     Column(
@@ -1695,6 +1698,30 @@ fun QuickSettingsView(
                     accentColor = Color(theme.accentColor),
                     onCheckedChange = { onUpdateSettings(settings.copy(soundEnabled = it)) }
                 )
+            }
+
+            // 6. تخصيص شريط الأدوات العلوي
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(theme.accentColor).copy(alpha = 0.12f))
+                        .clickable { onCustomizeToolbar() }
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Tune, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("تخصيص شريط الأدوات العلوي ⚙️", color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                            Text("تقليل الأيقونات وإخفاء الأدوات غير المستخدمة", color = Color(0xFF8E9BAE), fontSize = 9.sp)
+                        }
+                    }
+                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(16.dp))
+                }
             }
         }
 
@@ -2123,5 +2150,214 @@ private fun evaluateSimpleMath(expr: String): Double {
     }
 
     return total
+}
+
+// -------------------------------------------------------------
+// 10. CUSTOMIZE TOOLBAR DRAWER (تخصيص وإخفاء أدوات شريط الكيبورد)
+// -------------------------------------------------------------
+data class ToolbarToolDefinition(
+    val id: String,
+    val nameAr: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val description: String
+)
+
+val allKeyboardToolbarTools = listOf(
+    ToolbarToolDefinition("translate", "ترجمة فورية", Icons.Default.Translate, "ترجمة فورية للنصوص بجميع لغات العالم"),
+    ToolbarToolDefinition("clipboard", "حافظة النصوص", Icons.Outlined.ContentPaste, "حفظ النصوص المنسوخة والرجوع لها للأبد"),
+    ToolbarToolDefinition("decoration", "زخرفة النصوص", Icons.Outlined.AutoAwesome, "زخرفة الكلمات والخطوط والعبارات الحية"),
+    ToolbarToolDefinition("phrases", "كليشات وعبارات", Icons.Outlined.FavoriteBorder, "عبارات ترحيب وإسلامية ونصوص جاهزة"),
+    ToolbarToolDefinition("calculator", "آلة حاسبة", Icons.Outlined.Calculate, "حاسبة رياضية فورية وكتابة النتيجة"),
+    ToolbarToolDefinition("emoji", "لوحة الإيموجي", Icons.Outlined.Mood, "إيموجي آيفون وأندرويد وقسم المستعملة"),
+    ToolbarToolDefinition("voice", "كتابة صوتية", Icons.Default.Mic, "تحويل الصوت المباشر إلى نصوص مكتوبة"),
+    ToolbarToolDefinition("ai", "ذكاء واصطناع", Icons.Outlined.Psychology, "تغيير نبرة الكلام والمساعد الذكي"),
+    ToolbarToolDefinition("photos", "صور وملصقات", Icons.Outlined.PhotoLibrary, "ملصقات وستيكرات وصور مجهزة"),
+    ToolbarToolDefinition("gif", "Kaomoji و GIF", Icons.Outlined.Gif, "فيسات يابانية وصور متحركة سريعة"),
+    ToolbarToolDefinition("night", "وضع ليلي", Icons.Outlined.DarkMode, "تبديل المظهر الداكن وتوفير البطارية"),
+    ToolbarToolDefinition("settings", "إعدادات التطبيق", Icons.Outlined.Settings, "الوصول السريع لكافة تخصيصات الكيبورد")
+)
+
+@Composable
+fun CustomizeToolbarDrawer(
+    theme: KeyboardTheme,
+    visibleTools: List<String>,
+    onUpdateTools: (List<String>) -> Unit,
+    onClose: () -> Unit
+) {
+    val currentSelected = remember(visibleTools) {
+        if (visibleTools.isEmpty()) allKeyboardToolbarTools.map { it.id }.toSet()
+        else visibleTools.toSet()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(265.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "تخصيص شريط الأدوات العلوي",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color(theme.keyPressedColor))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Quick presets
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // Preset 1: شريط مختصر
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        onUpdateTools(listOf("translate", "clipboard", "decoration", "emoji", "settings"))
+                    }
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text("⚡ مختصر (5)", color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Preset 2: كتابة وترجمة
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        onUpdateTools(listOf("translate", "clipboard", "decoration", "voice", "phrases"))
+                    }
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text("📝 كتابة (5)", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+
+            // Preset 3: كامل الأدوات
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        onUpdateTools(allKeyboardToolbarTools.map { it.id })
+                    }
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text("🌟 الكل (12)", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Tools List with Checkboxes
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            items(allKeyboardToolbarTools) { tool ->
+                val isChecked = tool.id in currentSelected
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isChecked) Color(theme.keyBackgroundColor) else Color(theme.backgroundColor),
+                    border = BorderStroke(0.8.dp, if (isChecked) Color(theme.accentColor).copy(alpha = 0.4f) else Color(theme.borderColor).copy(alpha = 0.25f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val next = if (isChecked) {
+                                if (currentSelected.size > 1) currentSelected - tool.id else currentSelected
+                            } else {
+                                currentSelected + tool.id
+                            }
+                            onUpdateTools(allKeyboardToolbarTools.map { it.id }.filter { it in next })
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = tool.icon,
+                                contentDescription = null,
+                                tint = if (isChecked) Color(theme.accentColor) else Color(theme.subtextColor),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = tool.nameAr,
+                                    color = if (isChecked) Color.White else Color(theme.subtextColor),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
+                                )
+                                Text(
+                                    text = tool.description,
+                                    color = Color(theme.subtextColor).copy(alpha = 0.7f),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isChecked,
+                            onCheckedChange = { checked ->
+                                val next = if (checked) {
+                                    currentSelected + tool.id
+                                } else {
+                                    if (currentSelected.size > 1) currentSelected - tool.id else currentSelected
+                                }
+                                onUpdateTools(allKeyboardToolbarTools.map { it.id }.filter { it in next })
+                            },
+                            modifier = Modifier.height(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 

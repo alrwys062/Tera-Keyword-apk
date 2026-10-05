@@ -1267,6 +1267,12 @@ fun KeyPreviewBubble(
     numberHint: String?,
     theme: KeyboardTheme
 ) {
+    val r = ((theme.keyPressedColor shr 16) and 0xFF) / 255.0
+    val g = ((theme.keyPressedColor shr 8) and 0xFF) / 255.0
+    val b = (theme.keyPressedColor and 0xFF) / 255.0
+    val isLight = (0.299 * r + 0.587 * g + 0.114 * b) > 0.5
+    val previewTextColor = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
+
     Box(
         modifier = Modifier
             .width(50.dp)
@@ -1293,7 +1299,7 @@ fun KeyPreviewBubble(
         }
         Text(
             text = char,
-            color = Color.White,
+            color = previewTextColor,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold
         )

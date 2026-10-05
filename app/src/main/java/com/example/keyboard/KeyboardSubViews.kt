@@ -45,6 +45,14 @@ import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
 import kotlinx.coroutines.launch
 
+private fun isLightColor(colorLong: Long): Boolean {
+    val r = ((colorLong shr 16) and 0xFF) / 255.0
+    val g = ((colorLong shr 8) and 0xFF) / 255.0
+    val b = (colorLong and 0xFF) / 255.0
+    val luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return luminance > 0.5
+}
+
 // -------------------------------------------------------------
 // 1. INLINE TRANSLATION BAR (Matching Screenshot 20)
 // -------------------------------------------------------------
@@ -2189,6 +2197,10 @@ fun CustomizeToolbarDrawer(
         else visibleTools.toSet()
     }
 
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val primaryText = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val secondaryText = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2212,7 +2224,7 @@ fun CustomizeToolbarDrawer(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "تخصيص شريط الأدوات العلوي",
-                    color = Color.White,
+                    color = primaryText,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -2265,7 +2277,7 @@ fun CustomizeToolbarDrawer(
                     }
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text("📝 كتابة (5)", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                    Text("📝 كتابة (5)", color = primaryText, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -2281,7 +2293,7 @@ fun CustomizeToolbarDrawer(
                     }
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text("🌟 الكل (12)", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                    Text("🌟 الكل (12)", color = primaryText, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -2323,20 +2335,20 @@ fun CustomizeToolbarDrawer(
                             Icon(
                                 imageVector = tool.icon,
                                 contentDescription = null,
-                                tint = if (isChecked) Color(theme.accentColor) else Color(theme.subtextColor),
+                                tint = if (isChecked) Color(theme.accentColor) else secondaryText,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
                                     text = tool.nameAr,
-                                    color = if (isChecked) Color.White else Color(theme.subtextColor),
+                                    color = if (isChecked) primaryText else secondaryText,
                                     fontSize = 11.5.sp,
                                     fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
                                 )
                                 Text(
                                     text = tool.description,
-                                    color = Color(theme.subtextColor).copy(alpha = 0.7f),
+                                    color = secondaryText.copy(alpha = 0.8f),
                                     fontSize = 9.sp
                                 )
                             }

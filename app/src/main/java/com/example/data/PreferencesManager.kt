@@ -23,8 +23,11 @@ class PreferencesManager(context: Context) {
             soundVolume = prefs.getFloat("soundVolume", 0.85f),
             keyPressTimingStyle = prefs.getString("keyPressTimingStyle", "ios_balanced") ?: "ios_balanced",
             typingSpeedMode = prefs.getString("typingSpeedMode", "medium") ?: "medium",
+            typingSpeedMultiplier = prefs.getFloat("typingSpeedMultiplier", 1.0f),
             keyRepeatSpeedMs = prefs.getInt("keyRepeatSpeedMs", 45),
             longPressDelayMs = prefs.getInt("longPressDelayMs", 340),
+            autoReturnToLettersOnSend = prefs.getBoolean("autoReturnToLettersOnSend", true),
+            autoReturnToLettersOnShortcut = prefs.getBoolean("autoReturnToLettersOnShortcut", true),
             keyPopupEnabled = prefs.getBoolean("keyPopupEnabled", true),
             autoCapitalization = prefs.getBoolean("autoCapitalization", true),
             doubleSpacePeriod = prefs.getBoolean("doubleSpacePeriod", true),
@@ -74,8 +77,11 @@ class PreferencesManager(context: Context) {
             .putFloat("soundVolume", settings.soundVolume)
             .putString("keyPressTimingStyle", settings.keyPressTimingStyle)
             .putString("typingSpeedMode", settings.typingSpeedMode)
+            .putFloat("typingSpeedMultiplier", settings.typingSpeedMultiplier)
             .putInt("keyRepeatSpeedMs", settings.keyRepeatSpeedMs)
             .putInt("longPressDelayMs", settings.longPressDelayMs)
+            .putBoolean("autoReturnToLettersOnSend", settings.autoReturnToLettersOnSend)
+            .putBoolean("autoReturnToLettersOnShortcut", settings.autoReturnToLettersOnShortcut)
             .putBoolean("keyPopupEnabled", settings.keyPopupEnabled)
             .putBoolean("autoCapitalization", settings.autoCapitalization)
             .putBoolean("doubleSpacePeriod", settings.doubleSpacePeriod)

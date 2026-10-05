@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -581,6 +583,9 @@ fun ClipboardDrawer(
 fun EmojiPickerView(
     theme: KeyboardTheme,
     onEmojiSelected: (String) -> Unit,
+    onSpacePressed: () -> Unit = {},
+    onDeletePressed: () -> Unit = {},
+    onEnterPressed: () -> Unit = {},
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -607,9 +612,9 @@ fun EmojiPickerView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(265.dp)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
         // Top search & style toggle & close row
         Row(
@@ -620,12 +625,12 @@ fun EmojiPickerView(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = {
-                    Text("بحث في الإيموجي...", color = Color(theme.subtextColor), fontSize = 12.sp)
+                    Text("بحث في الإيموجي...", color = Color(theme.subtextColor), fontSize = 11.sp)
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(44.dp),
-                shape = RoundedCornerShape(20.dp),
+                    .height(40.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(theme.accentColor),
                     unfocusedBorderColor = Color(theme.borderColor),
@@ -638,7 +643,7 @@ fun EmojiPickerView(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
                         tint = Color(theme.subtextColor),
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             )
@@ -647,7 +652,7 @@ fun EmojiPickerView(
 
             // iOS / Android emoji style toggle
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(10.dp),
                 color = if (isIosStyle) Color(0xFF0A84FF).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
                 border = BorderStroke(1.dp, if (isIosStyle) Color(0xFF0A84FF) else Color(theme.borderColor)),
                 modifier = Modifier.clickable { isIosStyle = !isIosStyle }
@@ -655,9 +660,9 @@ fun EmojiPickerView(
                 Text(
                     text = if (isIosStyle) "🍏 آيفون" else "🤖 أندرويد",
                     color = if (isIosStyle) Color(0xFF0A84FF) else Color(theme.keyTextColor),
-                    fontSize = 11.sp,
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
                 )
             }
 
@@ -681,19 +686,19 @@ fun EmojiPickerView(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
         // Categories Tab: 🕒 Recent first, then normal categories
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Recent Emojis 🕒 Tab
             item {
                 val isRecentSelected = selectedCategoryIndex == -1
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = if (isRecentSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
                     border = BorderStroke(
                         1.dp,
@@ -702,15 +707,15 @@ fun EmojiPickerView(
                     modifier = Modifier.clickable { selectedCategoryIndex = -1 }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "🕒", fontSize = 16.sp)
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "🕒", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "المستعملة",
                             color = if (isRecentSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
-                            fontSize = 10.sp,
+                            fontSize = 9.5.sp,
                             fontWeight = if (isRecentSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -721,7 +726,7 @@ fun EmojiPickerView(
                 val cat = EmojiData.categories[index]
                 val isSelected = index == selectedCategoryIndex
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = if (isSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
                     border = BorderStroke(
                         1.dp,
@@ -731,26 +736,28 @@ fun EmojiPickerView(
                 ) {
                     Text(
                         text = cat.icon,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Grid of emojis
         LazyVerticalGrid(
             columns = GridCells.Fixed(8),
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             items(currentEmojis) { emoji ->
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
                             recentEmojiManager.addEmoji(emoji)
@@ -759,7 +766,102 @@ fun EmojiPickerView(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = emoji, fontSize = 22.sp)
+                    Text(text = emoji, fontSize = 21.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Bottom Navigation Bar (Return to letters, Space, Delete, Send)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Return to Alphabet Keyboard button (⌨️ أحرف / ABC)
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
+                modifier = Modifier
+                    .weight(1.4f)
+                    .fillMaxHeight()
+                    .clickable(onClick = onClose)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "⌨️ أحرف",
+                        color = Color(theme.accentColor),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // 2. Spacebar
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor).copy(alpha = 0.8f),
+                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
+                modifier = Modifier
+                    .weight(2.7f)
+                    .fillMaxHeight()
+                    .clickable { onSpacePressed() }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("مسافة", color = Color(theme.keyTextColor), fontSize = 11.sp)
+                }
+            }
+
+            // 3. Delete button
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
+                modifier = Modifier
+                    .weight(1.2f)
+                    .fillMaxHeight()
+                    .clickable { onDeletePressed() }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Backspace,
+                        contentDescription = "Delete",
+                        tint = Color(theme.keyTextColor),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // 4. Send / Enter button (Sends and automatically returns to regular letters keyboard!)
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.enterButtonColor),
+                border = BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.8f)),
+                modifier = Modifier
+                    .weight(1.6f)
+                    .fillMaxHeight()
+                    .clickable {
+                        onEnterPressed()
+                        onClose()
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("إرسال", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = Color.White,
+                        modifier = Modifier.size(13.dp)
+                    )
                 }
             }
         }

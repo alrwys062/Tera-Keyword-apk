@@ -47,9 +47,12 @@ data class KeyboardSettings(
     val soundProfile: String = "ios_16", // "ios_16", "mechanical", "modern_soft", "water_drop", "pop_bubble", "wood_block", "cyber_scifi", "classic_typewriter", "system_default"
     val soundVolume: Float = 0.85f,
     val keyPressTimingStyle: String = "ios_balanced", // "ios_balanced" (iOS 16 natural feel), "ultra_fast"
-    val typingSpeedMode: String = "medium", // "fast", "medium" (iOS 16), "slow", "custom"
-    val keyRepeatSpeedMs: Int = 45, // 25ms (fast), 45ms (medium), 80ms (slow)
-    val longPressDelayMs: Int = 340, // 200ms (fast), 340ms (medium), 520ms (slow)
+    val typingSpeedMode: String = "medium", // "ultra_fast", "fast", "medium", "slow", "custom"
+    val typingSpeedMultiplier: Float = 1.0f, // 0.5x (slow) to 2.0x (turbo fast)
+    val keyRepeatSpeedMs: Int = 45, // 20ms (turbo), 30ms (fast), 45ms (medium), 80ms (slow)
+    val longPressDelayMs: Int = 340, // 180ms (turbo), 240ms (fast), 340ms (medium), 520ms (slow)
+    val autoReturnToLettersOnSend: Boolean = true, // الرجوع التلقائي للأحرف بعد الإرسال
+    val autoReturnToLettersOnShortcut: Boolean = true, // الرجوع التلقائي للأحرف بعد استخدام الاختصارات
     val keyPopupEnabled: Boolean = true,
     val autoCapitalization: Boolean = true,
     val doubleSpacePeriod: Boolean = true,

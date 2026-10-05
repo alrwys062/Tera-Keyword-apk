@@ -61,6 +61,9 @@ class TurboKeyboardService : InputMethodService(),
         } catch (e: Exception) {
             // Ignore
         }
+        try {
+            com.example.sound.KeyboardSoundEngine.initialize(this)
+        } catch (_: Exception) {}
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
     }
 

@@ -1784,6 +1784,55 @@ fun SettingsScreen(
                             }
                         }
                     }
+
+                    // الرجوع التلقائي للأحرف بعد الإرسال والاختصارات
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = dCard,
+                            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("الرجوع التلقائي للأحرف (Auto-Return to Letters):", color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // Toggle 1: بعد الإرسال
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("الرجوع للحروف فوراً عند الضغط على إرسال", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("العودة التلقائية للوحة الحروف بعد إرسال الرسائل والإيموجي", color = dSub, fontSize = 9.5.sp)
+                                    }
+                                    Switch(
+                                        checked = settings.autoReturnToLettersOnSend,
+                                        onCheckedChange = { updateSettings(settings.copy(autoReturnToLettersOnSend = it)) }
+                                    )
+                                }
+
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = if (isLight) Color(0xFFE2E8F0) else Color(0xFF26334A))
+
+                                // Toggle 2: بعد الاختصارات
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("الرجوع للحروف بعد إدراج نصوص الشريط والاختصارات", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("العودة للأحرف بعد إدراج الكليشات أو الحافظة أو النصوص السريعة", color = dSub, fontSize = 9.5.sp)
+                                    }
+                                    Switch(
+                                        checked = settings.autoReturnToLettersOnShortcut,
+                                        onCheckedChange = { updateSettings(settings.copy(autoReturnToLettersOnShortcut = it)) }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {

@@ -6,6 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -264,17 +265,37 @@ fun TurboKeyboardView(
         val ic = getCurrentInputConnection?.invoke() ?: inputConnection
         if (ic != null) {
             try {
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                // First try performEditorAction with common IME actions for chat/messaging apps
+                var handled = false
+                try {
+                    handled = ic.performEditorAction(EditorInfo.IME_ACTION_SEND) ||
+                              ic.performEditorAction(EditorInfo.IME_ACTION_GO) ||
+                              ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
+                } catch (_: Exception) {}
+                if (!handled) {
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                }
             } catch (e: Exception) {
                 try {
-                    ic.commitText("\n", 1)
-                } catch (_: Exception) {}
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                } catch (_: Exception) {
+                    try {
+                        ic.commitText("\n", 1)
+                    } catch (_: Exception) {}
+                }
             }
         } else {
             onDirectInsertText?.invoke("\n")
         }
         currentComposingText = ""
+        // Crucial fix: Automatically return to letters keyboard on Send / Enter
+        if (currentSettings.autoReturnToLettersOnSend) {
+            activeSubView = KeyboardSubView.NONE
+            isSymbolsMode = false
+            isMoreSymbolsMode = false
+        }
     }
 
     fun replaceAllText(newText: String) {
@@ -465,14 +486,37 @@ fun TurboKeyboardView(
                                 prefs.addRecentEmoji(it)
                                 sendText(it)
                             },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onSpacePressed = { sendText(" ") },
+                            onDeletePressed = { sendDelete() },
+                            onEnterPressed = {
+                                sendEnter()
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            },
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.GIF -> {
                         GifPickerView(
                             theme = theme,
-                            onGifSelected = { sendText(" $it ") },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onGifSelected = {
+                                sendText(" $it ")
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
+                            },
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.PHOTOS -> {
@@ -480,9 +524,17 @@ fun TurboKeyboardView(
                             theme = theme,
                             onMediaSelected = { mediaText ->
                                 sendText(" $mediaText ")
-                                activeSubView = KeyboardSubView.NONE
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
                             },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.CLIPBOARD -> {
@@ -493,30 +545,59 @@ fun TurboKeyboardView(
                             prefs = prefs,
                             onItemInserted = { text ->
                                 sendText(text)
-                                // Auto-close on paste requested by user
-                                activeSubView = KeyboardSubView.NONE
+                                if (currentSettings.autoReturnToLettersOnShortcut || currentSettings.clipboardCloseOnPaste) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
                             },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.AI_ASSISTANT -> {
                         AiToneDrawer(
                             theme = theme,
                             currentText = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText,
-                            onReplaceText = { replaceAllText(it) },
+                            onReplaceText = {
+                                replaceAllText(it)
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
+                            },
                             onAddWordToDictionary = { word ->
                                 userDict.addWord(word)
                                 userWords = userDict.getUserWords()
                             },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.VOICE_INPUT -> {
                         VoiceInputView(
                             theme = theme,
                             isArabic = isArabic,
-                            onInsertText = { sendText(it) },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onInsertText = {
+                                sendText(it)
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
+                            },
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.PHRASES -> {
@@ -524,9 +605,17 @@ fun TurboKeyboardView(
                             theme = theme,
                             onPhraseSelected = { phrase ->
                                 sendText(phrase)
-                                activeSubView = KeyboardSubView.NONE
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
                             },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.CALCULATOR -> {
@@ -534,8 +623,17 @@ fun TurboKeyboardView(
                             theme = theme,
                             onInsertText = { mathText ->
                                 sendText(mathText)
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
                             },
-                            onClose = { activeSubView = KeyboardSubView.NONE }
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
                         )
                     }
                     KeyboardSubView.SETTINGS -> {

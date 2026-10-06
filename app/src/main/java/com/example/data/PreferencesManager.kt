@@ -38,7 +38,7 @@ class PreferencesManager(context: Context) {
             keyHeightFactor = prefs.getFloat("keyHeightFactor", 1.0f),
             keyFontSizeFactor = prefs.getFloat("keyFontSizeFactor", 1.0f),
             keyButtonScale = prefs.getFloat("keyButtonScale", 1.0f),
-            backspaceKeyScale = prefs.getFloat("backspaceKeyScale", 1.35f),
+            backspaceKeyScale = prefs.getFloat("backspaceKeyScale", 1.15f),
             currentThemeId = prefs.getString("currentThemeId", "cyber_pro") ?: "cyber_pro",
             defaultLanguage = prefs.getString("defaultLanguage", "ar") ?: "ar",
             swipeSpaceSwitchLanguage = prefs.getBoolean("swipeSpaceSwitchLanguage", true),
@@ -47,7 +47,7 @@ class PreferencesManager(context: Context) {
             clipboardCloseOnPaste = prefs.getBoolean("clipboardCloseOnPaste", true),
             clipboardSaveForever = prefs.getBoolean("clipboardSaveForever", true),
             enterKeyOnLeft = prefs.getBoolean("enterKeyOnLeft", false),
-            isNightModeEnabled = prefs.getBoolean("isNightModeEnabled", false),
+            isNightModeEnabled = prefs.getBoolean("isNightModeEnabled", true),
             autoReturnAfterEmojiInsert = prefs.getBoolean("autoReturnAfterEmojiInsert", false),
             activeDecorationStyle = prefs.getString("activeDecorationStyle", "none") ?: "none",
             keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "samsung") ?: "samsung",
@@ -61,7 +61,7 @@ class PreferencesManager(context: Context) {
     fun getVisibleToolbarTools(): List<String> {
         val raw = prefs.getString("visibleToolbarTools", null)
         return if (raw.isNullOrBlank()) {
-            listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
+            listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
         } else {
             raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         }

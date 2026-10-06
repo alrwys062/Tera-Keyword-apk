@@ -139,15 +139,8 @@ fun TurboKeyboardView(
     val userDict = remember { com.example.data.UserDictionaryManager(context) }
     var userWords by remember { mutableStateOf(userDict.getUserWords()) }
     val shortcuts = remember { prefs.getShortcuts() }
-    var isNightMode by remember { mutableStateOf(currentSettings.isNightModeEnabled) }
-    var activeTheme by remember(theme, isNightMode) {
-        mutableStateOf(
-            if (isNightMode) {
-                if (ThemePresets.isLightColor(theme.backgroundColor)) ThemePresets.CYBER_PRO else theme
-            } else {
-                if (!ThemePresets.isLightColor(theme.backgroundColor)) ThemePresets.SAMSUNG_ONEUI_LIGHT else theme
-            }
-        )
+    var activeTheme by remember(theme) {
+        mutableStateOf(theme)
     }
 
     // Auto-return to letters keyboard on Send / Text Clear
@@ -438,7 +431,7 @@ fun TurboKeyboardView(
             activeSubView = activeSubView,
             isDecorationActive = isDecorationBarOpen || activeDecorationStyle != "none",
             isTranslationActive = isTranslationBarOpen,
-            isNightMode = isNightMode,
+            isNightMode = true,
             visibleTools = currentSettings.visibleToolbarTools,
             onSubViewSelected = { sub ->
                 if (activeSubView == sub) {
@@ -459,16 +452,7 @@ fun TurboKeyboardView(
                 isDecorationBarOpen = false
                 isTranslationBarOpen = !isTranslationBarOpen
             },
-            onToggleNightMode = {
-                val newNight = !isNightMode
-                isNightMode = newNight
-                val newTheme = if (newNight) ThemePresets.CYBER_PRO else ThemePresets.SAMSUNG_ONEUI_LIGHT
-                activeTheme = newTheme
-                prefs.saveActiveTheme(newTheme)
-                val updatedSettings = currentSettings.copy(isNightModeEnabled = newNight)
-                currentSettings = updatedSettings
-                prefs.saveSettings(updatedSettings)
-            },
+            onToggleNightMode = {},
             onVoiceClick = { onVoiceRequested?.invoke() },
             onOpenSettingsClick = { onOpenSettingsRequested?.invoke() },
             onCustomizeToolbar = {
@@ -948,7 +932,7 @@ fun TurboKeyboardView(
                                         )
                                     }
                                     is KeyType.Backspace -> {
-                                        val bWeight = (key.weight * currentSettings.backspaceKeyScale.coerceAtLeast(1.25f)).coerceAtLeast(1.75f)
+                                        val bWeight = (key.weight * currentSettings.backspaceKeyScale).coerceIn(1.0f, 1.85f)
                                         BackspaceKeyButton(
                                             theme = activeTheme,
                                             modifier = Modifier.weight(bWeight),
@@ -1311,13 +1295,13 @@ fun TurboKeyboardView(
                                         }
                                     }
 
-                                    // Dismiss X circular button (Big prominent circle as explicitly requested)
+                                    // Dismiss X circular button (Neat & balanced size)
                                     Box(
                                         modifier = Modifier
-                                            .size(48.dp)
+                                            .size(28.dp)
                                             .clip(CircleShape)
                                             .background(Color(0xFFEF4444).copy(alpha = 0.95f))
-                                            .border(2.dp, Color.White, CircleShape)
+                                            .border(1.dp, Color.White.copy(alpha = 0.85f), CircleShape)
                                             .clickable {
                                                 performFeedback()
                                                 longPressChar = null
@@ -1329,7 +1313,7 @@ fun TurboKeyboardView(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Dismiss",
                                             tint = Color.White,
-                                            modifier = Modifier.size(28.dp)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -1648,7 +1632,7 @@ fun BackspaceKeyButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        val iconSize = (23.dp * backspaceScale).coerceIn(23.dp, 42.dp)
+        val iconSize = (17.dp * backspaceScale).coerceIn(14.dp, 24.dp)
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
             contentDescription = "Backspace",

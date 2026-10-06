@@ -115,10 +115,10 @@ fun StickersPickerView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Circular Close X Button (Large & prominent as explicitly requested)
+            // Circular Close X Button (Harmonious compact size)
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(28.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
@@ -128,7 +128,7 @@ fun StickersPickerView(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close Stickers",
                     tint = Color.White,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
 

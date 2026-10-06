@@ -25,6 +25,34 @@ object ThemePresets {
         return if (isLightColor(theme.enterButtonColor)) Color(0xFF0F172A) else Color.White
     }
 
+    fun toDayMode(theme: KeyboardTheme): KeyboardTheme {
+        if (isLightColor(theme.backgroundColor)) return theme
+        return theme.copy(
+            backgroundColor = 0xFFF1F5F9,
+            keyBackgroundColor = 0xFFFFFFFF,
+            keyPressedColor = 0xFFE2E8F0,
+            keyTextColor = 0xFF0F172A,
+            subtextColor = 0xFF64748B,
+            toolbarColor = 0xFFF8FAFC,
+            borderColor = 0xFFE2E8F0,
+            borderAlpha = theme.borderAlpha.coerceAtMost(0.6f)
+        )
+    }
+
+    fun toNightMode(theme: KeyboardTheme): KeyboardTheme {
+        if (!isLightColor(theme.backgroundColor)) return theme
+        return theme.copy(
+            backgroundColor = 0xFF111827,
+            keyBackgroundColor = 0xFF1F2937,
+            keyPressedColor = 0xFF374151,
+            keyTextColor = 0xFFF9FAFB,
+            subtextColor = 0xFF9CA3AF,
+            toolbarColor = 0xFF0F172A,
+            borderColor = 0xFF374151,
+            borderAlpha = theme.borderAlpha.coerceAtLeast(0.4f)
+        )
+    }
+
     // 1. Dark & Light Themes
     val MINIMAL_DARK = KeyboardTheme(
         id = "minimal_dark",

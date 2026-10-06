@@ -204,11 +204,11 @@ fun ToolsScreen(
                 onClick = onNavigateToVoice
             )
             NeonToolGridCard(
-                title = "وضع ليلي",
-                icon = Icons.Outlined.NightlightRound,
+                title = "حافظة النصوص",
+                icon = Icons.Outlined.ContentPaste,
                 neonColor = Color(0xFFA855F7),
                 modifier = Modifier.weight(1f),
-                onClick = onToggleNightMode
+                onClick = onNavigateToClipboard
             )
         }
 

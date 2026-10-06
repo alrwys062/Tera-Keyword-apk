@@ -179,22 +179,6 @@ fun SettingsScreen(
                 )
             }
 
-            // 4.1 الوضع الليلي والنهاري (Samsung Day/Night Mode)
-            item {
-                TransboardSettingsRow(
-                    title = "الوضع الليلي والنهاري",
-                    subtitle = if (settings.isNightModeEnabled) "الوضع الليلي مفعل 🌙 (اضغط للتبديل للنهاري ☀️)" else "الوضع النهاري مفعل ☀️ (اضغط للتبديل لليلي 🌙)",
-                    icon = if (settings.isNightModeEnabled) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
-                    onClick = {
-                        val newNight = !settings.isNightModeEnabled
-                        val newTheme = if (newNight) ThemePresets.CYBER_PRO else ThemePresets.SAMSUNG_ONEUI_LIGHT
-                        prefs.saveActiveTheme(newTheme)
-                        updateSettings(settings.copy(isNightModeEnabled = newNight, currentThemeId = newTheme.id))
-                        Toast.makeText(context, if (newNight) "تم تفعيل الوضع الليلي 🌙" else "تم تفعيل الوضع النهاري ☀️", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-
             // 5. تخطيط لوحة المفاتيح (سامسونج)
             item {
                 TransboardSettingsRow(
@@ -632,11 +616,11 @@ fun SettingsScreen(
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("تكبير زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("حجم زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Slider(
                         value = settings.backspaceKeyScale,
                         onValueChange = { updateSettings(settings.copy(backspaceKeyScale = it)) },
-                        valueRange = 1.0f..2.4f
+                        valueRange = 0.75f..1.8f
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -1936,11 +1920,11 @@ fun SettingsScreen(
                         valueRange = 0.75f..1.6f
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("تكبير زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("حجم زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Slider(
                         value = settings.backspaceKeyScale,
                         onValueChange = { updateSettings(settings.copy(backspaceKeyScale = it)) },
-                        valueRange = 1.0f..2.4f
+                        valueRange = 0.75f..1.8f
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text("ارتفاع المفاتيح (عمودي): ${(settings.keyHeightFactor * 100).toInt()}%", color = Color.White, fontSize = 12.sp)

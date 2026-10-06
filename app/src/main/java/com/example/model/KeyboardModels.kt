@@ -64,7 +64,7 @@ data class KeyboardSettings(
     val keyHeightFactor: Float = 1.0f,
     val keyFontSizeFactor: Float = 1.0f,
     val keyButtonScale: Float = 1.0f, // تكبير وتصغير أزرار الكيبورد
-    val backspaceKeyScale: Float = 1.35f, // تكبير زر الحذف
+    val backspaceKeyScale: Float = 1.15f, // تكبير وتصغير زر الحذف
     val currentThemeId: String = "cyber_pro",
     val defaultLanguage: String = "ar",
     val swipeSpaceSwitchLanguage: Boolean = true,
@@ -73,14 +73,14 @@ data class KeyboardSettings(
     val clipboardCloseOnPaste: Boolean = true,
     val clipboardSaveForever: Boolean = true,
     val enterKeyOnLeft: Boolean = false,
-    val isNightModeEnabled: Boolean = false, // الوضع الليلي / النهاري
+    val isNightModeEnabled: Boolean = true, // مظهر ليلي دائم
     val activeDecorationStyle: String = "none",
     val keyboardLayoutStyle: String = "samsung", // الافتراضي تخطيط سامسونج الأصلي
     val translationSource: String = "ar",
     val translationTarget: String = "en",
     val autoTranslateOnCopy: Boolean = false,
     val visibleToolbarTools: List<String> = listOf(
-        "stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings"
+        "stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings"
     )
 )
 

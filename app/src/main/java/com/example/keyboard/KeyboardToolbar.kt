@@ -52,7 +52,7 @@ fun KeyboardToolbar(
 ) {
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
-        listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
+        listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
     } else {
         visibleTools
     }
@@ -215,17 +215,6 @@ fun KeyboardToolbar(
                 onClick = {
                     onSubViewSelected(if (isGifActive) KeyboardSubView.NONE else KeyboardSubView.GIF)
                 }
-            )
-        }
-
-        // 11. ليلي (Night Mode toggle)
-        if ("night" in toolsToShow) {
-            ToolbarFixedItem(
-                icon = Icons.Outlined.DarkMode,
-                label = "ليلي",
-                isActive = isNightMode,
-                theme = theme,
-                onClick = onToggleNightMode
             )
         }
 

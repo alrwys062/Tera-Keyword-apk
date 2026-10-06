@@ -621,32 +621,61 @@ fun EmojiPickerView(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = {
-                    Text("بحث في الإيموجي...", color = Color(theme.subtextColor), fontSize = 11.sp)
-                },
+            // Clean non-clipping Search Bar
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(40.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(theme.accentColor),
-                    unfocusedBorderColor = Color(theme.borderColor),
-                    focusedTextColor = Color(theme.keyTextColor),
-                    unfocusedTextColor = Color(theme.keyTextColor)
-                ),
-                singleLine = true,
-                leadingIcon = {
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(theme.keyBackgroundColor))
+                    .border(1.dp, Color(theme.borderColor).copy(alpha = 0.6f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
                         tint = Color(theme.subtextColor),
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(16.dp)
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = "بحث في الإيموجي...",
+                                color = Color(theme.subtextColor).copy(alpha = 0.7f),
+                                fontSize = 11.5.sp
+                            )
+                        }
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                color = Color(theme.keyTextColor),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(Color(theme.accentColor)),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (searchQuery.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = Color(theme.subtextColor),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { searchQuery = "" }
+                        )
+                    }
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.width(6.dp))
 
@@ -1046,26 +1075,37 @@ fun MediaPickerView(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(stickers) { sticker ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(theme.keyBackgroundColor),
-                            border = BorderStroke(1.dp, Color(theme.borderColor)),
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                        listOf(Color(theme.keyBackgroundColor), Color(theme.keyBackgroundColor).copy(alpha = 0.85f))
+                                    )
+                                )
+                                .border(
+                                    1.dp,
+                                    Color(theme.accentColor).copy(alpha = 0.45f),
+                                    RoundedCornerShape(12.dp)
+                                )
                                 .clickable {
                                     onMediaSelected(sticker)
                                     onClose()
                                 }
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(4.dp)) {
-                                Text(
-                                    text = sticker,
-                                    color = Color(theme.keyTextColor),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                            Text(
+                                text = sticker,
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }

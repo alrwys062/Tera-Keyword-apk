@@ -157,12 +157,12 @@ fun InlineTranslationBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Close button (Mini compact circular X)
+        // Close button (Large prominent circular X)
         Box(
             modifier = Modifier
-                .size(16.dp)
+                .size(38.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                 .clickable(onClick = onClose),
             contentAlignment = Alignment.Center
         ) {
@@ -170,7 +170,7 @@ fun InlineTranslationBar(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Close Translation",
                 tint = Color.White,
-                modifier = Modifier.size(9.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
 
@@ -267,9 +267,9 @@ fun InlineDecorationBar(
             // Close red X button (Mini compact & sleek)
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.9f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
@@ -277,7 +277,7 @@ fun InlineDecorationBar(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close Decoration",
                     tint = Color.White,
-                    modifier = Modifier.size(9.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
@@ -499,13 +499,13 @@ fun ClipboardDrawer(
             // Close Button ❌
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.9f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
             }
         }
 
@@ -668,20 +668,20 @@ fun EmojiPickerView(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            // Emoji picker close button
+            // Emoji picker close button (Large prominent circle X)
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(theme.keyTextColor),
-                    modifier = Modifier.size(9.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
@@ -898,13 +898,13 @@ fun GifPickerView(
             Text("رموز Kaomoji و GIF سريعة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = null, tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
+                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
@@ -998,13 +998,13 @@ fun MediaPickerView(
             )
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(22.dp))
             }
         }
 
@@ -1221,17 +1221,17 @@ fun AiToneDrawer(
 
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(theme.keyTextColor),
-                    modifier = Modifier.size(9.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
@@ -1549,9 +1549,9 @@ fun VoiceInputView(
             }
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = {
                         stopListening()
                         onClose()
@@ -1561,8 +1561,8 @@ fun VoiceInputView(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(theme.keyTextColor),
-                    modifier = Modifier.size(9.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
@@ -1735,17 +1735,17 @@ fun QuickSettingsView(
             }
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(theme.keyTextColor),
-                    modifier = Modifier.size(9.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
@@ -2159,13 +2159,13 @@ fun DecoratedPhrasesView(
 
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(9.dp))
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(22.dp))
             }
         }
 
@@ -2251,13 +2251,13 @@ fun CalculatorPadView(
         ) {
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(9.dp))
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(22.dp))
             }
 
             Column(horizontalAlignment = Alignment.End) {
@@ -2458,6 +2458,7 @@ data class ToolbarToolDefinition(
 )
 
 val allKeyboardToolbarTools = listOf(
+    ToolbarToolDefinition("stickers", "ملصقات وستيكرات", Icons.Outlined.AutoAwesomeMosaic, "تصميم وإرسال الملصقات العربية الجاهزة والمصممة"),
     ToolbarToolDefinition("translate", "ترجمة فورية", Icons.Default.Translate, "ترجمة فورية للنصوص بجميع لغات العالم"),
     ToolbarToolDefinition("clipboard", "حافظة النصوص", Icons.Outlined.ContentPaste, "حفظ النصوص المنسوخة والرجوع لها للأبد"),
     ToolbarToolDefinition("decoration", "زخرفة النصوص", Icons.Outlined.AutoAwesome, "زخرفة الكلمات والخطوط والعبارات الحية"),
@@ -2519,13 +2520,13 @@ fun CustomizeToolbarDrawer(
 
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(theme.keyPressedColor))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(theme.keyTextColor), modifier = Modifier.size(9.dp))
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(22.dp))
             }
         }
 

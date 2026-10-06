@@ -172,18 +172,34 @@ fun SettingsScreen(
             // 4. المظهر (Screenshot 1 & 6)
             item {
                 TransboardSettingsRow(
-                    title = "المظهر",
+                    title = "المظهر والسمات",
                     subtitle = "اختر مظهر لوحة المفاتيح أو أنشئ مظهر مخصص",
                     icon = Icons.Outlined.Palette,
                     onClick = onNavigateToThemes
                 )
             }
 
-            // 5. تخطيط لوحة المفاتيح (Screenshot 1 & 7, 8, 9)
+            // 4.1 الوضع الليلي والنهاري (Samsung Day/Night Mode)
             item {
                 TransboardSettingsRow(
-                    title = "تخطيط لوحة المفاتيح",
-                    subtitle = "ستايل لوحة المفاتيح وترتيب الأحرف (عربي اساسي، سامسونج، AOSP، سويفت)",
+                    title = "الوضع الليلي والنهاري",
+                    subtitle = if (settings.isNightModeEnabled) "الوضع الليلي مفعل 🌙 (اضغط للتبديل للنهاري ☀️)" else "الوضع النهاري مفعل ☀️ (اضغط للتبديل لليلي 🌙)",
+                    icon = if (settings.isNightModeEnabled) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
+                    onClick = {
+                        val newNight = !settings.isNightModeEnabled
+                        val newTheme = if (newNight) ThemePresets.CYBER_PRO else ThemePresets.SAMSUNG_ONEUI_LIGHT
+                        prefs.saveActiveTheme(newTheme)
+                        updateSettings(settings.copy(isNightModeEnabled = newNight, currentThemeId = newTheme.id))
+                        Toast.makeText(context, if (newNight) "تم تفعيل الوضع الليلي 🌙" else "تم تفعيل الوضع النهاري ☀️", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            // 5. تخطيط لوحة المفاتيح (سامسونج)
+            item {
+                TransboardSettingsRow(
+                    title = "تخطيط لوحة المفاتيح (سامسونج)",
+                    subtitle = "ستايل سامسونج، تكبير وتصغير الأزرار، تكبير زر الحذف، وصف الأرقام والرموز",
                     icon = Icons.Outlined.Keyboard,
                     onClick = { activeDialog = "LAYOUTS" }
                 )
@@ -562,20 +578,22 @@ fun SettingsScreen(
         )
     }
 
-    // 5. KEYBOARD LAYOUTS DIALOG (Screenshots 7, 8, 9)
+    // 5. KEYBOARD LAYOUTS DIALOG (Samsung Keyboard Layout Complete Configuration)
     if (activeDialog == "LAYOUTS") {
         val layouts = listOf(
+            "samsung" to "العربية / سامسونج الأصلي (افتراضي)",
             "basic_ar" to "عربي اساسي (Transboard القياسي)",
-            "samsung" to "العربية / سامسونج",
             "aosp" to "العربية / AOSP",
-            "linux" to "Arabic / Linux",
-            "swift" to "العربية / Swift"
+            "swift" to "العربية / Swift",
+            "linux" to "Arabic / Linux"
         )
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("تخطيط لوحة المفاتيح", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("تخطيط لوحة المفاتيح سامسونج", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
-                Column {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text("نمط ترتيب الأحرف:", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
                     layouts.forEach { (code, title) ->
                         val isSelected = settings.keyboardLayoutStyle == code
                         Surface(
@@ -584,28 +602,84 @@ fun SettingsScreen(
                             border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color(0xFF28364F)),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp)
+                                .padding(vertical = 3.dp)
                                 .clickable {
                                     updateSettings(settings.copy(keyboardLayoutStyle = code))
                                 }
                         ) {
                             Row(
-                                modifier = Modifier.padding(10.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(title, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 12.sp)
+                                Text(title, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 11.5.sp)
                                 if (isSelected) {
                                     Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Divider(color = Color(0xFF28364F), thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text("تكبير وتصغير أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Slider(
+                        value = settings.keyButtonScale,
+                        onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
+                        valueRange = 0.75f..1.6f
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("تكبير زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Slider(
+                        value = settings.backspaceKeyScale,
+                        onValueChange = { updateSettings(settings.copy(backspaceKeyScale = it)) },
+                        valueRange = 1.0f..2.4f
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("صف الأرقام العلوي كسامسونج", color = Color.White, fontSize = 12.sp)
+                        Switch(
+                            checked = settings.numberRowEnabled,
+                            onCheckedChange = { updateSettings(settings.copy(numberRowEnabled = it)) }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("الرموز والأحرف البديلة كسامسونج", color = Color.White, fontSize = 12.sp)
+                        Switch(
+                            checked = settings.showDualHints,
+                            onCheckedChange = { updateSettings(settings.copy(showDualHints = it)) }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("الرجوع التلقائي للأحرف بعد الإرسال", color = Color.White, fontSize = 12.sp)
+                        Switch(
+                            checked = settings.autoReturnToLettersOnSend,
+                            onCheckedChange = { updateSettings(settings.copy(autoReturnToLettersOnSend = it)) }
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1855,13 +1929,27 @@ fun SettingsScreen(
             title = { Text("ارتفاع الكيبورد وحجم الأحرف", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
+                    Text("تكبير وتصغير أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Slider(
+                        value = settings.keyButtonScale,
+                        onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
+                        valueRange = 0.75f..1.6f
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("تكبير زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Slider(
+                        value = settings.backspaceKeyScale,
+                        onValueChange = { updateSettings(settings.copy(backspaceKeyScale = it)) },
+                        valueRange = 1.0f..2.4f
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text("ارتفاع المفاتيح (عمودي): ${(settings.keyHeightFactor * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
                     Slider(
                         value = settings.keyHeightFactor,
                         onValueChange = { updateSettings(settings.copy(keyHeightFactor = it)) },
                         valueRange = 0.8f..1.4f
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text("حجم الأحرف على المفاتيح: ${(settings.keyFontSizeFactor * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
                     Slider(
                         value = settings.keyFontSizeFactor,

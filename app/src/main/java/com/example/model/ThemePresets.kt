@@ -1,12 +1,28 @@
 package com.example.model
 
+import androidx.compose.ui.graphics.Color
+
 object ThemePresets {
 
     fun isLightColor(colorLong: Long): Boolean {
         val r = ((colorLong shr 16) and 0xFF) / 255.0
         val g = ((colorLong shr 8) and 0xFF) / 255.0
         val b = (colorLong and 0xFF) / 255.0
-        return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5
+        return (0.299 * r + 0.587 * g + 0.114 * b) > 0.55
+    }
+
+    fun resolveKeyColor(colorLong: Long, opacityFactor: Float = 1.0f): Color {
+        val alphaInt = ((colorLong shr 24) and 0xFF).toInt()
+        val originalAlpha = if (alphaInt == 0) 1.0f else alphaInt / 255.0f
+        val finalAlpha = (originalAlpha * opacityFactor.coerceIn(0.15f, 1.0f)).coerceIn(0.15f, 1.0f)
+        val r = ((colorLong shr 16) and 0xFF).toInt()
+        val g = ((colorLong shr 8) and 0xFF).toInt()
+        val b = (colorLong and 0xFF).toInt()
+        return Color(red = r, green = g, blue = b, alpha = (finalAlpha * 255).toInt())
+    }
+
+    fun getEnterIconTint(theme: KeyboardTheme): Color {
+        return if (isLightColor(theme.enterButtonColor)) Color(0xFF0F172A) else Color.White
     }
 
     // 1. Dark & Light Themes
@@ -777,6 +793,25 @@ object ThemePresets {
         category = "systems"
     )
 
+    val SAMSUNG_ONEUI_LIGHT = KeyboardTheme(
+        id = "samsung_oneui_light",
+        nameAr = "سامسونج One UI النهاري",
+        nameEn = "Samsung One UI Light",
+        backgroundColor = 0xFFF2F4F7,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE5E7EB,
+        keyTextColor = 0xFF111827,
+        subtextColor = 0xFF6B7280,
+        accentColor = 0xFF2563EB,
+        enterButtonColor = 0xFF2563EB,
+        toolbarColor = 0xFFF9FAFB,
+        borderColor = 0xFFE5E7EB,
+        cornerRadius = 10f,
+        borderAlpha = 0.4f,
+        keyStyle = "rounded",
+        category = "systems"
+    )
+
     val XIAOMI_HYPER_OS = KeyboardTheme(
         id = "xiaomi_hyperos",
         nameAr = "شاومي HyperOS الأنيق",
@@ -896,6 +931,7 @@ object ThemePresets {
         IOS_26_DARK,
         IOS_26_LIGHT,
         SAMSUNG_ONE_UI_7,
+        SAMSUNG_ONEUI_LIGHT,
         XIAOMI_HYPER_OS,
         HUAWEI_EMUI_NEW,
         HONOR_MAGIC_OS,

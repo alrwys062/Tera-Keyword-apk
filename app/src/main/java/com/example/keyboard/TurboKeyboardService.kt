@@ -149,6 +149,10 @@ class TurboKeyboardService : InputMethodService(),
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         activeInputConnectionState.value = currentInputConnection
+        // Auto return to letters when text is cleared/sent in apps like WhatsApp or Telegram
+        if (newSelStart == 0 && newSelEnd == 0 && (oldSelStart > 0 || oldSelEnd > 0)) {
+            resetToLettersSignal.value = System.currentTimeMillis()
+        }
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
@@ -279,5 +283,9 @@ class TurboKeyboardService : InputMethodService(),
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         }
         store.clear()
+    }
+
+    companion object {
+        val resetToLettersSignal = kotlinx.coroutines.flow.MutableStateFlow(0L)
     }
 }

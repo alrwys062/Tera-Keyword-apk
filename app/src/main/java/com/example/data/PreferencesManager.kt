@@ -37,6 +37,8 @@ class PreferencesManager(context: Context) {
             topQuickEmojiRowEnabled = prefs.getBoolean("topQuickEmojiRowEnabled", true),
             keyHeightFactor = prefs.getFloat("keyHeightFactor", 1.0f),
             keyFontSizeFactor = prefs.getFloat("keyFontSizeFactor", 1.0f),
+            keyButtonScale = prefs.getFloat("keyButtonScale", 1.0f),
+            backspaceKeyScale = prefs.getFloat("backspaceKeyScale", 1.35f),
             currentThemeId = prefs.getString("currentThemeId", "cyber_pro") ?: "cyber_pro",
             defaultLanguage = prefs.getString("defaultLanguage", "ar") ?: "ar",
             swipeSpaceSwitchLanguage = prefs.getBoolean("swipeSpaceSwitchLanguage", true),
@@ -45,8 +47,10 @@ class PreferencesManager(context: Context) {
             clipboardCloseOnPaste = prefs.getBoolean("clipboardCloseOnPaste", true),
             clipboardSaveForever = prefs.getBoolean("clipboardSaveForever", true),
             enterKeyOnLeft = prefs.getBoolean("enterKeyOnLeft", false),
+            isNightModeEnabled = prefs.getBoolean("isNightModeEnabled", false),
+            autoReturnAfterEmojiInsert = prefs.getBoolean("autoReturnAfterEmojiInsert", false),
             activeDecorationStyle = prefs.getString("activeDecorationStyle", "none") ?: "none",
-            keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "basic_ar") ?: "basic_ar",
+            keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "samsung") ?: "samsung",
             translationSource = prefs.getString("translationSource", "ar") ?: "ar",
             translationTarget = prefs.getString("translationTarget", "en") ?: "en",
             autoTranslateOnCopy = prefs.getBoolean("autoTranslateOnCopy", false),
@@ -57,7 +61,7 @@ class PreferencesManager(context: Context) {
     fun getVisibleToolbarTools(): List<String> {
         val raw = prefs.getString("visibleToolbarTools", null)
         return if (raw.isNullOrBlank()) {
-            listOf("translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
+            listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
         } else {
             raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         }
@@ -82,6 +86,7 @@ class PreferencesManager(context: Context) {
             .putInt("longPressDelayMs", settings.longPressDelayMs)
             .putBoolean("autoReturnToLettersOnSend", settings.autoReturnToLettersOnSend)
             .putBoolean("autoReturnToLettersOnShortcut", settings.autoReturnToLettersOnShortcut)
+            .putBoolean("autoReturnAfterEmojiInsert", settings.autoReturnAfterEmojiInsert)
             .putBoolean("keyPopupEnabled", settings.keyPopupEnabled)
             .putBoolean("autoCapitalization", settings.autoCapitalization)
             .putBoolean("doubleSpacePeriod", settings.doubleSpacePeriod)
@@ -91,6 +96,8 @@ class PreferencesManager(context: Context) {
             .putBoolean("topQuickEmojiRowEnabled", settings.topQuickEmojiRowEnabled)
             .putFloat("keyHeightFactor", settings.keyHeightFactor)
             .putFloat("keyFontSizeFactor", settings.keyFontSizeFactor)
+            .putFloat("keyButtonScale", settings.keyButtonScale)
+            .putFloat("backspaceKeyScale", settings.backspaceKeyScale)
             .putString("currentThemeId", settings.currentThemeId)
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
@@ -99,12 +106,37 @@ class PreferencesManager(context: Context) {
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
             .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
             .putBoolean("enterKeyOnLeft", settings.enterKeyOnLeft)
+            .putBoolean("isNightModeEnabled", settings.isNightModeEnabled)
             .putString("activeDecorationStyle", settings.activeDecorationStyle)
             .putString("keyboardLayoutStyle", settings.keyboardLayoutStyle)
             .putString("translationSource", settings.translationSource)
             .putString("translationTarget", settings.translationTarget)
             .putBoolean("autoTranslateOnCopy", settings.autoTranslateOnCopy)
             .apply()
+    }
+
+    // Custom stickers persistence
+    fun getCustomStickers(): List<String> {
+        val raw = prefs.getString("custom_stickers_list", null)
+        return if (raw.isNullOrBlank()) {
+            listOf("صباح الورد والياسمين 🌸", "ألف مبروك التميز 🥳", "فديتك يا الغالي ❤️", "الله يسعدك ويحفظك 🤲")
+        } else {
+            raw.split(";;;").map { it.trim() }.filter { it.isNotEmpty() }
+        }
+    }
+
+    fun saveCustomSticker(stickerText: String) {
+        val existing = getCustomStickers().toMutableList()
+        if (!existing.contains(stickerText)) {
+            existing.add(0, stickerText)
+            prefs.edit().putString("custom_stickers_list", existing.joinToString(";;;")).apply()
+        }
+    }
+
+    fun deleteCustomSticker(stickerText: String) {
+        val existing = getCustomStickers().toMutableList()
+        existing.remove(stickerText)
+        prefs.edit().putString("custom_stickers_list", existing.joinToString(";;;")).apply()
     }
 
     fun setCurrentTheme(themeId: String) {
@@ -239,6 +271,10 @@ class PreferencesManager(context: Context) {
     fun getActiveTheme(): KeyboardTheme {
         val id = prefs.getString("currentThemeId", "cyber_pro") ?: "cyber_pro"
         return getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
+    }
+
+    fun saveActiveTheme(theme: KeyboardTheme) {
+        setCurrentTheme(theme.id)
     }
 
     @Volatile

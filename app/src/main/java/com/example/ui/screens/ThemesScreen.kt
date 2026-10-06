@@ -475,16 +475,17 @@ fun RealisticBottomCharRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
+        val shiftBackKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
         // Shift Key
         Box(
             modifier = Modifier
                 .weight(1.3f)
                 .height(38.dp)
                 .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.keyBackgroundColor).copy(alpha = 0.85f))
+                .background(shiftBackKeyBg)
                 .border(
                     1.dp,
-                    Color(theme.borderColor).copy(alpha = theme.borderAlpha),
+                    Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                     RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))
                 ),
             contentAlignment = Alignment.Center
@@ -513,10 +514,10 @@ fun RealisticBottomCharRow(
                 .weight(1.3f)
                 .height(38.dp)
                 .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.keyBackgroundColor).copy(alpha = 0.85f))
+                .background(shiftBackKeyBg)
                 .border(
                     1.dp,
-                    Color(theme.borderColor).copy(alpha = theme.borderAlpha),
+                    Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                     RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))
                 ),
             contentAlignment = Alignment.Center
@@ -524,7 +525,7 @@ fun RealisticBottomCharRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Backspace",
-                tint = Color(theme.keyTextColor),
+                tint = Color(theme.accentColor),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -536,6 +537,7 @@ fun RealisticSpacebarRow(
     theme: KeyboardTheme,
     isArabic: Boolean
 ) {
+    val bottomKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -549,8 +551,8 @@ fun RealisticSpacebarRow(
                 .weight(1.2f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.keyBackgroundColor).copy(alpha = 0.85f))
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .background(bottomKeyBg)
+                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -567,8 +569,8 @@ fun RealisticSpacebarRow(
                 .weight(0.9f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.keyBackgroundColor).copy(alpha = 0.85f))
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .background(bottomKeyBg)
+                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -585,8 +587,8 @@ fun RealisticSpacebarRow(
                 .weight(0.9f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.keyBackgroundColor).copy(alpha = 0.85f))
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .background(bottomKeyBg)
+                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -603,13 +605,13 @@ fun RealisticSpacebarRow(
                 .weight(4f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.keyBackgroundColor))
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .background(bottomKeyBg)
+                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = if (isArabic) "اللغة العربية" else "TURBO KEYBOARD",
-                color = Color(theme.keyTextColor).copy(alpha = 0.75f),
+                color = Color(theme.keyTextColor).copy(alpha = 0.85f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -628,7 +630,7 @@ fun RealisticSpacebarRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                 contentDescription = "Enter",
-                tint = Color.White,
+                tint = ThemePresets.getEnterIconTint(theme),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -642,15 +644,16 @@ fun RealisticKey(
     theme: KeyboardTheme,
     modifier: Modifier = Modifier
 ) {
+    val keyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
     Box(
         modifier = modifier
             .height(38.dp)
             .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-            .background(Color(theme.keyBackgroundColor))
+            .background(keyBg)
             .border(
                 width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
-                color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.8f)
-                        else Color(theme.borderColor).copy(alpha = theme.borderAlpha),
+                color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
+                        else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                 shape = RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))
             ),
         contentAlignment = Alignment.Center
@@ -658,8 +661,9 @@ fun RealisticKey(
         if (!hint.isNullOrEmpty()) {
             Text(
                 text = hint,
-                color = Color(theme.subtextColor).copy(alpha = 0.7f),
+                color = Color(theme.subtextColor).copy(alpha = 0.85f),
                 fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 1.dp, end = 2.dp)

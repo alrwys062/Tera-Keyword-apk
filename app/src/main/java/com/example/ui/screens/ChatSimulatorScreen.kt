@@ -293,6 +293,7 @@ fun ChatSimulatorScreen(
                             messages = messages + ChatMessage(text = currentDraftText, isFromMe = true)
                             prefs.addClipboardItem(currentDraftText)
                             currentDraftText = ""
+                            com.example.keyboard.TurboKeyboardService.resetToLettersSignal.value = System.currentTimeMillis()
                         },
                         modifier = Modifier
                             .size(32.dp)

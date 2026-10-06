@@ -52,7 +52,7 @@ fun KeyboardToolbar(
 ) {
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
-        listOf("translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
+        listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings")
     } else {
         visibleTools
     }
@@ -67,6 +67,20 @@ fun KeyboardToolbar(
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 0. ملصقات (Stickers & Designer)
+        if ("stickers" in toolsToShow) {
+            val isStickersActive = activeSubView == KeyboardSubView.STICKERS
+            ToolbarFixedItem(
+                icon = Icons.Outlined.AutoAwesomeMosaic,
+                label = "ملصقات",
+                isActive = isStickersActive,
+                theme = theme,
+                onClick = {
+                    onSubViewSelected(if (isStickersActive) KeyboardSubView.NONE else KeyboardSubView.STICKERS)
+                }
+            )
+        }
+
         // 1. ترجمة (Translation)
         if ("translate" in toolsToShow) {
             val isTranslateActive = isTranslationActive || activeSubView == KeyboardSubView.TRANSLATE

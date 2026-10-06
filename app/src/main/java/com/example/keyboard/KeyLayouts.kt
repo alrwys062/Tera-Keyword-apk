@@ -50,7 +50,74 @@ object KeyLayouts {
         KeyModel(KeyType.Character("و")),
         KeyModel(KeyType.Character("ز")),
         KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.3f)
+        KeyModel(KeyType.Backspace, weight = 1.6f)
+    )
+
+    // 1. Samsung Original Arabic Layout (تخطيط سامسونج الأصلي)
+    val samsungRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val samsungRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val samsungRow3 = listOf(
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("ئ")),
+        KeyModel(KeyType.Character("ء")),
+        KeyModel(KeyType.Character("ؤ")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("لا")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ظ")),
+        KeyModel(KeyType.Backspace, weight = 1.6f)
+    )
+
+    // 2. AOSP Arabic Layout
+    val aospRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val aospRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط", "د").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val aospRow3 = listOf(
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("ئ")),
+        KeyModel(KeyType.Character("ء")),
+        KeyModel(KeyType.Character("ؤ")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("لا")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ظ")),
+        KeyModel(KeyType.Backspace, weight = 1.6f)
+    )
+
+    // 3. SwiftKey Arabic Layout
+    val swiftRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val swiftRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val swiftRow3 = listOf(
+        KeyModel(KeyType.Character("ج")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("ئ")),
+        KeyModel(KeyType.Character("ء")),
+        KeyModel(KeyType.Character("ؤ")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ظ")),
+        KeyModel(KeyType.Backspace, weight = 1.6f)
     )
 
     // Long press popup characters for Arabic & English (تشكيل، همزات، أرقام ورموز)
@@ -160,13 +227,18 @@ object KeyLayouts {
         lang: com.example.data.WorldLanguage,
         isShifted: Boolean = false,
         isArabic: Boolean = false,
-        layoutStyle: String = "basic_ar"
+        layoutStyle: String = "samsung"
     ): Triple<List<KeyModel>, List<KeyModel>, List<KeyModel>> {
         if (lang.code == "ar" || isArabic) {
-            val r1 = if (isShifted) arabicTashkeelRow1 else arabicRow1
-            val r2 = if (isShifted) arabicTashkeelRow2 else arabicRow2
-            val r3 = arabicRow3
-            return Triple(r1, r2, r3)
+            if (isShifted) {
+                return Triple(arabicTashkeelRow1, arabicTashkeelRow2, samsungRow3)
+            }
+            return when (layoutStyle) {
+                "samsung" -> Triple(samsungRow1, samsungRow2, samsungRow3)
+                "aosp" -> Triple(aospRow1, aospRow2, aospRow3)
+                "swift" -> Triple(swiftRow1, swiftRow2, swiftRow3)
+                else -> Triple(arabicRow1, arabicRow2, arabicRow3)
+            }
         }
 
         val r1 = lang.row1.map { char ->

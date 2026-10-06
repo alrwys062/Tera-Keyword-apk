@@ -53,6 +53,7 @@ data class KeyboardSettings(
     val longPressDelayMs: Int = 340, // 180ms (turbo), 240ms (fast), 340ms (medium), 520ms (slow)
     val autoReturnToLettersOnSend: Boolean = true, // الرجوع التلقائي للأحرف بعد الإرسال
     val autoReturnToLettersOnShortcut: Boolean = true, // الرجوع التلقائي للأحرف بعد استخدام الاختصارات
+    val autoReturnAfterEmojiInsert: Boolean = false, // الرجوع للأحرف مباشرة بعد وضع الإيموجي
     val keyPopupEnabled: Boolean = true,
     val autoCapitalization: Boolean = true,
     val doubleSpacePeriod: Boolean = true,
@@ -62,6 +63,8 @@ data class KeyboardSettings(
     val topQuickEmojiRowEnabled: Boolean = true,
     val keyHeightFactor: Float = 1.0f,
     val keyFontSizeFactor: Float = 1.0f,
+    val keyButtonScale: Float = 1.0f, // تكبير وتصغير أزرار الكيبورد
+    val backspaceKeyScale: Float = 1.35f, // تكبير زر الحذف
     val currentThemeId: String = "cyber_pro",
     val defaultLanguage: String = "ar",
     val swipeSpaceSwitchLanguage: Boolean = true,
@@ -70,13 +73,14 @@ data class KeyboardSettings(
     val clipboardCloseOnPaste: Boolean = true,
     val clipboardSaveForever: Boolean = true,
     val enterKeyOnLeft: Boolean = false,
+    val isNightModeEnabled: Boolean = false, // الوضع الليلي / النهاري
     val activeDecorationStyle: String = "none",
-    val keyboardLayoutStyle: String = "basic_ar", // "basic_ar", "samsung", "aosp", "linux", "swift"
+    val keyboardLayoutStyle: String = "samsung", // الافتراضي تخطيط سامسونج الأصلي
     val translationSource: String = "ar",
     val translationTarget: String = "en",
     val autoTranslateOnCopy: Boolean = false,
     val visibleToolbarTools: List<String> = listOf(
-        "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings"
+        "stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "night", "settings"
     )
 )
 
@@ -88,6 +92,7 @@ enum class KeyboardLanguage(val code: String, val displayName: String, val nativ
 enum class KeyboardSubView {
     NONE,
     EMOJI,
+    STICKERS,
     GIF,
     PHOTOS,
     TRANSLATE,

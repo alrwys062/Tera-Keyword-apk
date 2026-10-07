@@ -20,7 +20,7 @@ data class KeyModel(
 
 object KeyLayouts {
 
-    // Quick shortcuts row matching Transboard Screenshots 14 & 15
+    // Quick shortcuts row matching iOS / Transboard layout
     val arabicQuickShortcutsRow = listOf("👑", "💋", "ة", "ؤ", "ء", "ئ", "ى", "لأ", "😂", "خاص").map {
         KeyModel(KeyType.Character(it))
     }
@@ -29,110 +29,111 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    // Standard Arabic Layout (Gboard / Samsung / Transboard Familiar Standard)
-    val arabicRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
+    // 10-Column Arabic Layout (iOS 16 / Gboard 10-Column Standard)
+    // Row 1: Exactly 10 keys (ض ص ث ق ف غ ع ه خ ح)
+    val arabicRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح").map {
         KeyModel(KeyType.Character(it))
     }
 
-    val arabicRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+    // Row 2: Exactly 10 keys (ش س ي ب ل ا ت ن م ك)
+    val arabicRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك").map {
         KeyModel(KeyType.Character(it))
     }
 
+    // Row 3: Exactly 10 columns (9 wide letters + Backspace = 10 columns)
     val arabicRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("لا")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
         KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.6f)
+        KeyModel(KeyType.Character("ط")),
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Backspace, weight = 1.25f)
     )
 
-    // 1. Samsung Original Arabic Layout (تخطيط سامسونج الأصلي)
-    val samsungRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
+    // Samsung / Classic 10-Column Arabic Layout
+    val samsungRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح").map {
         KeyModel(KeyType.Character(it))
     }
-    val samsungRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+    val samsungRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك").map {
         KeyModel(KeyType.Character(it))
     }
     val samsungRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("لا")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
         KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.6f)
+        KeyModel(KeyType.Character("ط")),
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Backspace, weight = 1.25f)
     )
 
-    // 2. AOSP Arabic Layout
-    val aospRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").map {
+    // AOSP 10-Column Arabic Layout
+    val aospRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح").map {
         KeyModel(KeyType.Character(it))
     }
-    val aospRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط", "د").map {
+    val aospRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك").map {
         KeyModel(KeyType.Character(it))
     }
     val aospRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("لا")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
         KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.6f)
+        KeyModel(KeyType.Character("ط")),
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Backspace, weight = 1.25f)
     )
 
-    // 3. SwiftKey Arabic Layout
+    // SwiftKey 10-Column Arabic Layout
     val swiftRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح").map {
         KeyModel(KeyType.Character(it))
     }
-    val swiftRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+    val swiftRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك").map {
         KeyModel(KeyType.Character(it))
     }
     val swiftRow3 = listOf(
-        KeyModel(KeyType.Character("ج")),
-        KeyModel(KeyType.Character("د")),
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
         KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.6f)
+        KeyModel(KeyType.Character("ط")),
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Backspace, weight = 1.25f)
     )
 
     // Long press popup characters for Arabic & English (تشكيل، همزات، أرقام ورموز)
     val charPopupMap = mapOf(
+        "ح" to listOf("ج", "خ", "0"),
+        "خ" to listOf("ح", "ج", "9"),
+        "د" to listOf("ذ", "4"),
+        "ذ" to listOf("د", "3"),
+        "ط" to listOf("ظ", "2"),
+        "ظ" to listOf("ط", "1"),
         "ا" to listOf("أ", "إ", "آ", "ء", "ٱ", "1"),
         "و" to listOf("ؤ", "9"),
         "ي" to listOf("ئ", "ى", "8"),
         "ت" to listOf("ة", "4"),
         "ه" to listOf("ة", "6"),
         "لا" to listOf("لأ", "لإ", "لآ"),
+        "ل" to listOf("لا", "لأ", "لإ"),
         "ب" to listOf("پ", "2"),
-        "ج" to listOf("چ"),
-        "ف" to listOf("ڤ"),
-        "ك" to listOf("گ"),
-        "ز" to listOf("ژ"),
+        "ج" to listOf("چ", "ح", "خ"),
+        "ف" to listOf("ڤ", "5"),
+        "ك" to listOf("گ", "7"),
+        "ز" to listOf("ژ", "8"),
         "س" to listOf("َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ّ", "ْ", "ـ"),
         "q" to listOf("1"), "w" to listOf("2"), "e" to listOf("3", "é", "è", "ê", "ë"),
         "r" to listOf("4"), "t" to listOf("5"), "y" to listOf("6"), "u" to listOf("7", "ú", "ù", "û", "ü"),
@@ -141,16 +142,16 @@ object KeyLayouts {
         "c" to listOf("ç"), "n" to listOf("ñ")
     )
 
-    // Tashkeel / Diacritics
-    val arabicTashkeelRow1 = listOf("َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ّ", "ْ", "ـ", "؛", "،").map {
+    // Tashkeel / Diacritics (10 columns)
+    val arabicTashkeelRow1 = listOf("َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ّ", "ْ", "ـ", "؛").map {
         KeyModel(KeyType.Character(it))
     }
 
-    val arabicTashkeelRow2 = listOf("؟", "!", "«", "»", "–", "—", "…", "٪", "×", "÷", "±").map {
+    val arabicTashkeelRow2 = listOf("؟", "!", "«", "»", "–", "—", "…", "٪", "×", "÷").map {
         KeyModel(KeyType.Character(it))
     }
 
-    // English Layout (Screenshot 15)
+    // English Layout (10 Columns)
     val englishRow1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p").map {
         KeyModel(KeyType.Character(it))
     }
@@ -171,7 +172,7 @@ object KeyLayouts {
         KeyModel(KeyType.Backspace, weight = 1.3f)
     )
 
-    // Numbers Row
+    // Numbers Row (10 columns)
     val numbersRowAr = listOf("١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠").map {
         KeyModel(KeyType.Character(it))
     }
@@ -180,7 +181,7 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    // Symbols Page 1 (Screenshot 16)
+    // Symbols Page 1 (10 Columns)
     val symbolsRow1 = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0").map {
         KeyModel(KeyType.Character(it))
     }
@@ -202,7 +203,7 @@ object KeyLayouts {
         KeyModel(KeyType.Backspace, weight = 1.3f)
     )
 
-    // Symbols Page 2 (Screenshot 17)
+    // Symbols Page 2 (10 Columns)
     val symbolsMoreRow1 = listOf("~", "\\", "|", "•", "√", "π", "÷", "×", "{", "}").map {
         KeyModel(KeyType.Character(it))
     }

@@ -1774,17 +1774,16 @@ fun BackspaceKeyButton(
 ) {
     var isPressed by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isPressed, repeatSpeedMs) {
+    LaunchedEffect(isPressed) {
         if (isPressed) {
-            onDelete()
-            delay(280)
+            onDelete() // Delete 1 character immediately on initial touch
+            delay(320) // Initial hold threshold
             var deleteCount = 0
-            val baseSpeed = repeatSpeedMs.coerceIn(20L, 100L)
+            val baseSpeed = repeatSpeedMs.coerceIn(30L, 80L)
             while (isPressed) {
                 onDelete()
                 deleteCount++
-                val interval = if (deleteCount > 20) (baseSpeed * 0.6).toLong().coerceAtLeast(18L)
-                               else if (deleteCount > 8) (baseSpeed * 0.8).toLong().coerceAtLeast(25L)
+                val interval = if (deleteCount > 15) (baseSpeed * 0.7).toLong().coerceAtLeast(22L)
                                else baseSpeed
                 delay(interval)
             }
@@ -1796,13 +1795,13 @@ fun BackspaceKeyButton(
 
     val animatedBg by animateColorAsState(
         targetValue = if (isPressed) pressedColor else normalColor,
-        animationSpec = tween(durationMillis = if (isPressed) 20 else 90),
+        animationSpec = tween(durationMillis = 25),
         label = "backspace_bg"
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+        targetValue = if (isPressed) 0.96f else 1.0f,
+        animationSpec = tween(durationMillis = 25),
         label = "backspace_scale"
     )
 
@@ -1826,9 +1825,6 @@ fun BackspaceKeyButton(
                         isPressed = true
                         tryAwaitRelease()
                         isPressed = false
-                    },
-                    onTap = {
-                        onDelete()
                     }
                 )
             },

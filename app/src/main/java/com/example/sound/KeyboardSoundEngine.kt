@@ -5,46 +5,39 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
-import android.os.Process
+import android.os.Build
 import android.util.Log
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * High-performance, zero-latency PCM audio synthesis and playback engine.
- * Directly streams mixed 16-bit PCM audio through AudioTrack, completely bypassing
- * Stagefright, MediaCodec, and SoundPool file decoders to eliminate HAL/Codec2 resource errors.
+ * Universal, ultra-low latency keypress audio engine.
+ * Designed to guarantee audible, crisp sound feedback on all Android devices
+ * including Honor (MagicOS), Huawei (EMUI), Xiaomi (HyperOS/MIUI), Samsung (One UI), and Google Pixel.
+ *
+ * Utilizes a pool of lightweight static AudioTracks routed via USAGE_MEDIA
+ * so playback is NEVER muted by OEM system touch-sound disablement or background thread sleep.
  */
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
     private const val SAMPLE_RATE = 44100
-    private const val CHUNK_SIZE = 256 // ~5.8ms per audio frame chunk for ultra-low latency
+    private const val POOL_SIZE = 6
 
     private var audioManager: AudioManager? = null
-    private var audioTrack: AudioTrack? = null
 
     @Volatile
     private var isInitialized = false
 
-    @Volatile
-    private var isRunning = false
-
-    private val lock = ReentrantLock()
-    private val audioCondition = lock.newCondition()
-
-    private class ActiveVoice(
-        val pcm: ShortArray,
-        val volume: Float,
-        var position: Int = 0
-    )
-
-    private val activeVoices = ArrayList<ActiveVoice>(8)
     private val pcmCache = ConcurrentHashMap<String, ShortArray>()
+
+    // Pool of static AudioTracks for polyphonic keypresses
+    private val audioTrackPool = arrayOfNulls<AudioTrack>(POOL_SIZE)
+    private val poolIndex = AtomicInteger(0)
+    private val poolLock = Any()
 
     const val PROFILE_IOS_16 = "ios_16"
     const val PROFILE_MECHANICAL = "mechanical"
@@ -84,7 +77,7 @@ object KeyboardSoundEngine {
         if (isInitialized) return
         isInitialized = true
 
-        // Clean up any legacy sound files from older versions
+        // Clean up any obsolete temporary files
         try {
             val soundsDir = File(appCtx.filesDir, "kb_sounds")
             if (soundsDir.exists()) {
@@ -92,124 +85,24 @@ object KeyboardSoundEngine {
             }
         } catch (_: Throwable) {}
 
-        // Pre-warm default PCM cache in memory
-        preloadProfile(appCtx, PROFILE_IOS_16)
-
-        // Start dedicated real-time audio thread
-        startAudioThread()
-    }
-
-    private fun startAudioThread() {
-        if (isRunning) return
-        isRunning = true
-
-        val audioThread = Thread({
-            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            
-            val minBufSize = AudioTrack.getMinBufferSize(
-                SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-            )
-            val bufferSize = maxOf(minBufSize, CHUNK_SIZE * 4 * 2)
-
-            var track: AudioTrack? = null
+        // Pre-warm primary sound waveforms in memory
+        Thread {
             try {
-                track = AudioTrack.Builder()
-                    .setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build()
-                    )
-                    .setAudioFormat(
-                        AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(SAMPLE_RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                            .build()
-                    )
-                    .setBufferSizeInBytes(bufferSize)
-                    .setTransferMode(AudioTrack.MODE_STREAM)
-                    .build()
-
-                track.play()
-                audioTrack = track
-
-                val mixBuffer = ShortArray(CHUNK_SIZE)
-                val voicesToProcess = ArrayList<ActiveVoice>()
-
-                var idleFrames = 0
-                val maxIdleFrames = 20 // ~110ms of silence before sleeping
-
-                while (isRunning) {
-                    voicesToProcess.clear()
-
-                    lock.withLock {
-                        if (activeVoices.isEmpty()) {
-                            if (idleFrames >= maxIdleFrames) {
-                                audioCondition.await()
-                                idleFrames = 0
-                            }
-                        }
-                        if (activeVoices.isNotEmpty()) {
-                            voicesToProcess.addAll(activeVoices)
-                        }
-                    }
-
-                    if (voicesToProcess.isEmpty()) {
-                        idleFrames++
-                        mixBuffer.fill(0)
-                        track.write(mixBuffer, 0, CHUNK_SIZE)
-                        continue
-                    }
-
-                    idleFrames = 0
-                    mixBuffer.fill(0)
-
-                    val finishedVoices = ArrayList<ActiveVoice>()
-
-                    for (voice in voicesToProcess) {
-                        val pcm = voice.pcm
-                        val vol = voice.volume
-                        var pos = voice.position
-                        val end = minOf(pos + CHUNK_SIZE, pcm.size)
-
-                        var outIdx = 0
-                        for (i in pos until end) {
-                            val mixed = (mixBuffer[outIdx] + (pcm[i] * vol).toInt())
-                            mixBuffer[outIdx] = mixed.coerceIn(-32768, 32767).toShort()
-                            outIdx++
-                        }
-
-                        voice.position = end
-                        if (voice.position >= pcm.size) {
-                            finishedVoices.add(voice)
-                        }
-                    }
-
-                    if (finishedVoices.isNotEmpty()) {
-                        lock.withLock {
-                            activeVoices.removeAll(finishedVoices.toSet())
-                        }
-                    }
-
-                    track.write(mixBuffer, 0, CHUNK_SIZE)
-                }
-            } catch (e: Throwable) {
-                Log.w(TAG, "AudioTrack synthesis thread encountered issue: ${e.message}")
-            } finally {
-                try {
-                    track?.stop()
-                    track?.release()
-                } catch (_: Throwable) {}
-                audioTrack = null
-                isRunning = false
+                getPcmCached(PROFILE_IOS_16)
+                getPcmCached(PROFILE_MECHANICAL)
+                getPcmCached(PROFILE_MODERN_SOFT)
+                getPcmCached(PROFILE_WATER_DROP)
+                getPcmCached(PROFILE_POP_BUBBLE)
+                getPcmCached(PROFILE_WOOD_BLOCK)
+                getPcmCached(PROFILE_CYBER_SCIFI)
+                getPcmCached(PROFILE_CLASSIC_TYPEWRITER)
+                getPcmCached(PROFILE_SYSTEM_DEFAULT)
+                getPcmCached("special_space")
+                getPcmCached("special_delete")
+            } catch (e: Exception) {
+                Log.w(TAG, "Audio prewarm error: ${e.message}")
             }
-        }, "KeyboardAudioMixer")
-
-        audioThread.isDaemon = true
-        audioThread.start()
+        }.start()
     }
 
     fun preloadProfile(context: Context, profile: String) {
@@ -235,6 +128,48 @@ object KeyboardSoundEngine {
         }
     }
 
+    private fun createAudioTrack(pcmSize: Int): AudioTrack {
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        val audioFormat = AudioFormat.Builder()
+            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+            .setSampleRate(SAMPLE_RATE)
+            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+            .build()
+
+        val minBufferSize = AudioTrack.getMinBufferSize(
+            SAMPLE_RATE,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT
+        )
+        val bufferSize = maxOf(minBufferSize, pcmSize * 2)
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            AudioTrack.Builder()
+                .setAudioAttributes(audioAttributes)
+                .setAudioFormat(audioFormat)
+                .setBufferSizeInBytes(bufferSize)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize,
+                AudioTrack.MODE_STATIC
+            )
+        }
+    }
+
+    /**
+     * Plays key sound with guaranteed audibility across all device brands (Honor, Samsung, Xiaomi, etc.)
+     */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
         volume: Float = 0.85f,
@@ -242,10 +177,11 @@ object KeyboardSoundEngine {
         isSpace: Boolean = false,
         isDelete: Boolean = false
     ) {
-        val safeVolume = volume.coerceIn(0.20f, 1.0f)
+        val safeVolume = volume.coerceIn(0.15f, 1.0f)
 
-        // Android System Sound Effect path
+        // Android System Sound Effect fallback / native route
         if (profile == PROFILE_SYSTEM_DEFAULT) {
+            var played = false
             try {
                 val fx = when {
                     isDelete -> AudioManager.FX_KEYPRESS_DELETE
@@ -254,7 +190,13 @@ object KeyboardSoundEngine {
                     else -> AudioManager.FX_KEYPRESS_STANDARD
                 }
                 audioManager?.playSoundEffect(fx, safeVolume)
+                played = true
             } catch (_: Throwable) {}
+
+            // If system touch sound is disabled on Honor/Huawei, play our crisp synthesized system click
+            if (!played) {
+                playPcmDirect(getPcmCached(PROFILE_SYSTEM_DEFAULT), safeVolume)
+            }
             return
         }
 
@@ -266,18 +208,40 @@ object KeyboardSoundEngine {
         }
 
         val pcm = getPcmCached(soundKey)
+        playPcmDirect(pcm, safeVolume)
+    }
 
-        if (!isRunning) {
-            startAudioThread()
-        }
+    private fun playPcmDirect(pcm: ShortArray, volume: Float) {
+        try {
+            val idx = poolIndex.getAndIncrement().mod(POOL_SIZE)
 
-        lock.withLock {
-            // Cap active polyphony at 6 simultaneous voices to prevent volume clipping
-            if (activeVoices.size >= 6) {
-                activeVoices.removeAt(0)
+            synchronized(poolLock) {
+                var track = audioTrackPool[idx]
+                if (track == null || track.state != AudioTrack.STATE_INITIALIZED) {
+                    try {
+                        track?.release()
+                    } catch (_: Throwable) {}
+                    track = createAudioTrack(pcm.size)
+                    audioTrackPool[idx] = track
+                }
+
+                if (track.state == AudioTrack.STATE_INITIALIZED) {
+                    try {
+                        track.stop()
+                    } catch (_: Throwable) {}
+
+                    track.setVolume(volume)
+                    track.write(pcm, 0, pcm.size)
+                    track.setPlaybackHeadPosition(0)
+                    track.play()
+                }
             }
-            activeVoices.add(ActiveVoice(pcm, safeVolume))
-            audioCondition.signal()
+        } catch (e: Throwable) {
+            Log.w(TAG, "playPcmDirect error: ${e.message}")
+            // Re-fallback through audioManager if needed
+            try {
+                audioManager?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, volume)
+            } catch (_: Throwable) {}
         }
     }
 

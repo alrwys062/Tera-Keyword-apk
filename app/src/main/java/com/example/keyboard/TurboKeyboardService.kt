@@ -133,6 +133,7 @@ class TurboKeyboardService : InputMethodService(),
         super.onStartInput(attribute, restarting)
         activeInputConnectionState.value = currentInputConnection
         try {
+            com.example.sound.KeyboardSoundEngine.initialize(this@TurboKeyboardService)
             PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
     }
@@ -192,11 +193,13 @@ class TurboKeyboardService : InputMethodService(),
     override fun onWindowHidden() {
         super.onWindowHidden()
         ensureLifecyclePausedAndStopped()
+        resetToLettersSignal.value = System.currentTimeMillis()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         ensureLifecyclePausedAndStopped()
+        resetToLettersSignal.value = System.currentTimeMillis()
         // Do not force-null activeInputConnectionState on transient focus changes (like screenshots)
         if (finishingInput) {
             activeInputConnectionState.value = currentInputConnection

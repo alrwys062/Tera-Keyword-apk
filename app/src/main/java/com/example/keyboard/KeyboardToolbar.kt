@@ -228,7 +228,6 @@ fun KeyboardToolbar(
                 theme = theme,
                 onClick = {
                     onSubViewSelected(if (isSettingsActive) KeyboardSubView.NONE else KeyboardSubView.SETTINGS)
-                    onOpenSettingsClick()
                 }
             )
         }

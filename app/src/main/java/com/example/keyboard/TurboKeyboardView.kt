@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -160,6 +161,8 @@ fun TurboKeyboardView(
                 activeSubView = KeyboardSubView.NONE
                 isSymbolsMode = false
                 isMoreSymbolsMode = false
+                isDecorationBarOpen = false
+                isTranslationBarOpen = false
             }
         }
     }
@@ -815,6 +818,7 @@ fun TurboKeyboardView(
                                         keyHeight = calculatedKeyHeight,
                                         keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                         keyButtonScale = currentSettings.keyButtonScale,
+                                        longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                         onPerformFeedback = { performFeedback(it) },
                                         modifier = Modifier.weight(key.weight),
                                         onClick = { sendText(digitChar) },
@@ -853,6 +857,7 @@ fun TurboKeyboardView(
                                     keyHeight = calculatedKeyHeight,
                                     keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                     keyButtonScale = currentSettings.keyButtonScale,
+                                    longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                     onPerformFeedback = { performFeedback(it) },
                                     modifier = Modifier.weight(key.weight),
                                     onClick = {
@@ -889,6 +894,7 @@ fun TurboKeyboardView(
                                     keyHeight = calculatedKeyHeight,
                                     keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                     keyButtonScale = currentSettings.keyButtonScale,
+                                    longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                     onPerformFeedback = { performFeedback(it) },
                                     modifier = Modifier.weight(key.weight),
                                     onClick = {
@@ -926,7 +932,7 @@ fun TurboKeyboardView(
                                             keyHeight = calculatedKeyHeight,
                                             modifier = Modifier.weight(key.weight),
                                             onClick = {
-                                                performFeedback()
+                                                performFeedback(isSpecial = true)
                                                 isShifted = !isShifted
                                             }
                                         )
@@ -941,7 +947,7 @@ fun TurboKeyboardView(
                                             repeatSpeedMs = currentSettings.keyRepeatSpeedMs.toLong(),
                                             onDelete = { sendDelete() },
                                             onDeleteWord = {
-                                                performFeedback()
+                                                performFeedback(isDelete = true)
                                                 if (currentComposingText.isNotEmpty()) {
                                                     val words = currentComposingText.trimEnd().split(" ")
                                                     currentComposingText = if (words.size > 1) words.dropLast(1).joinToString(" ") + " " else ""
@@ -962,7 +968,7 @@ fun TurboKeyboardView(
                                                 keyHeight = calculatedKeyHeight,
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
-                                                    performFeedback()
+                                                    performFeedback(isSpecial = true)
                                                     isMoreSymbolsMode = true
                                                 }
                                             )
@@ -973,7 +979,7 @@ fun TurboKeyboardView(
                                                 keyHeight = calculatedKeyHeight,
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
-                                                    performFeedback()
+                                                    performFeedback(isSpecial = true)
                                                     isMoreSymbolsMode = false
                                                 }
                                             )
@@ -988,6 +994,7 @@ fun TurboKeyboardView(
                                                 keyHeight = calculatedKeyHeight,
                                                 keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                                 keyButtonScale = currentSettings.keyButtonScale,
+                                                longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                                 onPerformFeedback = { performFeedback(it) },
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
@@ -1011,6 +1018,7 @@ fun TurboKeyboardView(
                         // [ 123!#() ] [ 🌐 Language ] [ 😊 Emoji ] [   Spacebar   ] [ . ] [ 📋 Clipboard ] [ ✓ Enter ]
                         var enterJob: Job? by remember { mutableStateOf(null) }
                         val bottomKeyBg = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
+                        val bottomKeyPressedBg = ThemePresets.resolveKeyColor(activeTheme.keyPressedColor, activeTheme.keyOpacity)
 
                         Row(
                             modifier = Modifier
@@ -1020,17 +1028,38 @@ fun TurboKeyboardView(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // 1. ModeChange key 123!#() on FAR LEFT
+                            var isModePressed by remember { mutableStateOf(false) }
+                            val modeBg by animateColorAsState(
+                                targetValue = if (isModePressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isModePressed) 20 else 90),
+                                label = "mode_bg"
+                            )
+                            val modeScale by animateFloatAsState(
+                                targetValue = if (isModePressed) 0.95f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "mode_scale"
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(1.15f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = modeScale; scaleY = modeScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(bottomKeyBg)
+                                    .background(modeBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .clickable {
-                                        performFeedback()
-                                        isSymbolsMode = !isSymbolsMode
-                                        isMoreSymbolsMode = false
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isModePressed = true
+                                                performFeedback(isSpecial = true)
+                                                tryAwaitRelease()
+                                                isModePressed = false
+                                            },
+                                            onTap = {
+                                                isSymbolsMode = !isSymbolsMode
+                                                isMoreSymbolsMode = false
+                                            }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1043,17 +1072,38 @@ fun TurboKeyboardView(
                             }
 
                             // 2. Language Switch 🌐
+                            var isLangPressed by remember { mutableStateOf(false) }
+                            val langBg by animateColorAsState(
+                                targetValue = if (isLangPressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isLangPressed) 20 else 90),
+                                label = "lang_bg"
+                            )
+                            val langScale by animateFloatAsState(
+                                targetValue = if (isLangPressed) 0.95f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "lang_scale"
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(0.85f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = langScale; scaleY = langScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(bottomKeyBg)
+                                    .background(langBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .clickable {
-                                        performFeedback()
-                                        val nextLang = InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
-                                        currentLangCode = nextLang.code
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isLangPressed = true
+                                                performFeedback(isSpecial = true)
+                                                tryAwaitRelease()
+                                                isLangPressed = false
+                                            },
+                                            onTap = {
+                                                val nextLang = InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
+                                                currentLangCode = nextLang.code
+                                            }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1066,16 +1116,37 @@ fun TurboKeyboardView(
                             }
 
                             // 3. Emoji shortcut button 😊 directly on bottom row
+                            var isEmojiPressed by remember { mutableStateOf(false) }
+                            val emojiBg by animateColorAsState(
+                                targetValue = if (isEmojiPressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isEmojiPressed) 20 else 90),
+                                label = "emoji_bg"
+                            )
+                            val emojiScale by animateFloatAsState(
+                                targetValue = if (isEmojiPressed) 0.95f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "emoji_scale"
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(0.95f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = emojiScale; scaleY = emojiScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(bottomKeyBg)
+                                    .background(emojiBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .clickable {
-                                        performFeedback()
-                                        activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isEmojiPressed = true
+                                                performFeedback(isSpecial = true)
+                                                tryAwaitRelease()
+                                                isEmojiPressed = false
+                                            },
+                                            onTap = {
+                                                activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
+                                            }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1086,13 +1157,25 @@ fun TurboKeyboardView(
                             }
 
                             // 4. Spacebar in the center with active world language name and gesture cursor control
+                            var isSpacePressed by remember { mutableStateOf(false) }
+                            val spaceBg by animateColorAsState(
+                                targetValue = if (isSpacePressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isSpacePressed) 20 else 90),
+                                label = "space_bg"
+                            )
+                            val spaceScale by animateFloatAsState(
+                                targetValue = if (isSpacePressed) 0.97f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "space_scale"
+                            )
                             var dragAccumulator by remember { mutableFloatStateOf(0f) }
                             Box(
                                 modifier = Modifier
                                     .weight(3.1f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = spaceScale; scaleY = spaceScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(bottomKeyBg)
+                                    .background(spaceBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .pointerInput(Unit) {
                                         detectDragGestures(
@@ -1123,9 +1206,18 @@ fun TurboKeyboardView(
                                             }
                                         }
                                     }
-                                    .clickable {
-                                        performFeedback(isSpace = true)
-                                        sendText(" ")
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isSpacePressed = true
+                                                performFeedback(isSpace = true)
+                                                tryAwaitRelease()
+                                                isSpacePressed = false
+                                            },
+                                            onTap = {
+                                                sendText(" ")
+                                            }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1143,16 +1235,37 @@ fun TurboKeyboardView(
                             }
 
                             // 5. Dot . key
+                            var isDotPressed by remember { mutableStateOf(false) }
+                            val dotBg by animateColorAsState(
+                                targetValue = if (isDotPressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isDotPressed) 20 else 90),
+                                label = "dot_bg"
+                            )
+                            val dotScale by animateFloatAsState(
+                                targetValue = if (isDotPressed) 0.95f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "dot_scale"
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(0.7f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = dotScale; scaleY = dotScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(bottomKeyBg)
+                                    .background(dotBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .clickable {
-                                        performFeedback()
-                                        sendText(".")
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isDotPressed = true
+                                                performFeedback()
+                                                tryAwaitRelease()
+                                                isDotPressed = false
+                                            },
+                                            onTap = {
+                                                sendText(".")
+                                            }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1160,16 +1273,37 @@ fun TurboKeyboardView(
                             }
 
                             // 6. Clipboard shortcut button 📋
+                            var isClipPressed by remember { mutableStateOf(false) }
+                            val clipBg by animateColorAsState(
+                                targetValue = if (isClipPressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isClipPressed) 20 else 90),
+                                label = "clip_bg"
+                            )
+                            val clipScale by animateFloatAsState(
+                                targetValue = if (isClipPressed) 0.95f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "clip_scale"
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(0.85f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = clipScale; scaleY = clipScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(bottomKeyBg)
+                                    .background(clipBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .clickable {
-                                        performFeedback()
-                                        activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isClipPressed = true
+                                                performFeedback(isSpecial = true)
+                                                tryAwaitRelease()
+                                                isClipPressed = false
+                                            },
+                                            onTap = {
+                                                activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                            }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1182,16 +1316,23 @@ fun TurboKeyboardView(
                             }
 
                             // 7. Enter key on the FAR RIGHT with 4-sec translate!
+                            var isEnterPressed by remember { mutableStateOf(false) }
+                            val enterScale by animateFloatAsState(
+                                targetValue = if (isEnterPressed) 0.95f else 1.0f,
+                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                label = "enter_scale"
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(1.25f)
                                     .fillMaxHeight()
+                                    .graphicsLayer { scaleX = enterScale; scaleY = enterScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(
                                         Brush.verticalGradient(
                                             listOf(
                                                 Color(activeTheme.enterButtonColor),
-                                                Color(activeTheme.enterButtonColor).copy(alpha = 0.85f)
+                                                Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
                                             )
                                         )
                                     )
@@ -1199,7 +1340,8 @@ fun TurboKeyboardView(
                                     .pointerInput(settings.enterLongPressTranslateEnabled) {
                                         detectTapGestures(
                                             onPress = {
-                                                performFeedback()
+                                                isEnterPressed = true
+                                                performFeedback(isSpecial = true)
                                                 if (settings.enterLongPressTranslateEnabled) {
                                                     enterJob = coroutineScope.launch {
                                                         isEnterHolding = true
@@ -1221,6 +1363,7 @@ fun TurboKeyboardView(
                                                 enterJob?.cancel()
                                                 isEnterHolding = false
                                                 enterHoldProgress = 0f
+                                                isEnterPressed = false
                                                 if (released) {
                                                     sendEnter()
                                                 }
@@ -1359,6 +1502,7 @@ fun KeyButton(
     keyHeight: Dp = 48.dp,
     keyFontSizeFactor: Float = 1.0f,
     keyButtonScale: Float = 1.0f,
+    longPressDelayMs: Long = 340L,
     modifier: Modifier = Modifier,
     onPerformFeedback: ((Long) -> Unit)? = null,
     onClick: () -> Unit,
@@ -1380,7 +1524,7 @@ fun KeyButton(
         if (isTouching) {
             showPopupState = true
         } else {
-            delay(35) // iOS 16 natural graceful release retention
+            delay(40) // Smooth natural release retention
             showPopupState = false
         }
     }
@@ -1391,30 +1535,47 @@ fun KeyButton(
 
     val normalKeyColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
     val pressedKeyColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
-    val keyBgColor = if (isTouching) pressedKeyColor else normalKeyColor
+    val targetKeyColor = if (isTouching) pressedKeyColor else normalKeyColor
+
+    val animatedKeyColor by animateColorAsState(
+        targetValue = targetKeyColor,
+        animationSpec = tween(durationMillis = if (isTouching) 20 else 90),
+        label = "key_color"
+    )
+
+    val pressScale by animateFloatAsState(
+        targetValue = if (isTouching) 0.95f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+        label = "key_scale"
+    )
 
     Box(
         modifier = modifier
             .height(keyHeight)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(keyBgColor)
+            .background(animatedKeyColor)
             .border(
                 width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
                 color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
                 else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                 shape = RoundedCornerShape(theme.cornerRadius.dp)
             )
-            .pointerInput(displayChar, onLongClick) {
+            .pointerInput(displayChar, onLongClick, longPressDelayMs) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
                     isTouching = true
                     isLongPressActive = false
                     triggerFeedback(0L)
 
+                    val actualTimeout = longPressDelayMs.coerceIn(150L, 800L)
                     if (onLongClick != null) {
                         var releasedBeforeTimeout = false
                         try {
-                            withTimeout(330L) {
+                            withTimeout(actualTimeout) {
                                 val up = waitForUpOrCancellation()
                                 if (up != null) {
                                     releasedBeforeTimeout = true
@@ -1541,21 +1702,49 @@ fun SpecialKeyButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    var isPressed by remember { mutableStateOf(false) }
     val normalColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    val pressedColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
+    val targetBg = if (isActive) Color(theme.accentColor).copy(alpha = 0.35f) else if (isPressed) pressedColor else normalColor
+
+    val animatedBg by animateColorAsState(
+        targetValue = targetBg,
+        animationSpec = tween(durationMillis = if (isPressed) 20 else 90),
+        label = "special_bg"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+        label = "special_scale"
+    )
+
     Box(
         modifier = modifier
             .height(keyHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(
-                if (isActive) Color(theme.accentColor).copy(alpha = 0.35f)
-                else normalColor
-            )
+            .background(animatedBg)
             .border(
                 1.dp,
                 if (isActive) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                 RoundedCornerShape(theme.cornerRadius.dp)
             )
-            .clickable(onClick = onClick),
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = {
+                        onClick()
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
         if (icon != null) {
@@ -1608,14 +1797,27 @@ fun BackspaceKeyButton(
     val normalColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
     val pressedColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
 
+    val animatedBg by animateColorAsState(
+        targetValue = if (isPressed) pressedColor else normalColor,
+        animationSpec = tween(durationMillis = if (isPressed) 20 else 90),
+        label = "backspace_bg"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+        label = "backspace_scale"
+    )
+
     Box(
         modifier = modifier
             .height(keyHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(
-                if (isPressed) pressedColor
-                else normalColor
-            )
+            .background(animatedBg)
             .border(
                 1.dp,
                 if (isPressed) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),

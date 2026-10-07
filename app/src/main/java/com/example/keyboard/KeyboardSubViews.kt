@@ -1887,12 +1887,13 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.Speed, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("سرعة الكتابة واستجابة الأزرار", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("سرعة وثقل استجابة المفاتيح", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                 Text(
                                     when (settings.typingSpeedMode) {
                                         "fast" -> "⚡ فائق السرعة واستجابة فورية"
-                                        "slow" -> "🧘 هادئ وبطيء لعدم الخطأ"
-                                        else -> "🍏 متوسط متوازن (مثل كيبورد آيفون 16)"
+                                        "smooth" -> "👌 خفيف وثقيل متزن (مثل كيبورد الفيديو)"
+                                        "slow" -> "🧘 هادئ وثقيل لعدم الخطأ"
+                                        else -> "🍏 متوسط متوازن ومريح"
                                     },
                                     color = accentCol,
                                     fontSize = 9.sp,
@@ -1905,9 +1906,10 @@ fun QuickSettingsView(
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Triple("⚡ فائق السرعة", "fast", Pair(25, 200)),
-                            Triple("🍏 متوازن (آيفون 16)", "medium", Pair(45, 340)),
-                            Triple("🧘 هادئ ودقيق", "slow", Pair(80, 520))
+                            Triple("⚡ سريع", "fast", Pair(25, 200)),
+                            Triple("👌 خفيف/ثقيل", "smooth", Pair(35, 300)),
+                            Triple("🍏 متوازن", "medium", Pair(45, 380)),
+                            Triple("🧘 هادئ", "slow", Pair(70, 520))
                         ).forEach { (lbl, mode, timings) ->
                             val isSel = settings.typingSpeedMode == mode
                             Surface(
@@ -1927,7 +1929,7 @@ fun QuickSettingsView(
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 5.dp)) {
-                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }

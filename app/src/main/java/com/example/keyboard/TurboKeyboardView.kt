@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.data.InputLanguagesManager
 import com.example.data.LongPressVariantsManager
@@ -1517,17 +1518,6 @@ fun KeyButton(
     }
 
     var isTouching by remember { mutableStateOf(false) }
-    var isLongPressActive by remember { mutableStateOf(false) }
-    var showPopupState by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isTouching) {
-        if (isTouching) {
-            showPopupState = true
-        } else {
-            delay(40) // Smooth natural release retention
-            showPopupState = false
-        }
-    }
 
     fun triggerFeedback(durationMs: Long) {
         onPerformFeedback?.invoke(durationMs)
@@ -1539,13 +1529,13 @@ fun KeyButton(
 
     val animatedKeyColor by animateColorAsState(
         targetValue = targetKeyColor,
-        animationSpec = tween(durationMillis = 25),
+        animationSpec = tween(durationMillis = 20),
         label = "key_color"
     )
 
     val pressScale by animateFloatAsState(
         targetValue = if (isTouching) 0.96f else 1.0f,
-        animationSpec = tween(durationMillis = 25),
+        animationSpec = tween(durationMillis = 20),
         label = "key_scale"
     )
 
@@ -1565,48 +1555,26 @@ fun KeyButton(
                 shape = RoundedCornerShape(theme.cornerRadius.dp)
             )
             .pointerInput(displayChar, onLongClick, longPressDelayMs) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val pointerId = down.id
-                    isTouching = true
-                    isLongPressActive = false
-                    triggerFeedback(0L)
-
-                    if (onLongClick == null) {
-                        onClick()
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.find { it.id == pointerId }
-                            if (change == null || !change.pressed) break
-                        }
-                    } else {
-                        var isLong = false
-                        val timeout = longPressDelayMs.coerceIn(240L, 600L)
+                detectTapGestures(
+                    onPress = {
+                        isTouching = true
+                        triggerFeedback(0L)
                         try {
-                            withTimeout(timeout) {
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.find { it.id == pointerId }
-                                    if (change == null || !change.pressed) break
-                                }
-                            }
-                        } catch (_: Exception) {
-                            isLong = true
-                            isLongPressActive = true
+                            tryAwaitRelease()
+                        } finally {
+                            isTouching = false
+                        }
+                    },
+                    onLongPress = if (onLongClick != null) {
+                        {
                             triggerFeedback(30L)
                             onLongClick()
                         }
-                        if (!isLong) {
-                            onClick()
-                        }
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.find { it.id == pointerId }
-                            if (change == null || !change.pressed) break
-                        }
+                    } else null,
+                    onTap = {
+                        onClick()
                     }
-                    isTouching = false
-                }
+                )
             },
         contentAlignment = Alignment.Center
     ) {
@@ -1631,16 +1599,12 @@ fun KeyButton(
             fontWeight = FontWeight.Bold
         )
 
-        // Magnificent Key Press Preview Bubble (iOS 16 style)
-        if (showPopupState && showKeyPopup && displayChar.isNotBlank() && !isLongPressActive) {
-            Popup(
-                alignment = Alignment.TopCenter,
-                offset = IntOffset(0, -145),
-                properties = PopupProperties(
-                    focusable = false,
-                    dismissOnBackPress = false,
-                    dismissOnClickOutside = false
-                )
+        // Magnificent In-Hierarchy Key Press Preview Bubble (Cannot get stuck!)
+        if (isTouching && showKeyPopup && displayChar.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .zIndex(100f)
+                    .offset(y = (-56).dp)
             ) {
                 KeyPreviewBubble(
                     char = displayChar,

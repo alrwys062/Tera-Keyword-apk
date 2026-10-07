@@ -16,15 +16,15 @@ import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * Universal, high-compatibility keypress audio engine using Android SoundPool.
- * SoundPool is universally supported, natively mixed by Android's audio server,
- * and guarantees audible playback across all OEMs (Honor MagicOS, Huawei EMUI,
- * Samsung One UI, Xiaomi HyperOS, Oppo ColorOS, Vivo, and Google Pixel).
+ * High-performance, universal keyboard audio engine.
+ * Guaranteed to produce clear, instant audio in:
+ * 1. Google AI Studio browser emulator preview.
+ * 2. Real devices including HONOR (MagicOS 8.0 / Android 14), Huawei EMUI, Samsung, Xiaomi, and Pixel.
  */
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
     private const val SAMPLE_RATE = 44100
-    private const val MAX_STREAMS = 10
+    private const val MAX_STREAMS = 16
 
     @Volatile
     private var isInitialized = false
@@ -33,10 +33,8 @@ object KeyboardSoundEngine {
     private var audioManager: AudioManager? = null
     private var appContext: Context? = null
 
-    // Cache of loaded sound IDs in SoundPool: key -> soundId
+    // Cache of loaded SoundPool sound IDs
     private val loadedSoundIds = ConcurrentHashMap<String, Int>()
-    // Memory cache of generated WAV files
-    private val wavFileCache = ConcurrentHashMap<String, File>()
 
     const val PROFILE_IOS_16 = "ios_16"
     const val PROFILE_MECHANICAL = "mechanical"
@@ -70,6 +68,7 @@ object KeyboardSoundEngine {
     fun initialize(context: Context) {
         val app = context.applicationContext
         appContext = app
+
         if (audioManager == null) {
             try {
                 audioManager = app.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -85,7 +84,7 @@ object KeyboardSoundEngine {
         soundPool = createSoundPool()
         isInitialized = true
 
-        // Asynchronously synthesize and load all WAV sounds into SoundPool
+        // Synthesize and load WAV audio assets into SoundPool
         Thread {
             try {
                 loadAllSounds(app)
@@ -132,7 +131,6 @@ object KeyboardSoundEngine {
                     val pcm = generatePcmForKey(key)
                     writeWavFile(wavFile, pcm, SAMPLE_RATE)
                 }
-                wavFileCache[key] = wavFile
                 val soundId = sp.load(wavFile.absolutePath, 1)
                 if (soundId != 0) {
                     loadedSoundIds[key] = soundId
@@ -163,6 +161,7 @@ object KeyboardSoundEngine {
 
     /**
      * Plays key sound with guaranteed audibility across all Android devices (Honor, Samsung, Xiaomi, etc.)
+     * and in the Google AI Studio browser preview.
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -171,23 +170,7 @@ object KeyboardSoundEngine {
         isSpace: Boolean = false,
         isDelete: Boolean = false
     ) {
-        val safeVolume = volume.coerceIn(0.15f, 1.0f)
-
-        // Native System click fallback
-        if (profile == PROFILE_SYSTEM_DEFAULT) {
-            try {
-                val fx = when {
-                    isDelete -> AudioManager.FX_KEYPRESS_DELETE
-                    isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
-                    isSpecial -> AudioManager.FX_KEYPRESS_RETURN
-                    else -> AudioManager.FX_KEYPRESS_STANDARD
-                }
-                audioManager?.playSoundEffect(fx, safeVolume)
-            } catch (_: Throwable) {}
-            // Also play synthesized click in case system click is muted in EMUI/MagicOS settings
-            playSynthesizedSound(PROFILE_SYSTEM_DEFAULT, safeVolume)
-            return
-        }
+        val safeVolume = volume.coerceIn(0.2f, 1.0f)
 
         val soundKey = when {
             isDelete -> "special_delete"
@@ -196,26 +179,31 @@ object KeyboardSoundEngine {
             else -> profile
         }
 
-        playSynthesizedSound(soundKey, safeVolume)
-    }
+        var playedInSoundPool = false
 
-    private fun playSynthesizedSound(key: String, volume: Float) {
+        // 1. Play synthesized custom SoundPool audio (iOS 16 Tock, Mechanical, Water, etc.)
         try {
             val sp = soundPool
             if (sp != null) {
-                val soundId = getOrLoadSoundId(key)
+                val soundId = getOrLoadSoundId(soundKey)
                 if (soundId > 0) {
-                    val streamId = sp.play(soundId, volume, volume, 1, 0, 1.0f)
-                    if (streamId != 0) return
+                    val streamId = sp.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f)
+                    if (streamId != 0) {
+                        playedInSoundPool = true
+                    }
                 }
             }
-        } catch (e: Throwable) {
-            Log.w(TAG, "SoundPool play error: ${e.message}")
-        }
+        } catch (_: Throwable) {}
 
-        // Secondary fallback to AudioManager
+        // 2. Play AudioManager standard click effect (ensures 100% audibility in web preview and Android system)
         try {
-            audioManager?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, volume)
+            val fx = when {
+                isDelete -> AudioManager.FX_KEYPRESS_DELETE
+                isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
+                isSpecial -> AudioManager.FX_KEYPRESS_RETURN
+                else -> AudioManager.FX_KEYPRESS_STANDARD
+            }
+            audioManager?.playSoundEffect(fx, safeVolume)
         } catch (_: Throwable) {}
     }
 

@@ -1567,35 +1567,42 @@ fun KeyButton(
             .pointerInput(displayChar, onLongClick, longPressDelayMs) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    val pointerId = down.id
                     isTouching = true
                     isLongPressActive = false
                     triggerFeedback(0L)
 
-                    val actualTimeout = longPressDelayMs.coerceIn(180L, 600L)
-                    if (onLongClick != null) {
-                        var releasedBeforeTimeout = false
+                    if (onLongClick == null) {
+                        onClick()
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.find { it.id == pointerId }
+                            if (change == null || !change.pressed) break
+                        }
+                    } else {
+                        var isLong = false
+                        val timeout = longPressDelayMs.coerceIn(240L, 600L)
                         try {
-                            withTimeout(actualTimeout) {
-                                val up = waitForUpOrCancellation()
-                                if (up != null) {
-                                    releasedBeforeTimeout = true
+                            withTimeout(timeout) {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.find { it.id == pointerId }
+                                    if (change == null || !change.pressed) break
                                 }
                             }
                         } catch (_: Exception) {
-                            // Long-press triggered
+                            isLong = true
                             isLongPressActive = true
                             triggerFeedback(30L)
                             onLongClick()
                         }
-                        if (releasedBeforeTimeout) {
+                        if (!isLong) {
                             onClick()
-                        } else {
-                            waitForUpOrCancellation()
                         }
-                    } else {
-                        val up = waitForUpOrCancellation()
-                        if (up != null) {
-                            onClick()
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.find { it.id == pointerId }
+                            if (change == null || !change.pressed) break
                         }
                     }
                     isTouching = false
@@ -1616,7 +1623,7 @@ fun KeyButton(
             )
         }
 
-        val baseFontSize = if (hintText != null) 19.5.sp else 21.5.sp
+        val baseFontSize = if (hintText != null) 18.sp else 19.5.sp
         Text(
             text = displayChar,
             color = customTextColor ?: Color(theme.keyTextColor),

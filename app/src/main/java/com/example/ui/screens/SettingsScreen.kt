@@ -666,6 +666,21 @@ fun SettingsScreen(
                     Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        updateSettings(
+                            settings.copy(
+                                keyButtonScale = 1.0f,
+                                backspaceKeyScale = 1.0f
+                            )
+                        )
+                        Toast.makeText(context, "تمت استعادة الحجم الافتراضي للأزرار (100%) ✓", Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text("إعادة ضبط الأحجام", color = Color(0xFF94A3B8))
+                }
+            },
             containerColor = Color(0xFF141A28)
         )
     }
@@ -1940,11 +1955,51 @@ fun SettingsScreen(
                         onValueChange = { updateSettings(settings.copy(keyFontSizeFactor = it)) },
                         valueRange = 0.8f..1.3f
                     )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = {
+                            updateSettings(
+                                settings.copy(
+                                    keyButtonScale = 1.0f,
+                                    backspaceKeyScale = 1.0f,
+                                    keyHeightFactor = 1.0f,
+                                    keyFontSizeFactor = 1.0f
+                                )
+                            )
+                            Toast.makeText(context, "تمت استعادة الحجم الافتراضي للكيبورد (100%) ✓", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF00E5FF).copy(alpha = 0.08f))
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("↺ استعادة الحجم الافتراضي للكيبورد", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text("تم وحفظ ✓", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        updateSettings(
+                            settings.copy(
+                                keyButtonScale = 1.0f,
+                                backspaceKeyScale = 1.0f,
+                                keyHeightFactor = 1.0f,
+                                keyFontSizeFactor = 1.0f
+                            )
+                        )
+                        Toast.makeText(context, "تمت استعادة الحجم الافتراضي ✓", Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text("إعادة ضبط", color = Color(0xFF94A3B8))
                 }
             },
             containerColor = Color(0xFF141A28)

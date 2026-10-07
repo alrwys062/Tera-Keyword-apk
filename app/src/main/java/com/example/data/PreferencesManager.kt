@@ -280,10 +280,13 @@ class PreferencesManager(context: Context) {
     @Volatile
     private var cachedClipboardItems: List<ClipboardItem>? = null
 
-    // Permanent Clipboard storage ("حفظ النصوص للأبد") with in-memory 0ms cache
-    fun getClipboardItems(): List<ClipboardItem> {
-        val cached = cachedClipboardItems
-        if (cached != null) return cached
+    // Permanent Clipboard storage ("حفظ النصوص للأبد") with reliable multi-process synchronization
+    @Synchronized
+    fun getClipboardItems(forceRefresh: Boolean = false): List<ClipboardItem> {
+        if (!forceRefresh) {
+            val cached = cachedClipboardItems
+            if (cached != null) return cached
+        }
 
         val json = prefs.getString("clipboard_history", null)
         if (json == null) {
@@ -321,6 +324,7 @@ class PreferencesManager(context: Context) {
         return list
     }
 
+    @Synchronized
     fun saveClipboardItems(items: List<ClipboardItem>) {
         cachedClipboardItems = items
         val arr = JSONArray()
@@ -333,38 +337,62 @@ class PreferencesManager(context: Context) {
             }
             arr.put(obj)
         }
-        prefs.edit().putString("clipboard_history", arr.toString()).apply()
+        prefs.edit().putString("clipboard_history", arr.toString()).commit()
     }
 
+    @Synchronized
     fun addClipboardItem(text: String, isPinned: Boolean = false) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
-        val current = getClipboardItems().toMutableList()
-        current.removeAll { it.text == trimmed }
-        current.add(0, ClipboardItem(text = trimmed, isPinned = isPinned))
-        // Stored forever without small limit - up to 10000 items
-        if (current.size > 10000) {
-            saveClipboardItems(current.take(10000))
+        val current = getClipboardItems(forceRefresh = true).toMutableList()
+        val existingIndex = current.indexOfFirst { it.text == trimmed }
+        val finalPinned = if (existingIndex >= 0) (current[existingIndex].isPinned || isPinned) else isPinned
+        if (existingIndex >= 0) {
+            current.removeAt(existingIndex)
+        }
+        current.add(0, ClipboardItem(text = trimmed, isPinned = finalPinned, timestamp = System.currentTimeMillis()))
+        // Stored forever without small limit - up to 50000 items
+        if (current.size > 50000) {
+            saveClipboardItems(current.take(50000))
         } else {
             saveClipboardItems(current)
         }
     }
 
+    @Synchronized
+    fun syncWithSystemClipboard(context: Context) {
+        try {
+            val clipManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
+            if (!clipManager.hasPrimaryClip()) return
+            val clip = clipManager.primaryClip ?: return
+            for (i in 0 until clip.itemCount) {
+                val item = clip.getItemAt(i)
+                val text = item?.text?.toString() ?: item?.coerceToText(context)?.toString()
+                if (!text.isNullOrBlank()) {
+                    addClipboardItem(text)
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    @Synchronized
     fun togglePinClipboard(id: String) {
-        val current = getClipboardItems().map {
+        val current = getClipboardItems(forceRefresh = true).map {
             if (it.id == id) it.copy(isPinned = !it.isPinned) else it
         }
         saveClipboardItems(current)
     }
 
+    @Synchronized
     fun deleteClipboardItem(id: String) {
-        val current = getClipboardItems().filterNot { it.id == id }
+        val current = getClipboardItems(forceRefresh = true).filterNot { it.id == id }
         saveClipboardItems(current)
     }
 
+    @Synchronized
     fun clearClipboardHistory() {
         // Keep pinned only
-        val current = getClipboardItems().filter { it.isPinned }
+        val current = getClipboardItems(forceRefresh = true).filter { it.isPinned }
         saveClipboardItems(current)
     }
 

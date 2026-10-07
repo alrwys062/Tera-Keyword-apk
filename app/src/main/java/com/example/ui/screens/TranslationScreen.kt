@@ -336,6 +336,9 @@ fun TranslationScreen(
                     IconButton(
                         onClick = {
                             clipboardManager.setText(AnnotatedString(translatedResult))
+                            try {
+                                com.example.data.PreferencesManager(context).addClipboardItem(translatedResult)
+                            } catch (_: Exception) {}
                             Toast.makeText(context, "تم نسخ الترجمة", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.size(32.dp)

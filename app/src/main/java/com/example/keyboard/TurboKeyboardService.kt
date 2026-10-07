@@ -47,16 +47,11 @@ class TurboKeyboardService : InputMethodService(),
             // Already restored or not required
         }
         try {
+            val prefs = PreferencesManager(this@TurboKeyboardService)
+            prefs.syncWithSystemClipboard(this@TurboKeyboardService)
             val clipManager = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
             clipManager?.addPrimaryClipChangedListener {
-                val clip = clipManager.primaryClip
-                if (clip != null && clip.itemCount > 0) {
-                    val text = clip.getItemAt(0)?.text?.toString()
-                    if (!text.isNullOrBlank()) {
-                        val prefs = PreferencesManager(this@TurboKeyboardService)
-                        prefs.addClipboardItem(text)
-                    }
-                }
+                prefs.syncWithSystemClipboard(this@TurboKeyboardService)
             }
         } catch (e: Exception) {
             // Ignore
@@ -137,6 +132,9 @@ class TurboKeyboardService : InputMethodService(),
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         activeInputConnectionState.value = currentInputConnection
+        try {
+            PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
+        } catch (_: Exception) {}
     }
 
     override fun onUpdateSelection(
@@ -159,6 +157,9 @@ class TurboKeyboardService : InputMethodService(),
         super.onStartInputView(info, restarting)
         setupWindowDecorOwners()
         activeInputConnectionState.value = currentInputConnection
+        try {
+            PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
+        } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
     }
 
@@ -166,6 +167,9 @@ class TurboKeyboardService : InputMethodService(),
         super.onWindowShown()
         setupWindowDecorOwners()
         activeInputConnectionState.value = currentInputConnection
+        try {
+            PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
+        } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
     }
 

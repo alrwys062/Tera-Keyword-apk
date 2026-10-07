@@ -36,9 +36,14 @@ fun ClipboardScreen(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    var items by remember { mutableStateOf(prefs.getClipboardItems()) }
+    var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
     var newClipText by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        prefs.syncWithSystemClipboard(context)
+        items = prefs.getClipboardItems(forceRefresh = true)
+    }
 
     val filteredItems = remember(items, searchQuery) {
         if (searchQuery.isBlank()) items

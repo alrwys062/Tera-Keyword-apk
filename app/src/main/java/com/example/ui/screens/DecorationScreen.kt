@@ -154,6 +154,9 @@ fun DecorationScreen(
                         .fillMaxWidth()
                         .clickable {
                             clipboardManager.setText(AnnotatedString(transformed))
+                            try {
+                                com.example.data.PreferencesManager(context).addClipboardItem(transformed)
+                            } catch (_: Exception) {}
                             Toast.makeText(context, "تم نسخ النص المزخرف!", Toast.LENGTH_SHORT).show()
                         }
                 ) {
@@ -182,6 +185,9 @@ fun DecorationScreen(
                         IconButton(
                             onClick = {
                                 clipboardManager.setText(AnnotatedString(transformed))
+                                try {
+                                    com.example.data.PreferencesManager(context).addClipboardItem(transformed)
+                                } catch (_: Exception) {}
                                 Toast.makeText(context, "تم نسخ النص المزخرف!", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier

@@ -388,8 +388,14 @@ fun ClipboardDrawer(
     onItemInserted: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    var items by remember { mutableStateOf(prefs.getClipboardItems()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        prefs.syncWithSystemClipboard(context)
+        items = prefs.getClipboardItems(forceRefresh = true)
+    }
 
     val filteredItems = remember(items, searchQuery) {
         if (searchQuery.isBlank()) items

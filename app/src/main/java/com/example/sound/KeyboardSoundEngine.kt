@@ -16,10 +16,10 @@ import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * High-performance, universal keyboard audio engine.
- * Guaranteed to produce clear, instant audio in:
- * 1. Google AI Studio browser emulator preview.
- * 2. Real devices including HONOR (MagicOS 8.0 / Android 14), Huawei EMUI, Samsung, Xiaomi, and Pixel.
+ * Universal High-Audibility Sound Engine for Turbo Keyboard.
+ * Specifically configured to play over USAGE_MEDIA (Media Audio Channel)
+ * so that clicks are loudly audible even when the phone is on Silent/Vibrate mode
+ * for system ringtones/notifications (e.g., Honor MagicOS 8.0 / Android 14).
  */
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
@@ -96,8 +96,10 @@ object KeyboardSoundEngine {
 
     private fun createSoundPool(): SoundPool {
         val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            // USAGE_MEDIA plays via the Media volume stream, guaranteeing sound even in silent/vibrate mode!
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
             .build()
 
         return SoundPool.Builder()
@@ -170,7 +172,7 @@ object KeyboardSoundEngine {
         isSpace: Boolean = false,
         isDelete: Boolean = false
     ) {
-        val safeVolume = volume.coerceIn(0.2f, 1.0f)
+        val safeVolume = volume.coerceIn(0.4f, 1.0f)
 
         val soundKey = when {
             isDelete -> "special_delete"
@@ -179,18 +181,13 @@ object KeyboardSoundEngine {
             else -> profile
         }
 
-        var playedInSoundPool = false
-
-        // 1. Play synthesized custom SoundPool audio (iOS 16 Tock, Mechanical, Water, etc.)
+        // 1. Play custom SoundPool audio via Media channel
         try {
             val sp = soundPool
             if (sp != null) {
                 val soundId = getOrLoadSoundId(soundKey)
                 if (soundId > 0) {
-                    val streamId = sp.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f)
-                    if (streamId != 0) {
-                        playedInSoundPool = true
-                    }
+                    sp.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f)
                 }
             }
         } catch (_: Throwable) {}

@@ -793,19 +793,19 @@ fun TurboKeyboardView(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 2.dp, vertical = 2.dp)
+                        .padding(horizontal = 1.5.dp, vertical = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        val calculatedKeyHeight = (47.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
+                        val calculatedKeyHeight = (52.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
 
                         // Optional Number Row
                         if (currentSettings.numberRowEnabled) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(2.5.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 val row = if (isArabic) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
                                 row.forEach { key ->
@@ -836,7 +836,7 @@ fun TurboKeyboardView(
                         // Row 1 (With number hints matching Screenshots 3 & 4)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.5.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             val row = when {
                                 isSymbolsMode && !isMoreSymbolsMode -> KeyLayouts.symbolsRow1
@@ -876,7 +876,7 @@ fun TurboKeyboardView(
                         // Row 2
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.5.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             val row = when {
                                 isSymbolsMode && !isMoreSymbolsMode -> KeyLayouts.symbolsRow2
@@ -913,7 +913,7 @@ fun TurboKeyboardView(
                         // Row 3
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val row = when {
@@ -1023,8 +1023,8 @@ fun TurboKeyboardView(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(49.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale),
-                            horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+                                .height(53.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // 1. ModeChange key 123!#() on FAR LEFT
@@ -1499,7 +1499,7 @@ fun KeyButton(
     isArabicLayout: Boolean = false,
     customTextColor: Color? = null,
     showKeyPopup: Boolean = true,
-    keyHeight: Dp = 48.dp,
+    keyHeight: Dp = 52.dp,
     keyFontSizeFactor: Float = 1.0f,
     keyButtonScale: Float = 1.0f,
     longPressDelayMs: Long = 340L,
@@ -1611,7 +1611,7 @@ fun KeyButton(
             Text(
                 text = hintText,
                 color = Color(theme.subtextColor).copy(alpha = 0.85f),
-                fontSize = 9.sp,
+                fontSize = 9.5.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -1619,12 +1619,12 @@ fun KeyButton(
             )
         }
 
-        val baseFontSize = if (hintText != null) 16.5.sp else 17.5.sp
+        val baseFontSize = if (hintText != null) 19.5.sp else 21.5.sp
         Text(
             text = displayChar,
             color = customTextColor ?: Color(theme.keyTextColor),
             fontSize = (baseFontSize.value * keyFontSizeFactor * keyButtonScale).sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
 
         // Magnificent Key Press Preview Bubble (iOS 16 style)
@@ -1698,7 +1698,7 @@ fun SpecialKeyButton(
     theme: KeyboardTheme,
     isActive: Boolean = false,
     customIconColor: Color? = null,
-    keyHeight: Dp = 48.dp,
+    keyHeight: Dp = 52.dp,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -1752,13 +1752,13 @@ fun SpecialKeyButton(
                 imageVector = icon,
                 contentDescription = null,
                 tint = customIconColor ?: if (isActive) Color(theme.accentColor) else Color(theme.keyTextColor),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
         } else if (text != null) {
             Text(
                 text = text,
                 color = if (isActive) Color(theme.accentColor) else Color(theme.keyTextColor),
-                fontSize = 13.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -1769,7 +1769,7 @@ fun SpecialKeyButton(
 fun BackspaceKeyButton(
     theme: KeyboardTheme,
     modifier: Modifier = Modifier,
-    keyHeight: Dp = 49.dp,
+    keyHeight: Dp = 52.dp,
     backspaceScale: Float = 1.35f,
     repeatSpeedMs: Long = 45L,
     onDelete: () -> Unit,
@@ -1829,12 +1829,15 @@ fun BackspaceKeyButton(
                         isPressed = true
                         tryAwaitRelease()
                         isPressed = false
+                    },
+                    onTap = {
+                        onDelete()
                     }
                 )
             },
         contentAlignment = Alignment.Center
     ) {
-        val iconSize = (17.dp * backspaceScale).coerceIn(14.dp, 24.dp)
+        val iconSize = (19.dp * backspaceScale).coerceIn(16.dp, 28.dp)
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
             contentDescription = "Backspace",

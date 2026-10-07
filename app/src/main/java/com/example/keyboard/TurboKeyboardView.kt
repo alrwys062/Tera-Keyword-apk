@@ -798,15 +798,15 @@ fun TurboKeyboardView(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.5.dp)
                     ) {
-                        val calculatedKeyHeight = (52.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
+                        val calculatedKeyHeight = (56.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
 
                         // Optional Number Row
                         if (currentSettings.numberRowEnabled) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                             ) {
                                 val row = if (isArabic) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
                                 row.forEach { key ->
@@ -837,7 +837,7 @@ fun TurboKeyboardView(
                         // Row 1 (With number hints matching Screenshots 3 & 4)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                         ) {
                             val row = when {
                                 isSymbolsMode && !isMoreSymbolsMode -> KeyLayouts.symbolsRow1
@@ -877,7 +877,7 @@ fun TurboKeyboardView(
                         // Row 2
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                         ) {
                             val row = when {
                                 isSymbolsMode && !isMoreSymbolsMode -> KeyLayouts.symbolsRow2
@@ -914,7 +914,7 @@ fun TurboKeyboardView(
                         // Row 3
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val row = when {
@@ -1023,9 +1023,9 @@ fun TurboKeyboardView(
 
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(53.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                 .fillMaxWidth()
+                                 .height(56.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale),
+                            horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // 1. ModeChange key 123!#() on FAR LEFT
@@ -1610,7 +1610,7 @@ fun KeyButton(
                 )
             }
 
-            val baseFontSize = if (hintText != null) 18.sp else 19.5.sp
+            val baseFontSize = if (hintText != null) 20.5.sp else 22.5.sp
             Text(
                 text = displayChar,
                 color = customTextColor ?: Color(theme.keyTextColor),

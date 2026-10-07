@@ -1539,13 +1539,13 @@ fun KeyButton(
 
     val animatedKeyColor by animateColorAsState(
         targetValue = targetKeyColor,
-        animationSpec = tween(durationMillis = if (isTouching) 20 else 90),
+        animationSpec = tween(durationMillis = 25),
         label = "key_color"
     )
 
     val pressScale by animateFloatAsState(
-        targetValue = if (isTouching) 0.95f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+        targetValue = if (isTouching) 0.96f else 1.0f,
+        animationSpec = tween(durationMillis = 25),
         label = "key_scale"
     )
 
@@ -1566,12 +1566,12 @@ fun KeyButton(
             )
             .pointerInput(displayChar, onLongClick, longPressDelayMs) {
                 awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
+                    val down = awaitFirstDown(requireUnconsumed = false)
                     isTouching = true
                     isLongPressActive = false
                     triggerFeedback(0L)
 
-                    val actualTimeout = longPressDelayMs.coerceIn(150L, 800L)
+                    val actualTimeout = longPressDelayMs.coerceIn(180L, 600L)
                     if (onLongClick != null) {
                         var releasedBeforeTimeout = false
                         try {
@@ -1584,24 +1584,21 @@ fun KeyButton(
                         } catch (_: Exception) {
                             // Long-press triggered
                             isLongPressActive = true
-                            isTouching = false
-                            triggerFeedback(35L)
+                            triggerFeedback(30L)
                             onLongClick()
                         }
                         if (releasedBeforeTimeout) {
-                            isTouching = false
                             onClick()
                         } else {
                             waitForUpOrCancellation()
-                            isTouching = false
                         }
                     } else {
                         val up = waitForUpOrCancellation()
-                        isTouching = false
                         if (up != null) {
                             onClick()
                         }
                     }
+                    isTouching = false
                 }
             },
         contentAlignment = Alignment.Center

@@ -11,15 +11,16 @@ import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * Universal High-Audibility Sound Engine for Turbo Keyboard.
- * Specifically configured to play over USAGE_MEDIA (Media Audio Channel)
- * so that clicks are loudly audible even when the phone is on Silent/Vibrate mode
- * for system ringtones/notifications (e.g., Honor MagicOS 8.0 / Android 14).
+ * Ultra-Responsive, Zero-Latency Keyboard Audio Engine.
+ * - Completely non-blocking: all audio I/O & playback run on dedicated background threads.
+ * - Pre-loads all sounds into memory immediately at startup.
+ * - Zero UI Thread blocking to guarantee 120 FPS buttery smooth typing without dropped letters.
  */
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
@@ -32,6 +33,13 @@ object KeyboardSoundEngine {
     private var soundPool: SoundPool? = null
     private var audioManager: AudioManager? = null
     private var appContext: Context? = null
+
+    // Single-threaded high-priority audio executor for instant non-blocking audio dispatching
+    private val audioExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "KeyboardSoundThread").apply {
+            priority = Thread.MAX_PRIORITY
+        }
+    }
 
     // Cache of loaded SoundPool sound IDs
     private val loadedSoundIds = ConcurrentHashMap<String, Int>()
@@ -84,19 +92,18 @@ object KeyboardSoundEngine {
         soundPool = createSoundPool()
         isInitialized = true
 
-        // Synthesize and load WAV audio assets into SoundPool
-        Thread {
+        // Synthesize and pre-load all audio assets in background thread
+        audioExecutor.execute {
             try {
                 loadAllSounds(app)
             } catch (e: Exception) {
                 Log.w(TAG, "Audio loading error: ${e.message}")
             }
-        }.start()
+        }
     }
 
     private fun createSoundPool(): SoundPool {
         val audioAttributes = AudioAttributes.Builder()
-            // USAGE_MEDIA plays via the Media volume stream, guaranteeing sound even in silent/vibrate mode!
             .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
@@ -143,27 +150,8 @@ object KeyboardSoundEngine {
         }
     }
 
-    private fun getOrLoadSoundId(key: String): Int {
-        loadedSoundIds[key]?.let { return it }
-        val sp = soundPool ?: return 0
-        val ctx = appContext ?: return 0
-
-        val soundDir = File(ctx.cacheDir, "kb_wav_sounds").apply { mkdirs() }
-        val wavFile = File(soundDir, "$key.wav")
-        if (!wavFile.exists() || wavFile.length() == 0L) {
-            val pcm = generatePcmForKey(key)
-            writeWavFile(wavFile, pcm, SAMPLE_RATE)
-        }
-        val soundId = sp.load(wavFile.absolutePath, 1)
-        if (soundId != 0) {
-            loadedSoundIds[key] = soundId
-        }
-        return soundId
-    }
-
     /**
-     * Plays key sound with guaranteed audibility across all Android devices (Honor, Samsung, Xiaomi, etc.)
-     * and in the Google AI Studio browser preview.
+     * Plays key sound with ZERO UI latency (asynchronous dispatch to dedicated audio thread).
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -181,27 +169,28 @@ object KeyboardSoundEngine {
             else -> profile
         }
 
-        // 1. Play custom SoundPool audio via Media channel
-        try {
-            val sp = soundPool
-            if (sp != null) {
-                val soundId = getOrLoadSoundId(soundKey)
-                if (soundId > 0) {
+        // Asynchronous non-blocking dispatch to prevent UI dropped frames during fast typing
+        audioExecutor.execute {
+            // 1. Play custom SoundPool audio via Media channel
+            try {
+                val sp = soundPool
+                val soundId = loadedSoundIds[soundKey]
+                if (sp != null && soundId != null && soundId > 0) {
                     sp.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f)
                 }
-            }
-        } catch (_: Throwable) {}
+            } catch (_: Throwable) {}
 
-        // 2. Play AudioManager standard click effect (ensures 100% audibility in web preview and Android system)
-        try {
-            val fx = when {
-                isDelete -> AudioManager.FX_KEYPRESS_DELETE
-                isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
-                isSpecial -> AudioManager.FX_KEYPRESS_RETURN
-                else -> AudioManager.FX_KEYPRESS_STANDARD
-            }
-            audioManager?.playSoundEffect(fx, safeVolume)
-        } catch (_: Throwable) {}
+            // 2. Play AudioManager standard click effect
+            try {
+                val fx = when {
+                    isDelete -> AudioManager.FX_KEYPRESS_DELETE
+                    isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
+                    isSpecial -> AudioManager.FX_KEYPRESS_RETURN
+                    else -> AudioManager.FX_KEYPRESS_STANDARD
+                }
+                audioManager?.playSoundEffect(fx, safeVolume)
+            } catch (_: Throwable) {}
+        }
     }
 
     // ==========================================

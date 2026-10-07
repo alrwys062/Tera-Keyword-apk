@@ -1518,6 +1518,16 @@ fun KeyButton(
     }
 
     var isTouching by remember { mutableStateOf(false) }
+    var isBubbleVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isTouching) {
+        if (isTouching) {
+            isBubbleVisible = true
+        } else {
+            delay(140) // Smooth, visible iOS-style preview bubble retention
+            isBubbleVisible = false
+        }
+    }
 
     fun triggerFeedback(durationMs: Long) {
         onPerformFeedback?.invoke(durationMs)
@@ -1539,79 +1549,90 @@ fun KeyButton(
         label = "key_scale"
     )
 
+    val hintText = numberHint ?: secondaryHint
+
+    // Outer Box: Does not clip children so the preview bubble floats above the row seamlessly
     Box(
         modifier = modifier
             .height(keyHeight)
-            .graphicsLayer {
-                scaleX = pressScale
-                scaleY = pressScale
-            }
-            .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(animatedKeyColor)
-            .border(
-                width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
-                color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
-                else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
-                shape = RoundedCornerShape(theme.cornerRadius.dp)
-            )
-            .pointerInput(displayChar, onLongClick, longPressDelayMs) {
-                detectTapGestures(
-                    onPress = {
-                        isTouching = true
-                        triggerFeedback(0L)
-                        try {
-                            tryAwaitRelease()
-                        } finally {
-                            isTouching = false
-                        }
-                    },
-                    onLongPress = if (onLongClick != null) {
-                        {
-                            triggerFeedback(30L)
-                            onLongClick()
-                        }
-                    } else null,
-                    onTap = {
-                        onClick()
-                    }
-                )
-            },
+            .zIndex(if (isBubbleVisible) 100f else 0f),
         contentAlignment = Alignment.Center
     ) {
-        val hintText = numberHint ?: secondaryHint
-        if (hintText != null) {
+        // 1. Key Button Body (clipped & styled)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = pressScale
+                    scaleY = pressScale
+                }
+                .clip(RoundedCornerShape(theme.cornerRadius.dp))
+                .background(animatedKeyColor)
+                .border(
+                    width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
+                    color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
+                    else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
+                    shape = RoundedCornerShape(theme.cornerRadius.dp)
+                )
+                .pointerInput(displayChar, onLongClick, longPressDelayMs) {
+                    detectTapGestures(
+                        onPress = {
+                            isTouching = true
+                            triggerFeedback(0L)
+                            try {
+                                tryAwaitRelease()
+                            } finally {
+                                isTouching = false
+                            }
+                        },
+                        onLongPress = if (onLongClick != null) {
+                            {
+                                triggerFeedback(30L)
+                                onLongClick()
+                            }
+                        } else null,
+                        onTap = {
+                            onClick()
+                        }
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (hintText != null) {
+                Text(
+                    text = hintText,
+                    color = Color(theme.subtextColor).copy(alpha = 0.85f),
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 1.dp, start = 3.dp)
+                )
+            }
+
+            val baseFontSize = if (hintText != null) 18.sp else 19.5.sp
             Text(
-                text = hintText,
-                color = Color(theme.subtextColor).copy(alpha = 0.85f),
-                fontSize = 9.5.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 1.dp, start = 3.dp)
+                text = displayChar,
+                color = customTextColor ?: Color(theme.keyTextColor),
+                fontSize = (baseFontSize.value * keyFontSizeFactor * keyButtonScale).sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        val baseFontSize = if (hintText != null) 18.sp else 19.5.sp
-        Text(
-            text = displayChar,
-            color = customTextColor ?: Color(theme.keyTextColor),
-            fontSize = (baseFontSize.value * keyFontSizeFactor * keyButtonScale).sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        // Magnificent In-Hierarchy Key Press Preview Bubble (Cannot get stuck!)
-        if (isTouching && showKeyPopup && displayChar.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .zIndex(100f)
-                    .offset(y = (-56).dp)
-            ) {
-                KeyPreviewBubble(
-                    char = displayChar,
-                    numberHint = hintText,
-                    theme = theme
-                )
-            }
+        // 2. Magnificent Floating Key Preview Bubble (iOS 16 style, smoothly visible)
+        AnimatedVisibility(
+            visible = isBubbleVisible && showKeyPopup && displayChar.isNotBlank(),
+            enter = fadeIn(animationSpec = tween(30)) + scaleIn(initialScale = 0.85f, animationSpec = tween(30)),
+            exit = fadeOut(animationSpec = tween(90)) + scaleOut(targetScale = 0.90f, animationSpec = tween(90)),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-58).dp)
+        ) {
+            KeyPreviewBubble(
+                char = displayChar,
+                numberHint = hintText,
+                theme = theme
+            )
         }
     }
 }

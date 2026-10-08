@@ -111,6 +111,7 @@ class TurboKeyboardService : InputMethodService(),
                     getCurrentInputConnection = { currentInputConnection },
                     editorInfo = currentEi ?: currentInputEditorInfo,
                     getCurrentEditorInfo = { currentInputEditorInfo },
+                    onServiceEnter = { performServiceEnter() },
                     onServiceDelete = { performServiceDelete() },
                     onVoiceRequested = {
                         // Voice view is activated directly in toolbar, or fallback to intent
@@ -242,6 +243,52 @@ class TurboKeyboardService : InputMethodService(),
     override fun onFinishInput() {
         super.onFinishInput()
         activeInputConnectionState.value = currentInputConnection
+    }
+
+    private fun performServiceEnter() {
+        val ic = currentInputConnection
+        val info = currentInputEditorInfo
+        try {
+            val imeOptions = info?.imeOptions ?: 0
+            val inputType = info?.inputType ?: 0
+            val action = imeOptions and EditorInfo.IME_MASK_ACTION
+            val noEnterAction = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
+            val isMultiLine = (inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+
+            if (ic != null) {
+                // If it's a multiline field and no explicit action or action is NONE/UNSPECIFIED, insert newline directly
+                if (isMultiLine && !noEnterAction && (action == EditorInfo.IME_ACTION_NONE || action == EditorInfo.IME_ACTION_UNSPECIFIED)) {
+                    val down = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
+                    val up = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+                    if (!down || !up) {
+                        ic.commitText("\n", 1)
+                    }
+                    return
+                }
+
+                // If an explicit action is defined (Send, Search, Go, Done, Next, etc.)
+                if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
+                    val performed = ic.performEditorAction(action)
+                    if (performed) return
+                }
+
+                // Try sending standard KEYCODE_ENTER via input connection
+                val down = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
+                val up = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+                if (down && up) return
+            }
+
+            // Fallback via InputMethodService.sendDownUpKeyEvents
+            sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_ENTER)
+        } catch (e: Exception) {
+            try {
+                sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_ENTER)
+            } catch (_: Exception) {
+                try {
+                    currentInputConnection?.commitText("\n", 1)
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun performServiceDelete() {

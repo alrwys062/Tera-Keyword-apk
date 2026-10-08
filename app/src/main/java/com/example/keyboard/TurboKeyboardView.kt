@@ -90,7 +90,7 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
         return ImeActionInfo(
             actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
             icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-            contentDescription = "Enter",
+            contentDescription = "سطر جديد",
             isNewline = true
         )
     }
@@ -100,7 +100,8 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
     val noEnterKey = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
     val isMultiLine = (editorInfo.inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
 
-    if (noEnterKey) {
+    // Explicit Action takes precedence unless isMultiLine is set AND action is unspecified/none
+    if (action != EditorInfo.IME_ACTION_UNSPECIFIED && action != EditorInfo.IME_ACTION_NONE) {
         return when (action) {
             EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(action, Icons.Default.Search, "بحث", false)
             EditorInfo.IME_ACTION_SEND -> ImeActionInfo(action, Icons.AutoMirrored.Filled.Send, "إرسال", false)
@@ -112,7 +113,21 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
         }
     }
 
-    if (isMultiLine && (action == EditorInfo.IME_ACTION_UNSPECIFIED || action == EditorInfo.IME_ACTION_NONE)) {
+    // Single-line fields with actionId in actionId field
+    if (editorInfo.actionId != 0 && editorInfo.actionId != EditorInfo.IME_ACTION_UNSPECIFIED && editorInfo.actionId != EditorInfo.IME_ACTION_NONE) {
+        return when (editorInfo.actionId) {
+            EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(editorInfo.actionId, Icons.Default.Search, "بحث", false)
+            EditorInfo.IME_ACTION_SEND -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.Send, "إرسال", false)
+            EditorInfo.IME_ACTION_GO -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.ArrowForward, "انتقال", false)
+            EditorInfo.IME_ACTION_DONE -> ImeActionInfo(editorInfo.actionId, Icons.Default.Check, "تم", false)
+            EditorInfo.IME_ACTION_NEXT -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
+            EditorInfo.IME_ACTION_PREVIOUS -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
+            else -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.KeyboardReturn, "إدخال", false)
+        }
+    }
+
+    // Multiline fields without explicit action
+    if (isMultiLine && !noEnterKey) {
         return ImeActionInfo(
             actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
             icon = Icons.AutoMirrored.Filled.KeyboardReturn,
@@ -121,21 +136,13 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
         )
     }
 
-    return when (action) {
-        EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(action, Icons.Default.Search, "بحث", false)
-        EditorInfo.IME_ACTION_SEND -> ImeActionInfo(action, Icons.AutoMirrored.Filled.Send, "إرسال", false)
-        EditorInfo.IME_ACTION_GO -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "انتقال", false)
-        EditorInfo.IME_ACTION_DONE -> ImeActionInfo(action, Icons.Default.Check, "تم", false)
-        EditorInfo.IME_ACTION_NEXT -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
-        EditorInfo.IME_ACTION_PREVIOUS -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
-        else -> {
-            if (isMultiLine) {
-                ImeActionInfo(action, Icons.AutoMirrored.Filled.KeyboardReturn, "سطر جديد", true)
-            } else {
-                ImeActionInfo(action, Icons.AutoMirrored.Filled.KeyboardReturn, "إدخال", false)
-            }
-        }
-    }
+    // Default return
+    return ImeActionInfo(
+        actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
+        icon = Icons.AutoMirrored.Filled.KeyboardReturn,
+        contentDescription = if (isMultiLine) "سطر جديد" else "إدخال",
+        isNewline = isMultiLine
+    )
 }
 
 private fun isLightColor(colorLong: Long): Boolean {
@@ -154,6 +161,7 @@ fun TurboKeyboardView(
     getCurrentInputConnection: (() -> InputConnection?)? = null,
     editorInfo: EditorInfo? = null,
     getCurrentEditorInfo: (() -> EditorInfo?)? = null,
+    onServiceEnter: (() -> Unit)? = null,
     onServiceDelete: (() -> Unit)? = null,
     onDirectInsertText: ((String) -> Unit)? = null,
     onDirectDeleteLastChar: (() -> Unit)? = null,
@@ -359,41 +367,59 @@ fun TurboKeyboardView(
 
     fun sendEnter() {
         performFeedback(isSpecial = true)
-        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-        val info = getCurrentEditorInfo?.invoke() ?: editorInfo
-        val actionInfo = resolveImeAction(info)
-
-        if (ic != null) {
-            try {
-                if (!actionInfo.isNewline && actionInfo.actionId != EditorInfo.IME_ACTION_UNSPECIFIED && actionInfo.actionId != EditorInfo.IME_ACTION_NONE) {
-                    val handled = ic.performEditorAction(actionInfo.actionId)
-                    if (!handled) {
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                    }
-                } else {
-                    val action = (info?.imeOptions ?: 0) and EditorInfo.IME_MASK_ACTION
-                    var handled = false
-                    if (action != EditorInfo.IME_ACTION_UNSPECIFIED && action != EditorInfo.IME_ACTION_NONE) {
-                        handled = ic.performEditorAction(action)
-                    }
-                    if (!handled) {
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                    }
-                }
-            } catch (e: Exception) {
-                try {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                } catch (_: Exception) {
-                    try {
-                        ic.commitText("\n", 1)
-                    } catch (_: Exception) {}
-                }
-            }
+        if (onServiceEnter != null) {
+            onServiceEnter.invoke()
         } else {
-            onDirectInsertText?.invoke("\n")
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            val info = getCurrentEditorInfo?.invoke() ?: editorInfo
+            val actionInfo = resolveImeAction(info)
+
+            if (ic != null) {
+                try {
+                    val imeOptions = info?.imeOptions ?: 0
+                    val inputType = info?.inputType ?: 0
+                    val isMultiLine = (inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+                    val action = actionInfo.actionId
+
+                    if (actionInfo.isNewline || (isMultiLine && (action == EditorInfo.IME_ACTION_NONE || action == EditorInfo.IME_ACTION_UNSPECIFIED))) {
+                        val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                        val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                        if (!down || !up) {
+                            ic.commitText("\n", 1)
+                        }
+                    } else if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
+                        val handled = ic.performEditorAction(action)
+                        if (!handled) {
+                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                        }
+                    } else {
+                        val fallbackAction = imeOptions and EditorInfo.IME_MASK_ACTION
+                        var handled = false
+                        if (fallbackAction != EditorInfo.IME_ACTION_NONE && fallbackAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
+                            handled = ic.performEditorAction(fallbackAction)
+                        }
+                        if (!handled) {
+                            val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                            val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                            if (!down || !up) {
+                                ic.commitText("\n", 1)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    try {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                    } catch (_: Exception) {
+                        try {
+                            ic.commitText("\n", 1)
+                        } catch (_: Exception) {}
+                    }
+                }
+            } else {
+                onDirectInsertText?.invoke("\n")
+            }
         }
         currentComposingText = ""
         // Crucial fix: Automatically return to letters keyboard on Send / Enter

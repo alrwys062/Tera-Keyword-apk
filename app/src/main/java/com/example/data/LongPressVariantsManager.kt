@@ -104,8 +104,9 @@ object LongPressVariantsManager {
 
     // Number hint mapping for Row 1
     val arabicRow1Hints = mapOf(
-        "ض" to "١", "ص" to "٢", "ث" to "٣", "ق" to "٤", "ف" to "٥",
-        "غ" to "٦", "ع" to "٧", "ه" to "٨", "خ" to "٩", "ح" to "٠"
+        "ض" to "1", "ص" to "2", "ق" to "3", "ف" to "4", "غ" to "5",
+        "ع" to "6", "ه" to "7", "خ" to "8", "ح" to "9", "ج" to "0",
+        "ث" to "3", "د" to "0"
     )
 
     val englishRow1Hints = mapOf(

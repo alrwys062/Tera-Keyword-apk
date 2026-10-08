@@ -42,6 +42,8 @@ fun KeyboardToolbar(
     isTranslationActive: Boolean,
     isNightMode: Boolean = true,
     visibleTools: List<String> = emptyList(),
+    isForceEnglishNumbers: Boolean = true,
+    onToggleForceEnglishNumbers: (() -> Unit)? = null,
     onSubViewSelected: (KeyboardSubView) -> Unit,
     onToggleDecorationBar: () -> Unit,
     onToggleTranslationBar: () -> Unit,
@@ -103,6 +105,19 @@ fun KeyboardToolbar(
                 theme = theme,
                 onClick = {
                     onSubViewSelected(if (isClipboardActive) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD)
+                }
+            )
+        }
+
+        // 2.1 تثبيت الأرقام الإنجليزية (English Numbers 123)
+        if ("english_numbers" in toolsToShow) {
+            ToolbarFixedItem(
+                icon = Icons.Outlined.Pin,
+                label = if (isForceEnglishNumbers) "أرقام 123 ✓" else "أرقام ١٢٣",
+                isActive = isForceEnglishNumbers,
+                theme = theme,
+                onClick = {
+                    onToggleForceEnglishNumbers?.invoke()
                 }
             )
         }

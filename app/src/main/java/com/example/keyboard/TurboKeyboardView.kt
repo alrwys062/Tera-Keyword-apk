@@ -339,14 +339,8 @@ fun TurboKeyboardView(
                     if (!selected.isNullOrEmpty()) {
                         ic.commitText("", 1)
                     } else {
-                        val before = ic.getTextBeforeCursor(1, 0)
-                        if (!before.isNullOrEmpty()) {
-                            val deleted = ic.deleteSurroundingText(1, 0)
-                            if (!deleted) {
-                                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
-                                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
-                            }
-                        } else {
+                        val deleted = ic.deleteSurroundingText(1, 0)
+                        if (!deleted) {
                             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
                         }
@@ -521,6 +515,13 @@ fun TurboKeyboardView(
             isTranslationActive = isTranslationBarOpen,
             isNightMode = true,
             visibleTools = currentSettings.visibleToolbarTools,
+            isForceEnglishNumbers = currentSettings.forceEnglishNumbers,
+            onToggleForceEnglishNumbers = {
+                val updated = currentSettings.copy(forceEnglishNumbers = !currentSettings.forceEnglishNumbers)
+                currentSettings = updated
+                prefs.saveSettings(updated)
+                performFeedback(isSpecial = true)
+            },
             onSubViewSelected = { sub ->
                 if (activeSubView == sub) {
                     activeSubView = KeyboardSubView.NONE
@@ -870,8 +871,25 @@ fun TurboKeyboardView(
 
         // Main Keyboard Keys Section
         if (activeSubView == KeyboardSubView.NONE) {
-            val (worldR1, worldR2, worldR3) = remember(currentWorldLang, isShifted, settings.keyboardLayoutStyle) {
-                KeyLayouts.getRowsForLanguage(currentWorldLang, isShifted, isArabic, settings.keyboardLayoutStyle)
+            val (worldR1, worldR2, worldR3) = remember(
+                currentWorldLang,
+                isShifted,
+                currentSettings.keyboardLayoutStyle,
+                currentSettings.arabicColumnsCount,
+                currentSettings.customArabicRow1,
+                currentSettings.customArabicRow2,
+                currentSettings.customArabicRow3
+            ) {
+                KeyLayouts.getRowsForLanguage(
+                    lang = currentWorldLang,
+                    isShifted = isShifted,
+                    isArabic = isArabic,
+                    layoutStyle = currentSettings.keyboardLayoutStyle,
+                    columnsCount = currentSettings.arabicColumnsCount,
+                    customRow1 = currentSettings.customArabicRow1,
+                    customRow2 = currentSettings.customArabicRow2,
+                    customRow3 = currentSettings.customArabicRow3
+                )
             }
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -892,7 +910,7 @@ fun TurboKeyboardView(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(2.5.dp)
                             ) {
-                                val row = if (isArabic) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
+                                val row = if (isArabic && !currentSettings.forceEnglishNumbers) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
                                 row.forEach { key ->
                                     val digitChar = (key.type as KeyType.Character).primary
                                     KeyButton(
@@ -1200,45 +1218,59 @@ fun TurboKeyboardView(
                                 )
                             }
 
-                            // 3. Emoji shortcut button 😊 directly on bottom row
-                            var isEmojiPressed by remember { mutableStateOf(false) }
-                            val emojiBg by animateColorAsState(
-                                targetValue = if (isEmojiPressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isEmojiPressed) 20 else 90),
-                                label = "emoji_bg"
+                            // 3. Emoji shortcut button or Clipboard button (Swappable!)
+                            val isLeftSlotClipboard = currentSettings.swapClipboardAndEmoji
+                            var isSlot3Pressed by remember { mutableStateOf(false) }
+                            val slot3Bg by animateColorAsState(
+                                targetValue = if (isSlot3Pressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isSlot3Pressed) 20 else 90),
+                                label = "slot3_bg"
                             )
-                            val emojiScale by animateFloatAsState(
-                                targetValue = if (isEmojiPressed) 0.95f else 1.0f,
+                            val slot3Scale by animateFloatAsState(
+                                targetValue = if (isSlot3Pressed) 0.95f else 1.0f,
                                 animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "emoji_scale"
+                                label = "slot3_scale"
                             )
                             Box(
                                 modifier = Modifier
                                     .weight(0.95f)
                                     .fillMaxHeight()
-                                    .graphicsLayer { scaleX = emojiScale; scaleY = emojiScale }
+                                    .graphicsLayer { scaleX = slot3Scale; scaleY = slot3Scale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(emojiBg)
+                                    .background(slot3Bg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(Unit) {
+                                    .pointerInput(isLeftSlotClipboard) {
                                         detectTapGestures(
                                             onPress = {
-                                                isEmojiPressed = true
+                                                isSlot3Pressed = true
                                                 performFeedback(isSpecial = true)
                                                 tryAwaitRelease()
-                                                isEmojiPressed = false
+                                                isSlot3Pressed = false
                                             },
                                             onTap = {
-                                                activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
+                                                if (isLeftSlotClipboard) {
+                                                    activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                                } else {
+                                                    activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
+                                                }
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "😊",
-                                    fontSize = 18.sp
-                                )
+                                if (isLeftSlotClipboard) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentPaste,
+                                        contentDescription = "Clipboard",
+                                        tint = Color(activeTheme.accentColor),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = "😊",
+                                        fontSize = 18.sp
+                                    )
+                                }
                             }
 
                             // 4. Spacebar in the center with active world language name and gesture cursor control
@@ -1357,47 +1389,58 @@ fun TurboKeyboardView(
                                 Text(".", color = Color(activeTheme.keyTextColor), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
 
-                            // 6. Clipboard shortcut button 📋
-                            var isClipPressed by remember { mutableStateOf(false) }
-                            val clipBg by animateColorAsState(
-                                targetValue = if (isClipPressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isClipPressed) 20 else 90),
-                                label = "clip_bg"
+                            // 6. Right slot button (Emoji or Clipboard - Swappable!)
+                            var isSlot6Pressed by remember { mutableStateOf(false) }
+                            val slot6Bg by animateColorAsState(
+                                targetValue = if (isSlot6Pressed) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isSlot6Pressed) 20 else 90),
+                                label = "slot6_bg"
                             )
-                            val clipScale by animateFloatAsState(
-                                targetValue = if (isClipPressed) 0.95f else 1.0f,
+                            val slot6Scale by animateFloatAsState(
+                                targetValue = if (isSlot6Pressed) 0.95f else 1.0f,
                                 animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "clip_scale"
+                                label = "slot6_scale"
                             )
                             Box(
                                 modifier = Modifier
                                     .weight(0.85f)
                                     .fillMaxHeight()
-                                    .graphicsLayer { scaleX = clipScale; scaleY = clipScale }
+                                    .graphicsLayer { scaleX = slot6Scale; scaleY = slot6Scale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(clipBg)
+                                    .background(slot6Bg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(Unit) {
+                                    .pointerInput(isLeftSlotClipboard) {
                                         detectTapGestures(
                                             onPress = {
-                                                isClipPressed = true
+                                                isSlot6Pressed = true
                                                 performFeedback(isSpecial = true)
                                                 tryAwaitRelease()
-                                                isClipPressed = false
+                                                isSlot6Pressed = false
                                             },
                                             onTap = {
-                                                activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                                if (isLeftSlotClipboard) {
+                                                    activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
+                                                } else {
+                                                    activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                                }
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.ContentPaste,
-                                    contentDescription = "Clipboard",
-                                    tint = Color(activeTheme.accentColor),
-                                    modifier = Modifier.size(19.dp)
-                                )
+                                if (isLeftSlotClipboard) {
+                                    Text(
+                                        text = "😊",
+                                        fontSize = 18.sp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentPaste,
+                                        contentDescription = "Clipboard",
+                                        tint = Color(activeTheme.accentColor),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                }
                             }
 
                             // 7. Enter key on the FAR RIGHT with 4-sec translate!

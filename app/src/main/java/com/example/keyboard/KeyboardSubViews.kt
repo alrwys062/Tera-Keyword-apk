@@ -2022,6 +2022,22 @@ fun QuickSettingsView(
                 )
             }
 
+            // 4.1 تثبيت الأرقام الإنجليزية 123
+            item {
+                QuickSettingToggleRow(
+                    title = "تثبيت الأرقام الإنجليزية (123)",
+                    subtitle = "كتابة 123 دائماً بدلاً من الأرقام الهندية (١٢٣)",
+                    icon = Icons.Outlined.Pin,
+                    checked = settings.forceEnglishNumbers,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(forceEnglishNumbers = it)) }
+                )
+            }
+
             // 5. شريط الاقتراحات والإكمال الذكي
             item {
                 QuickSettingToggleRow(
@@ -2509,6 +2525,7 @@ val allKeyboardToolbarTools = listOf(
     ToolbarToolDefinition("stickers", "ملصقات وستيكرات", Icons.Outlined.AutoAwesomeMosaic, "تصميم وإرسال الملصقات العربية الجاهزة والمصممة"),
     ToolbarToolDefinition("translate", "ترجمة فورية", Icons.Default.Translate, "ترجمة فورية للنصوص بجميع لغات العالم"),
     ToolbarToolDefinition("clipboard", "حافظة النصوص", Icons.Outlined.ContentPaste, "حفظ النصوص المنسوخة والرجوع لها للأبد"),
+    ToolbarToolDefinition("english_numbers", "أرقام إنجليزية 123", Icons.Outlined.Pin, "تثبيت الأرقام الإنجليزية (123) حتى مع اللغة العربية"),
     ToolbarToolDefinition("decoration", "زخرفة النصوص", Icons.Outlined.AutoAwesome, "زخرفة الكلمات والخطوط والعبارات الحية"),
     ToolbarToolDefinition("phrases", "كليشات وعبارات", Icons.Outlined.FavoriteBorder, "عبارات ترحيب وإسلامية ونصوص جاهزة"),
     ToolbarToolDefinition("calculator", "آلة حاسبة", Icons.Outlined.Calculate, "حاسبة رياضية فورية وكتابة النتيجة"),

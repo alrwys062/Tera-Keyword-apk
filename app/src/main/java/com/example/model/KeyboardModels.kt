@@ -72,15 +72,21 @@ data class KeyboardSettings(
     val showDualHints: Boolean = true,
     val clipboardCloseOnPaste: Boolean = true,
     val clipboardSaveForever: Boolean = true,
+    val swapClipboardAndEmoji: Boolean = true, // تبديل مكان الحافظة ومكان الإيموجي في الصف السفلي
     val enterKeyOnLeft: Boolean = false,
     val isNightModeEnabled: Boolean = true, // مظهر ليلي دائم
     val activeDecorationStyle: String = "none",
-    val keyboardLayoutStyle: String = "samsung", // الافتراضي تخطيط سامسونج الأصلي
+    val keyboardLayoutStyle: String = "10_columns", // الافتراضي تخطيط الصورة (10 أعمدة)
+    val arabicColumnsCount: Int = 10, // 10 أعمدة (مثل الصورة)، 11 عمود، 12 عمود
+    val customArabicRow1: String = "", // ترتيب مخصص يدوي للصف الأول
+    val customArabicRow2: String = "", // ترتيب مخصص يدوي للصف الثاني
+    val customArabicRow3: String = "", // ترتيب مخصص يدوي للصف الثالث
+    val forceEnglishNumbers: Boolean = true, // تثبيت الأرقام الإنجليزية (123) حتى مع اللغة العربية
     val translationSource: String = "ar",
     val translationTarget: String = "en",
     val autoTranslateOnCopy: Boolean = false,
     val visibleToolbarTools: List<String> = listOf(
-        "stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings"
+        "stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings"
     )
 )
 

@@ -29,19 +29,55 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    // Complete Arabic Layout (11-12 columns) containing ALL Arabic characters directly!
-    // Row 1: 12 keys (ض ص ث ق ف غ ع ه خ ح ج د)
-    val arabicRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
+    // 1. 10 Columns Arabic Layout (Exact match for Screenshot IMG_20261008_162712_510.jpg / Gboard)
+    val arabic10ColRow1 = listOf("ض", "ص", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").map {
         KeyModel(KeyType.Character(it))
     }
-
-    // Row 2: 11 keys (ش س ي ب ل ا ت ن م ك ط)
-    val arabicRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+    val arabic10ColRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك").map {
         KeyModel(KeyType.Character(it))
     }
+    val arabic10ColRow3 = listOf(
+        KeyModel(KeyType.Character("ظ")),
+        KeyModel(KeyType.Character("ط")),
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("ث")),
+        KeyModel(KeyType.Backspace, weight = 1.35f)
+    )
 
-    // Row 3: 11 characters + Backspace
-    val arabicRow3 = listOf(
+    // 2. 11 Columns Arabic Layout (Standard Transboard / SwiftKey)
+    val arabic11ColRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val arabic11ColRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val arabic11ColRow3 = listOf(
+        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("ء")),
+        KeyModel(KeyType.Character("ؤ")),
+        KeyModel(KeyType.Character("ر")),
+        KeyModel(KeyType.Character("ى")),
+        KeyModel(KeyType.Character("ة")),
+        KeyModel(KeyType.Character("و")),
+        KeyModel(KeyType.Character("ز")),
+        KeyModel(KeyType.Character("ظ")),
+        KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Backspace, weight = 1.35f)
+    )
+
+    // 3. 12 Columns Arabic Layout (Extended Samsung Layout)
+    val arabic12ColRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val arabic12ColRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
+        KeyModel(KeyType.Character(it))
+    }
+    val arabic12ColRow3 = listOf(
         KeyModel(KeyType.Character("ذ")),
         KeyModel(KeyType.Character("ئ")),
         KeyModel(KeyType.Character("ء")),
@@ -57,70 +93,19 @@ object KeyLayouts {
     )
 
     // Samsung Arabic Layout
-    val samsungRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
-        KeyModel(KeyType.Character(it))
-    }
-    val samsungRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
-        KeyModel(KeyType.Character(it))
-    }
-    val samsungRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("لا")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
-        KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.45f)
-    )
+    val samsungRow1 = arabic12ColRow1
+    val samsungRow2 = arabic12ColRow2
+    val samsungRow3 = arabic12ColRow3
 
     // AOSP Arabic Layout
-    val aospRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
-        KeyModel(KeyType.Character(it))
-    }
-    val aospRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
-        KeyModel(KeyType.Character(it))
-    }
-    val aospRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("لا")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
-        KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.45f)
-    )
+    val aospRow1 = arabic11ColRow1
+    val aospRow2 = arabic11ColRow2
+    val aospRow3 = arabic11ColRow3
 
     // SwiftKey Arabic Layout
-    val swiftRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د").map {
-        KeyModel(KeyType.Character(it))
-    }
-    val swiftRow2 = listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط").map {
-        KeyModel(KeyType.Character(it))
-    }
-    val swiftRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
-        KeyModel(KeyType.Character("ئ")),
-        KeyModel(KeyType.Character("ء")),
-        KeyModel(KeyType.Character("ؤ")),
-        KeyModel(KeyType.Character("ر")),
-        KeyModel(KeyType.Character("لا")),
-        KeyModel(KeyType.Character("ى")),
-        KeyModel(KeyType.Character("ة")),
-        KeyModel(KeyType.Character("و")),
-        KeyModel(KeyType.Character("ز")),
-        KeyModel(KeyType.Character("ظ")),
-        KeyModel(KeyType.Backspace, weight = 1.45f)
-    )
+    val swiftRow1 = arabic11ColRow1
+    val swiftRow2 = arabic11ColRow2
+    val swiftRow3 = arabic11ColRow3
 
     // Long press popup characters for Arabic & English (تشكيل، همزات، أرقام ورموز)
     val charPopupMap = mapOf(
@@ -226,18 +211,59 @@ object KeyLayouts {
         KeyModel(KeyType.Backspace, weight = 1.3f)
     )
 
+    fun parseCustomRow(text: String): List<KeyModel> {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        val tokens = if (trimmed.contains(" ")) {
+            trimmed.split("\\s+".toRegex()).filter { it.isNotEmpty() }
+        } else {
+            trimmed.map { it.toString() }
+        }
+        return tokens.map { token ->
+            if (token == "⌫" || token.equals("backspace", ignoreCase = true)) {
+                KeyModel(KeyType.Backspace, weight = 1.35f)
+            } else {
+                KeyModel(KeyType.Character(token))
+            }
+        }
+    }
+
     fun getRowsForLanguage(
         lang: com.example.data.WorldLanguage,
         isShifted: Boolean = false,
         isArabic: Boolean = false,
-        layoutStyle: String = "samsung"
+        layoutStyle: String = "10_columns",
+        columnsCount: Int = 10,
+        customRow1: String = "",
+        customRow2: String = "",
+        customRow3: String = ""
     ): Triple<List<KeyModel>, List<KeyModel>, List<KeyModel>> {
         if (lang.code == "ar" || isArabic || lang.isRtl) {
-            return when (layoutStyle) {
-                "samsung" -> Triple(samsungRow1, samsungRow2, samsungRow3)
-                "aosp" -> Triple(aospRow1, aospRow2, aospRow3)
-                "swift" -> Triple(swiftRow1, swiftRow2, swiftRow3)
-                else -> Triple(arabicRow1, arabicRow2, arabicRow3)
+            // Check manual custom layout
+            if (layoutStyle == "custom" && (customRow1.isNotBlank() || customRow2.isNotBlank() || customRow3.isNotBlank())) {
+                val r1 = parseCustomRow(customRow1).ifEmpty { arabic10ColRow1 }
+                val r2 = parseCustomRow(customRow2).ifEmpty { arabic10ColRow2 }
+                val r3List = parseCustomRow(customRow3).toMutableList()
+                if (r3List.isEmpty()) {
+                    return Triple(r1, r2, arabic10ColRow3)
+                }
+                if (r3List.none { it.type is KeyType.Backspace }) {
+                    r3List.add(KeyModel(KeyType.Backspace, weight = 1.35f))
+                }
+                return Triple(r1, r2, r3List)
+            }
+
+            return when {
+                layoutStyle == "10_columns" || layoutStyle == "gboard" || columnsCount == 10 -> {
+                    Triple(arabic10ColRow1, arabic10ColRow2, arabic10ColRow3)
+                }
+                layoutStyle == "11_columns" || layoutStyle == "swift" || layoutStyle == "aosp" || columnsCount == 11 -> {
+                    Triple(arabic11ColRow1, arabic11ColRow2, arabic11ColRow3)
+                }
+                layoutStyle == "12_columns" || layoutStyle == "samsung" || columnsCount == 12 -> {
+                    Triple(arabic12ColRow1, arabic12ColRow2, arabic12ColRow3)
+                }
+                else -> Triple(arabic10ColRow1, arabic10ColRow2, arabic10ColRow3)
             }
         }
 

@@ -8,8 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -62,6 +64,16 @@ fun SettingsScreen(
 
     // Dialog & sheet states matching Transboard screenshots
     var activeDialog by remember { mutableStateOf<String?>(null) }
+
+    var customRow1Input by remember(settings) {
+        mutableStateOf(settings.customArabicRow1.ifBlank { "ض ص ق ف غ ع ه خ ح ج" })
+    }
+    var customRow2Input by remember(settings) {
+        mutableStateOf(settings.customArabicRow2.ifBlank { "ش س ي ب ل ا ت ن م ك" })
+    }
+    var customRow3Input by remember(settings) {
+        mutableStateOf(settings.customArabicRow3.ifBlank { "ظ ط ذ د ز ر و ة ث" })
+    }
 
     fun updateSettings(newSettings: KeyboardSettings) {
         settings = newSettings
@@ -179,11 +191,11 @@ fun SettingsScreen(
                 )
             }
 
-            // 5. تخطيط لوحة المفاتيح (سامسونج)
+            // 5. تخطيط لوحة المفاتيح والأعمدة
             item {
                 TransboardSettingsRow(
-                    title = "تخطيط لوحة المفاتيح (سامسونج)",
-                    subtitle = "ستايل سامسونج، تكبير وتصغير الأزرار، تكبير زر الحذف، وصف الأرقام والرموز",
+                    title = "تخطيط لوحة المفاتيح والأعمدة",
+                    subtitle = "10 أعمدة (مثل الصورة) أو 11 أو 12 عمود، تعديل ترتيب الأحرف يدوياً، وحجم الأحرف ومربعات الأزرار",
                     icon = Icons.Outlined.Keyboard,
                     onClick = { activeDialog = "LAYOUTS" }
                 )
@@ -562,24 +574,40 @@ fun SettingsScreen(
         )
     }
 
-    // 5. KEYBOARD LAYOUTS DIALOG (Samsung Keyboard Layout Complete Configuration)
+    // 5. KEYBOARD LAYOUTS DIALOG
     if (activeDialog == "LAYOUTS") {
-        val layouts = listOf(
-            "samsung" to "العربية / سامسونج الأصلي (افتراضي)",
-            "basic_ar" to "عربي اساسي (Transboard القياسي)",
-            "aosp" to "العربية / AOSP",
-            "swift" to "العربية / Swift",
-            "linux" to "Arabic / Linux"
+        val columnOptions = listOf(
+            Triple(10, "10_columns", "10 أعمدة (نفس الصورة / كيبورد Gboard)\nض ص ق ف غ ع ه خ ح ج"),
+            Triple(11, "11_columns", "11 عمود (القياسي / SwiftKey)\nض ص ث ق ف غ ع ه خ ح ج"),
+            Triple(12, "12_columns", "12 عمود (الممتد / سامسونج)\nض ص ث ق ف غ ع ه خ ح ج د"),
+            Triple(10, "custom", "✏️ ترتيب مخصص يدوي للأحرف")
         )
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("تخطيط لوحة المفاتيح سامسونج", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    "تخطيط لوحة المفاتيح والأعمدة",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("نمط ترتيب الأحرف:", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    layouts.forEach { (code, title) ->
-                        val isSelected = settings.keyboardLayoutStyle == code
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        "عدد الأعمدة وترتيب الأحرف العربي:",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    columnOptions.forEach { (cols, code, title) ->
+                        val isSelected = settings.keyboardLayoutStyle == code ||
+                                (settings.keyboardLayoutStyle !in listOf("10_columns", "11_columns", "12_columns", "custom") && settings.arabicColumnsCount == cols && code.startsWith("${cols}_"))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF1C2436),
@@ -588,7 +616,12 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .padding(vertical = 3.dp)
                                 .clickable {
-                                    updateSettings(settings.copy(keyboardLayoutStyle = code))
+                                    updateSettings(
+                                        settings.copy(
+                                            keyboardLayoutStyle = code,
+                                            arabicColumnsCount = cols
+                                        )
+                                    )
                                 }
                         ) {
                             Row(
@@ -596,31 +629,108 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(title, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 11.5.sp)
+                                Text(
+                                    title,
+                                    color = if (isSelected) Color(0xFF00E5FF) else Color.White,
+                                    fontSize = 11.5.sp,
+                                    lineHeight = 16.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 if (isSelected) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00E5FF),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Divider(color = Color(0xFF28364F), thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text("تكبير وتصغير أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    // Button to manually customize letters
+                    OutlinedButton(
+                        onClick = {
+                            activeDialog = "CUSTOM_LAYOUT"
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF00E5FF)
+                        ),
+                        border = BorderStroke(1.dp, Color(0xFF00E5FF))
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "تغيير وترتيب الأحرف يدوياً...",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = Color(0xFF28364F), thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 1. Key Font Size
+                    Text(
+                        "حجم خط الأحرف: ${(settings.keyFontSizeFactor * 100).toInt()}%",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Slider(
-                        value = settings.keyButtonScale,
-                        onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
-                        valueRange = 0.75f..1.6f
+                        value = settings.keyFontSizeFactor,
+                        onValueChange = { updateSettings(settings.copy(keyFontSizeFactor = it)) },
+                        valueRange = 0.75f..1.50f
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("حجم زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                    // 2. Key Button Box Scale
+                    Text(
+                        "حجم مربعات أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Slider(
+                        value = settings.keyButtonScale,
+                        onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
+                        valueRange = 0.75f..1.50f
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 3. Key Height Factor
+                    Text(
+                        "ارتفاع أزرار الكيبورد: ${(settings.keyHeightFactor * 100).toInt()}%",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Slider(
+                        value = settings.keyHeightFactor,
+                        onValueChange = { updateSettings(settings.copy(keyHeightFactor = it)) },
+                        valueRange = 0.75f..1.50f
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 4. Backspace Key Scale
+                    Text(
+                        "حجم زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Slider(
                         value = settings.backspaceKeyScale,
                         onValueChange = { updateSettings(settings.copy(backspaceKeyScale = it)) },
-                        valueRange = 0.75f..1.8f
+                        valueRange = 0.75f..1.80f
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -629,7 +739,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("صف الأرقام العلوي كسامسونج", color = Color.White, fontSize = 12.sp)
+                        Text("صف الأرقام العلوي", color = Color.White, fontSize = 12.sp)
                         Switch(
                             checked = settings.numberRowEnabled,
                             onCheckedChange = { updateSettings(settings.copy(numberRowEnabled = it)) }
@@ -641,7 +751,22 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("الرموز والأحرف البديلة كسامسونج", color = Color.White, fontSize = 12.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("تثبيت الأرقام الإنجليزية (123)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("كتابة 123 مع الأحرف العربية", color = Color(0xFF00E5FF), fontSize = 10.sp)
+                        }
+                        Switch(
+                            checked = settings.forceEnglishNumbers,
+                            onCheckedChange = { updateSettings(settings.copy(forceEnglishNumbers = it)) }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("الرموز والأحرف البديلة", color = Color.White, fontSize = 12.sp)
                         Switch(
                             checked = settings.showDualHints,
                             onCheckedChange = { updateSettings(settings.copy(showDualHints = it)) }
@@ -671,14 +796,165 @@ fun SettingsScreen(
                     onClick = {
                         updateSettings(
                             settings.copy(
+                                keyboardLayoutStyle = "10_columns",
+                                arabicColumnsCount = 10,
                                 keyButtonScale = 1.0f,
-                                backspaceKeyScale = 1.0f
+                                keyHeightFactor = 1.0f,
+                                keyFontSizeFactor = 1.0f,
+                                backspaceKeyScale = 1.15f
                             )
                         )
-                        Toast.makeText(context, "تمت استعادة الحجم الافتراضي للأزرار (100%) ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "تمت استعادة الإعدادات الافتراضية (10 أعمدة) ✓", Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text("إعادة ضبط الأحجام", color = Color(0xFF94A3B8))
+                }
+            },
+            containerColor = Color(0xFF141A28)
+        )
+    }
+
+    // 5.B MANUAL CUSTOM LAYOUT DIALOG
+    if (activeDialog == "CUSTOM_LAYOUT") {
+        AlertDialog(
+            onDismissRequest = { activeDialog = "LAYOUTS" },
+            title = {
+                Text(
+                    "تغيير وترتيب الأحرف يدوياً",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        "اكتب أو رتّب الحروف التي تريدها في كل صف من صفوف الكيبورد (افصل بينها بمسافة أو بدون مسافة):",
+                        color = Color(0xFF8E9BAE),
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text("الصف الأول (الأعلى):", color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = customRow1Input,
+                        onValueChange = { customRow1Input = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00E5FF),
+                            unfocusedBorderColor = Color(0xFF28364F),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("الصف الثاني (الأوسط):", color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = customRow2Input,
+                        onValueChange = { customRow2Input = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00E5FF),
+                            unfocusedBorderColor = Color(0xFF28364F),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("الصف الثالث (الأسفل قبل المسطرة):", color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = customRow3Input,
+                        onValueChange = { customRow3Input = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00E5FF),
+                            unfocusedBorderColor = Color(0xFF28364F),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text("قوالب سريعة:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                customRow1Input = "ض ص ق ف غ ع ه خ ح ج"
+                                customRow2Input = "ش س ي ب ل ا ت ن م ك"
+                                customRow3Input = "ظ ط ذ د ز ر و ة ث"
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                            border = BorderStroke(1.dp, Color(0xFF00E5FF))
+                        ) {
+                            Text("10 أعمدة (الصورة)", fontSize = 9.5.sp, color = Color(0xFF00E5FF))
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                customRow1Input = "ض ص ث ق ف غ ع ه خ ح ج"
+                                customRow2Input = "ش س ي ب ل ا ت ن م ك ط"
+                                customRow3Input = "ذ ء ؤ ر ى ة و ز ظ د"
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                            border = BorderStroke(1.dp, Color(0xFF28364F))
+                        ) {
+                            Text("11 عمود", fontSize = 9.5.sp, color = Color.White)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                customRow1Input = "ض ص ث ق ف غ ع ه خ ح ج د"
+                                customRow2Input = "ش س ي ب ل ا ت ن م ك ط"
+                                customRow3Input = "ذ ئ ء ؤ ر لا ى ة و ز ظ"
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                            border = BorderStroke(1.dp, Color(0xFF28364F))
+                        ) {
+                            Text("12 عمود", fontSize = 9.5.sp, color = Color.White)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        updateSettings(
+                            settings.copy(
+                                keyboardLayoutStyle = "custom",
+                                customArabicRow1 = customRow1Input.trim(),
+                                customArabicRow2 = customRow2Input.trim(),
+                                customArabicRow3 = customRow3Input.trim()
+                            )
+                        )
+                        activeDialog = "LAYOUTS"
+                        Toast.makeText(context, "تم حفظ الترتيب المخصص للأحرف بنجاح ✓", Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text("حفظ الترتيب", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { activeDialog = "LAYOUTS" }) {
+                    Text("إلغاء", color = Color(0xFF94A3B8))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -769,6 +1045,28 @@ fun SettingsScreen(
                             Text("عند فتح الحافظة تبقى عند نفس المكان الذي وصلت إليه", color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(20.dp))
+                    }
+
+                    Divider(color = Color(0xFF28364F), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 6.dp))
+
+                    // Feature 4: تبديل مكان الحافظة مكان الإيموجي في الصف السفلي
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("تبديل مكان الحافظة مكان الإيموجي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (settings.swapClipboardAndEmoji) "الحافظة على اليسار [📋] والإيموجي على اليمين [😊]" else "الإيموجي على اليسار [😊] والحافظة على اليمين [📋]",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 10.sp
+                            )
+                        }
+                        Switch(
+                            checked = settings.swapClipboardAndEmoji,
+                            onCheckedChange = { updateSettings(settings.copy(swapClipboardAndEmoji = it)) }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -902,10 +1200,50 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("تثبيت الأرقام الإنجليزية (123)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (settings.forceEnglishNumbers) "الأرقام تظهر وتُكتب إنجليزية (123) حتى مع العربي ✓" else "الأرقام هندية / مشرقية (١٢٣)",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 11.sp
+                            )
+                        }
+                        Switch(
+                            checked = settings.forceEnglishNumbers,
+                            onCheckedChange = { updateSettings(settings.copy(forceEnglishNumbers = it)) }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text("إظهار صف الإيموجي العلوي السريع", color = Color.White, fontSize = 13.sp)
                         Switch(
                             checked = settings.topQuickEmojiRowEnabled,
                             onCheckedChange = { updateSettings(settings.copy(topQuickEmojiRowEnabled = it)) }
+                        )
+                    }
+
+                    Divider(color = Color(0xFF28364F), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 6.dp))
+
+                    // تبديل مكان الحافظة ومكان الإيموجي في الصف السفلي
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("تبديل مكان الحافظة مكان الإيموجي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (settings.swapClipboardAndEmoji) "الحافظة على اليسار [📋] والإيموجي على اليمين [😊]" else "الإيموجي على اليسار [😊] والحافظة على اليمين [📋]",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 11.sp
+                            )
+                        }
+                        Switch(
+                            checked = settings.swapClipboardAndEmoji,
+                            onCheckedChange = { updateSettings(settings.copy(swapClipboardAndEmoji = it)) }
                         )
                     }
 

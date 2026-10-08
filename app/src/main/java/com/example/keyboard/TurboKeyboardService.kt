@@ -17,6 +17,9 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.data.PreferencesManager
+import com.example.model.KeyboardSettings
+import com.example.model.KeyboardTheme
+import com.example.model.ThemePresets
 
 class TurboKeyboardService : InputMethodService(),
     LifecycleOwner,
@@ -38,6 +41,8 @@ class TurboKeyboardService : InputMethodService(),
 
     private val activeInputConnectionState = mutableStateOf<InputConnection?>(null)
     private val activeEditorInfoState = mutableStateOf<EditorInfo?>(null)
+    private val keyboardSettingsState = mutableStateOf(KeyboardSettings())
+    private val keyboardThemeState = mutableStateOf(com.example.model.ThemePresets.CYBER_PRO)
     private var composeView: ComposeView? = null
 
     override fun onCreate() {
@@ -95,13 +100,13 @@ class TurboKeyboardService : InputMethodService(),
             setContent {
                 val currentIc by activeInputConnectionState
                 val currentEi by activeEditorInfoState
+                val currentSettings by keyboardSettingsState
+                val currentTheme by keyboardThemeState
                 val prefs = remember { PreferencesManager(this@TurboKeyboardService) }
-                val theme = prefs.getActiveTheme()
-                val settings = prefs.getSettings()
 
                 TurboKeyboardView(
-                    theme = theme,
-                    settings = settings,
+                    theme = currentTheme,
+                    settings = currentSettings,
                     inputConnection = currentIc ?: currentInputConnection,
                     getCurrentInputConnection = { currentInputConnection },
                     editorInfo = currentEi ?: currentInputEditorInfo,
@@ -128,7 +133,8 @@ class TurboKeyboardService : InputMethodService(),
     }
 
     override fun onEvaluateInputViewShown(): Boolean {
-        return super.onEvaluateInputViewShown()
+        // Always show the input view without requiring users to tap multiple times
+        return true
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
@@ -136,8 +142,11 @@ class TurboKeyboardService : InputMethodService(),
         activeInputConnectionState.value = currentInputConnection
         activeEditorInfoState.value = attribute ?: currentInputEditorInfo
         try {
+            val prefs = PreferencesManager(this@TurboKeyboardService)
+            keyboardSettingsState.value = prefs.getSettings()
+            keyboardThemeState.value = prefs.getActiveTheme()
             com.example.sound.KeyboardSoundEngine.initialize(this@TurboKeyboardService)
-            PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
+            prefs.syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
     }
 
@@ -164,7 +173,10 @@ class TurboKeyboardService : InputMethodService(),
         activeInputConnectionState.value = currentInputConnection
         activeEditorInfoState.value = info ?: currentInputEditorInfo
         try {
-            PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
+            val prefs = PreferencesManager(this@TurboKeyboardService)
+            keyboardSettingsState.value = prefs.getSettings()
+            keyboardThemeState.value = prefs.getActiveTheme()
+            prefs.syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
     }
@@ -174,7 +186,10 @@ class TurboKeyboardService : InputMethodService(),
         setupWindowDecorOwners()
         activeInputConnectionState.value = currentInputConnection
         try {
-            PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
+            val prefs = PreferencesManager(this@TurboKeyboardService)
+            keyboardSettingsState.value = prefs.getSettings()
+            keyboardThemeState.value = prefs.getActiveTheme()
+            prefs.syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
     }
@@ -238,11 +253,13 @@ class TurboKeyboardService : InputMethodService(),
                     ic.commitText("", 1)
                     return
                 }
-                val before = ic.getTextBeforeCursor(1, 0)
-                if (!before.isNullOrEmpty()) {
-                    val deleted = ic.deleteSurroundingText(1, 0)
-                    if (deleted) return
-                }
+                // Try deleteSurroundingText(1, 0)
+                val deleted = ic.deleteSurroundingText(1, 0)
+                if (deleted) return
+                // If not deleted, send DEL key event via InputConnection
+                val down = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DEL))
+                val up = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_DEL))
+                if (down && up) return
             }
             sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_DEL)
         } catch (e: Exception) {

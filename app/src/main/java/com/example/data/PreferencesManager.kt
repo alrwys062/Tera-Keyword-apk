@@ -46,11 +46,17 @@ class PreferencesManager(context: Context) {
             showDualHints = prefs.getBoolean("showDualHints", true),
             clipboardCloseOnPaste = prefs.getBoolean("clipboardCloseOnPaste", true),
             clipboardSaveForever = prefs.getBoolean("clipboardSaveForever", true),
+            swapClipboardAndEmoji = prefs.getBoolean("swapClipboardAndEmoji", true),
             enterKeyOnLeft = prefs.getBoolean("enterKeyOnLeft", false),
             isNightModeEnabled = prefs.getBoolean("isNightModeEnabled", true),
             autoReturnAfterEmojiInsert = prefs.getBoolean("autoReturnAfterEmojiInsert", false),
             activeDecorationStyle = prefs.getString("activeDecorationStyle", "none") ?: "none",
-            keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "samsung") ?: "samsung",
+            keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "10_columns") ?: "10_columns",
+            arabicColumnsCount = prefs.getInt("arabicColumnsCount", 10),
+            customArabicRow1 = prefs.getString("customArabicRow1", "") ?: "",
+            customArabicRow2 = prefs.getString("customArabicRow2", "") ?: "",
+            customArabicRow3 = prefs.getString("customArabicRow3", "") ?: "",
+            forceEnglishNumbers = prefs.getBoolean("forceEnglishNumbers", true),
             translationSource = prefs.getString("translationSource", "ar") ?: "ar",
             translationTarget = prefs.getString("translationTarget", "en") ?: "en",
             autoTranslateOnCopy = prefs.getBoolean("autoTranslateOnCopy", false),
@@ -61,7 +67,7 @@ class PreferencesManager(context: Context) {
     fun getVisibleToolbarTools(): List<String> {
         val raw = prefs.getString("visibleToolbarTools", null)
         return if (raw.isNullOrBlank()) {
-            listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
+            listOf("stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
         } else {
             raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         }
@@ -105,10 +111,16 @@ class PreferencesManager(context: Context) {
             .putBoolean("showDualHints", settings.showDualHints)
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
             .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
+            .putBoolean("swapClipboardAndEmoji", settings.swapClipboardAndEmoji)
             .putBoolean("enterKeyOnLeft", settings.enterKeyOnLeft)
             .putBoolean("isNightModeEnabled", settings.isNightModeEnabled)
             .putString("activeDecorationStyle", settings.activeDecorationStyle)
             .putString("keyboardLayoutStyle", settings.keyboardLayoutStyle)
+            .putInt("arabicColumnsCount", settings.arabicColumnsCount)
+            .putString("customArabicRow1", settings.customArabicRow1)
+            .putString("customArabicRow2", settings.customArabicRow2)
+            .putString("customArabicRow3", settings.customArabicRow3)
+            .putBoolean("forceEnglishNumbers", settings.forceEnglishNumbers)
             .putString("translationSource", settings.translationSource)
             .putString("translationTarget", settings.translationTarget)
             .putBoolean("autoTranslateOnCopy", settings.autoTranslateOnCopy)

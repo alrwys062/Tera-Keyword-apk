@@ -37,6 +37,7 @@ class TurboKeyboardService : InputMethodService(),
         get() = savedStateRegistryController.savedStateRegistry
 
     private val activeInputConnectionState = mutableStateOf<InputConnection?>(null)
+    private val activeEditorInfoState = mutableStateOf<EditorInfo?>(null)
     private var composeView: ComposeView? = null
 
     override fun onCreate() {
@@ -93,6 +94,7 @@ class TurboKeyboardService : InputMethodService(),
 
             setContent {
                 val currentIc by activeInputConnectionState
+                val currentEi by activeEditorInfoState
                 val prefs = remember { PreferencesManager(this@TurboKeyboardService) }
                 val theme = prefs.getActiveTheme()
                 val settings = prefs.getSettings()
@@ -102,6 +104,8 @@ class TurboKeyboardService : InputMethodService(),
                     settings = settings,
                     inputConnection = currentIc ?: currentInputConnection,
                     getCurrentInputConnection = { currentInputConnection },
+                    editorInfo = currentEi ?: currentInputEditorInfo,
+                    getCurrentEditorInfo = { currentInputEditorInfo },
                     onServiceDelete = { performServiceDelete() },
                     onVoiceRequested = {
                         // Voice view is activated directly in toolbar, or fallback to intent
@@ -124,14 +128,13 @@ class TurboKeyboardService : InputMethodService(),
     }
 
     override fun onEvaluateInputViewShown(): Boolean {
-        super.onEvaluateInputViewShown()
-        // Always allow the input view to be displayed when requested
-        return true
+        return super.onEvaluateInputViewShown()
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         activeInputConnectionState.value = currentInputConnection
+        activeEditorInfoState.value = attribute ?: currentInputEditorInfo
         try {
             com.example.sound.KeyboardSoundEngine.initialize(this@TurboKeyboardService)
             PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
@@ -148,6 +151,7 @@ class TurboKeyboardService : InputMethodService(),
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         activeInputConnectionState.value = currentInputConnection
+        activeEditorInfoState.value = currentInputEditorInfo
         // Auto return to letters when text is cleared/sent in apps like WhatsApp or Telegram
         if (newSelStart == 0 && newSelEnd == 0 && (oldSelStart > 0 || oldSelEnd > 0)) {
             resetToLettersSignal.value = System.currentTimeMillis()
@@ -158,6 +162,7 @@ class TurboKeyboardService : InputMethodService(),
         super.onStartInputView(info, restarting)
         setupWindowDecorOwners()
         activeInputConnectionState.value = currentInputConnection
+        activeEditorInfoState.value = info ?: currentInputEditorInfo
         try {
             PreferencesManager(this@TurboKeyboardService).syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}

@@ -28,8 +28,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Mood
@@ -42,6 +44,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -75,6 +78,66 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
+data class ImeActionInfo(
+    val actionId: Int,
+    val icon: ImageVector,
+    val contentDescription: String,
+    val isNewline: Boolean
+)
+
+fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
+    if (editorInfo == null) {
+        return ImeActionInfo(
+            actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
+            icon = Icons.AutoMirrored.Filled.KeyboardReturn,
+            contentDescription = "Enter",
+            isNewline = true
+        )
+    }
+
+    val imeOptions = editorInfo.imeOptions
+    val action = imeOptions and EditorInfo.IME_MASK_ACTION
+    val noEnterKey = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
+    val isMultiLine = (editorInfo.inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+
+    if (noEnterKey) {
+        return when (action) {
+            EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(action, Icons.Default.Search, "بحث", false)
+            EditorInfo.IME_ACTION_SEND -> ImeActionInfo(action, Icons.AutoMirrored.Filled.Send, "إرسال", false)
+            EditorInfo.IME_ACTION_GO -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "انتقال", false)
+            EditorInfo.IME_ACTION_DONE -> ImeActionInfo(action, Icons.Default.Check, "تم", false)
+            EditorInfo.IME_ACTION_NEXT -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
+            EditorInfo.IME_ACTION_PREVIOUS -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
+            else -> ImeActionInfo(action, Icons.AutoMirrored.Filled.KeyboardReturn, "إدخال", false)
+        }
+    }
+
+    if (isMultiLine && (action == EditorInfo.IME_ACTION_UNSPECIFIED || action == EditorInfo.IME_ACTION_NONE)) {
+        return ImeActionInfo(
+            actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
+            icon = Icons.AutoMirrored.Filled.KeyboardReturn,
+            contentDescription = "سطر جديد",
+            isNewline = true
+        )
+    }
+
+    return when (action) {
+        EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(action, Icons.Default.Search, "بحث", false)
+        EditorInfo.IME_ACTION_SEND -> ImeActionInfo(action, Icons.AutoMirrored.Filled.Send, "إرسال", false)
+        EditorInfo.IME_ACTION_GO -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "انتقال", false)
+        EditorInfo.IME_ACTION_DONE -> ImeActionInfo(action, Icons.Default.Check, "تم", false)
+        EditorInfo.IME_ACTION_NEXT -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
+        EditorInfo.IME_ACTION_PREVIOUS -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
+        else -> {
+            if (isMultiLine) {
+                ImeActionInfo(action, Icons.AutoMirrored.Filled.KeyboardReturn, "سطر جديد", true)
+            } else {
+                ImeActionInfo(action, Icons.AutoMirrored.Filled.KeyboardReturn, "إدخال", false)
+            }
+        }
+    }
+}
+
 private fun isLightColor(colorLong: Long): Boolean {
     val r = ((colorLong shr 16) and 0xFF) / 255.0
     val g = ((colorLong shr 8) and 0xFF) / 255.0
@@ -89,6 +152,8 @@ fun TurboKeyboardView(
     settings: KeyboardSettings = KeyboardSettings(),
     inputConnection: InputConnection? = null,
     getCurrentInputConnection: (() -> InputConnection?)? = null,
+    editorInfo: EditorInfo? = null,
+    getCurrentEditorInfo: (() -> EditorInfo?)? = null,
     onServiceDelete: (() -> Unit)? = null,
     onDirectInsertText: ((String) -> Unit)? = null,
     onDirectDeleteLastChar: (() -> Unit)? = null,
@@ -116,6 +181,16 @@ fun TurboKeyboardView(
     var isSymbolsMode by remember { mutableStateOf(false) }
     var isMoreSymbolsMode by remember { mutableStateOf(false) }
     var activeSubView by remember { mutableStateOf(KeyboardSubView.NONE) }
+
+    val currentImeAction = remember(editorInfo, getCurrentEditorInfo) {
+        resolveImeAction(getCurrentEditorInfo?.invoke() ?: editorInfo)
+    }
+
+    LaunchedEffect(isArabic) {
+        if (isArabic) {
+            isShifted = false
+        }
+    }
 
     // Live Transboard features
     var activeDecorationStyle by remember { mutableStateOf(prefs.getActiveDecorationStyle()) }
@@ -291,18 +366,27 @@ fun TurboKeyboardView(
     fun sendEnter() {
         performFeedback(isSpecial = true)
         val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+        val info = getCurrentEditorInfo?.invoke() ?: editorInfo
+        val actionInfo = resolveImeAction(info)
+
         if (ic != null) {
             try {
-                // First try performEditorAction with common IME actions for chat/messaging apps
-                var handled = false
-                try {
-                    handled = ic.performEditorAction(EditorInfo.IME_ACTION_SEND) ||
-                              ic.performEditorAction(EditorInfo.IME_ACTION_GO) ||
-                              ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
-                } catch (_: Exception) {}
-                if (!handled) {
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                if (!actionInfo.isNewline && actionInfo.actionId != EditorInfo.IME_ACTION_UNSPECIFIED && actionInfo.actionId != EditorInfo.IME_ACTION_NONE) {
+                    val handled = ic.performEditorAction(actionInfo.actionId)
+                    if (!handled) {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                    }
+                } else {
+                    val action = (info?.imeOptions ?: 0) and EditorInfo.IME_MASK_ACTION
+                    var handled = false
+                    if (action != EditorInfo.IME_ACTION_UNSPECIFIED && action != EditorInfo.IME_ACTION_NONE) {
+                        handled = ic.performEditorAction(action)
+                    }
+                    if (!handled) {
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                    }
                 }
             } catch (e: Exception) {
                 try {
@@ -1360,22 +1444,25 @@ fun TurboKeyboardView(
                                                         enterHoldProgress = 0f
                                                     }
                                                 }
-                                                val released = tryAwaitRelease()
-                                                enterJob?.cancel()
-                                                isEnterHolding = false
-                                                enterHoldProgress = 0f
-                                                isEnterPressed = false
-                                                if (released) {
-                                                    sendEnter()
+                                                try {
+                                                    tryAwaitRelease()
+                                                } finally {
+                                                    enterJob?.cancel()
+                                                    isEnterHolding = false
+                                                    enterHoldProgress = 0f
+                                                    isEnterPressed = false
                                                 }
+                                            },
+                                            onTap = {
+                                                sendEnter()
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-                                    contentDescription = "Enter",
+                                    imageVector = currentImeAction.icon,
+                                    contentDescription = currentImeAction.contentDescription,
                                     tint = ThemePresets.getEnterIconTint(activeTheme),
                                     modifier = Modifier.size(22.dp)
                                 )
@@ -1549,7 +1636,7 @@ fun KeyButton(
         label = "key_scale"
     )
 
-    val hintText = numberHint ?: secondaryHint
+    val hintText = numberHint
 
     // Outer Box: Does not clip children so the preview bubble floats above the row seamlessly
     Box(
@@ -1602,7 +1689,7 @@ fun KeyButton(
                 Text(
                     text = hintText,
                     color = Color(theme.subtextColor).copy(alpha = 0.85f),
-                    fontSize = 9.5.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -1610,7 +1697,7 @@ fun KeyButton(
                 )
             }
 
-            val baseFontSize = if (hintText != null) 20.5.sp else 22.5.sp
+            val baseFontSize = if (hintText != null) 21.5.sp else 24.sp
             Text(
                 text = displayChar,
                 color = customTextColor ?: Color(theme.keyTextColor),

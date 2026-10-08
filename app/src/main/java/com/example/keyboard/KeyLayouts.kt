@@ -232,10 +232,7 @@ object KeyLayouts {
         isArabic: Boolean = false,
         layoutStyle: String = "samsung"
     ): Triple<List<KeyModel>, List<KeyModel>, List<KeyModel>> {
-        if (lang.code == "ar" || isArabic) {
-            if (isShifted) {
-                return Triple(arabicTashkeelRow1, arabicTashkeelRow2, samsungRow3)
-            }
+        if (lang.code == "ar" || isArabic || lang.isRtl) {
             return when (layoutStyle) {
                 "samsung" -> Triple(samsungRow1, samsungRow2, samsungRow3)
                 "aosp" -> Triple(aospRow1, aospRow2, aospRow3)

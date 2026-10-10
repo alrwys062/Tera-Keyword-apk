@@ -33,9 +33,6 @@ object KeyboardSoundEngine {
         }
     }
 
-    // Cache of static AudioTracks by profile/key
-    private val loadedAudioTracks = ConcurrentHashMap<String, AudioTrack>()
-
     const val PROFILE_IOS_16 = "ios_16"
     const val PROFILE_MECHANICAL = "mechanical"
     const val PROFILE_MODERN_SOFT = "modern_soft"
@@ -64,6 +61,15 @@ object KeyboardSoundEngine {
         val nameEn: String
     )
 
+    private const val TRACK_POOL_SIZE = 3
+
+    // Thread-safe cache of pre-synthesized PCM waveform samples (in-memory, zero file IO)
+    private val cachedPcm = ConcurrentHashMap<String, ShortArray>()
+
+    // Pool of streaming AudioTracks for instant multi-voice polyphony (no clipping, zero latency)
+    private val streamTracks = arrayOfNulls<AudioTrack>(TRACK_POOL_SIZE)
+    private var roundRobinIndex = 0
+
     @Synchronized
     fun initialize(context: Context) {
         val app = context.applicationContext
@@ -74,56 +80,85 @@ object KeyboardSoundEngine {
                 audioManager = app.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             } catch (_: Throwable) {}
         }
-    }
 
-    private fun getOptimalSampleRate(context: Context): Int {
-        return try {
-            val am = audioManager ?: (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
-            val rateStr = am?.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
-            rateStr?.toIntOrNull() ?: SAMPLE_RATE
-        } catch (_: Throwable) {
-            SAMPLE_RATE
+        // Pre-warm PCM and audio stream tracks in background
+        audioExecutor.execute {
+            try {
+                // Pre-generate standard sounds
+                getPcmForSoundKey(PROFILE_IOS_16)
+                getPcmForSoundKey(PROFILE_MECHANICAL)
+                getPcmForSoundKey("special_space")
+                getPcmForSoundKey("special_delete")
+
+                // Pre-initialize stream tracks
+                for (i in 0 until TRACK_POOL_SIZE) {
+                    getStreamTrack(i)
+                }
+            } catch (_: Throwable) {}
         }
     }
 
-    private fun getAudioTrackForProfile(key: String, context: Context): AudioTrack? {
-        loadedAudioTracks[key]?.let { return it }
-
-        return try {
-            val sampleRate = getOptimalSampleRate(context)
-            val pcm = generatePcmForKey(key)
-
-            val audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
-
-            val audioFormat = AudioFormat.Builder()
-                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                .setSampleRate(sampleRate)
-                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                .build()
-
-            val bufferSizeInBytes = pcm.size * 2
-
-            val track = AudioTrack.Builder()
-                .setAudioAttributes(audioAttributes)
-                .setAudioFormat(audioFormat)
-                .setBufferSizeInBytes(bufferSizeInBytes)
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .build()
-
-            track.write(pcm, 0, pcm.size)
-            loadedAudioTracks[key] = track
-            track
-        } catch (e: Exception) {
-            null
+    private fun getStreamTrack(index: Int): AudioTrack? {
+        val safeIndex = Math.floorMod(index, TRACK_POOL_SIZE)
+        val existing = streamTracks[safeIndex]
+        if (existing != null && existing.state == AudioTrack.STATE_INITIALIZED) {
+            return existing
         }
+
+        synchronized(streamTracks) {
+            val checkAgain = streamTracks[safeIndex]
+            if (checkAgain != null && checkAgain.state == AudioTrack.STATE_INITIALIZED) {
+                return checkAgain
+            }
+
+            return try {
+                try {
+                    existing?.release()
+                } catch (_: Throwable) {}
+
+                val minBuf = AudioTrack.getMinBufferSize(
+                    SAMPLE_RATE,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT
+                )
+                val bufferSize = maxOf(minBuf * 2, 4096)
+
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+
+                val audioFormat = AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(SAMPLE_RATE)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+
+                val track = AudioTrack.Builder()
+                    .setAudioAttributes(audioAttributes)
+                    .setAudioFormat(audioFormat)
+                    .setBufferSizeInBytes(bufferSize)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build()
+
+                track.play()
+                streamTracks[safeIndex] = track
+                track
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to create stream AudioTrack", e)
+                null
+            }
+        }
+    }
+
+    private fun getPcmForSoundKey(key: String): ShortArray {
+        return cachedPcm.computeIfAbsent(key) { generatePcmForKey(it) }
     }
 
     /**
      * Plays key sound with ZERO UI latency (asynchronous dispatch to dedicated audio thread).
-     * Pure in-memory AudioTrack: requires zero MediaCodec/CCodec hardware instances, eliminating system resource errors.
+     * Pure in-memory AudioTrack stream: requires zero MediaCodec/CCodec hardware instances,
+     * routes through STREAM_MUSIC (USAGE_MEDIA) to guarantee loud, clear sound even when system touch sound is off.
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -132,7 +167,7 @@ object KeyboardSoundEngine {
         isSpace: Boolean = false,
         isDelete: Boolean = false
     ) {
-        val safeVolume = volume.coerceIn(0.4f, 1.0f)
+        val safeVolume = volume.coerceIn(0.1f, 1.0f)
 
         val soundKey = when {
             isDelete -> "special_delete"
@@ -143,31 +178,42 @@ object KeyboardSoundEngine {
 
         // Asynchronous non-blocking dispatch to prevent UI dropped frames during fast typing
         audioExecutor.execute {
-            val ctx = appContext
-            if (ctx != null && profile != PROFILE_SYSTEM_DEFAULT) {
-                try {
-                    val track = getAudioTrackForProfile(soundKey, ctx)
-                    if (track != null) {
+            val pcm = getPcmForSoundKey(soundKey)
+            val scaledPcm = if (safeVolume >= 0.98f) {
+                pcm
+            } else {
+                val scaled = ShortArray(pcm.size)
+                for (i in pcm.indices) {
+                    scaled[i] = (pcm[i] * safeVolume).toInt().coerceIn(-32767, 32767).toShort()
+                }
+                scaled
+            }
+
+            try {
+                val idx = roundRobinIndex++
+                val track = getStreamTrack(idx)
+                if (track != null) {
+                    if (track.playState != AudioTrack.PLAYSTATE_PLAYING) {
                         try {
-                            track.setVolume(safeVolume)
-                            track.stop()
-                            track.playbackHeadPosition = 0
                             track.play()
                         } catch (_: Throwable) {}
                     }
+                    track.write(scaledPcm, 0, scaledPcm.size, AudioTrack.WRITE_NON_BLOCKING)
+                }
+            } catch (_: Throwable) {}
+
+            // Native system click effect when requested or as complementary tactile sound
+            if (profile == PROFILE_SYSTEM_DEFAULT) {
+                try {
+                    val fx = when {
+                        isDelete -> AudioManager.FX_KEYPRESS_DELETE
+                        isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
+                        isSpecial -> AudioManager.FX_KEYPRESS_RETURN
+                        else -> AudioManager.FX_KEYPRESS_STANDARD
+                    }
+                    audioManager?.playSoundEffect(fx, safeVolume)
                 } catch (_: Throwable) {}
             }
-
-            // Standard system fallback click effect
-            try {
-                val fx = when {
-                    isDelete -> AudioManager.FX_KEYPRESS_DELETE
-                    isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
-                    isSpecial -> AudioManager.FX_KEYPRESS_RETURN
-                    else -> AudioManager.FX_KEYPRESS_STANDARD
-                }
-                audioManager?.playSoundEffect(fx, safeVolume)
-            } catch (_: Throwable) {}
         }
     }
 

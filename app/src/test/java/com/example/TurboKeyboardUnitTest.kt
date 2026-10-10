@@ -57,9 +57,9 @@ class TurboKeyboardUnitTest {
 
     @Test
     fun testKeyLayouts() {
-        assertTrue("Arabic row 1 has letters", KeyLayouts.arabicRow1.isNotEmpty())
-        assertTrue("Arabic row 2 has letters", KeyLayouts.arabicRow2.isNotEmpty())
-        assertTrue("Arabic row 3 has letters", KeyLayouts.arabicRow3.isNotEmpty())
+        assertTrue("Arabic row 1 has letters", KeyLayouts.arabic10ColRow1.isNotEmpty())
+        assertTrue("Arabic row 2 has letters", KeyLayouts.arabic10ColRow2.isNotEmpty())
+        assertTrue("Arabic row 3 has letters", KeyLayouts.arabic10ColRow3.isNotEmpty())
         assertTrue("English row 1 has letters", KeyLayouts.englishRow1.isNotEmpty())
     }
 

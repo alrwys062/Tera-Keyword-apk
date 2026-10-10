@@ -1,5 +1,8 @@
 package com.example.keyboard
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
@@ -10,9 +13,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -391,6 +396,8 @@ fun ClipboardDrawer(
     val context = androidx.compose.ui.platform.LocalContext.current
     var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedClipForMenu by remember { mutableStateOf<ClipboardItem?>(null) }
+    var showClearConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         prefs.syncWithSystemClipboard(context)
@@ -418,160 +425,377 @@ fun ClipboardDrawer(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(260.dp)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
-        // Top Toolbar of Clipboard:
-        // [⚙️ Settings] [🗑️ Clear] [📋 Paste] [✂️ Cut] [❌ Close]
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
-                .padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .padding(horizontal = 6.dp, vertical = 4.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Settings
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
-                        .clickable { /* Settings handled in main */ },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                }
-
-                // Delete all non-pinned
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFEF4444).copy(alpha = 0.15f))
-                        .clickable {
-                            prefs.clearClipboardHistory()
-                            items = prefs.getClipboardItems()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.Delete, contentDescription = "Clear History", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
-                }
-
-                // Copy all / current
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(theme.accentColor).copy(alpha = 0.15f))
-                        .clickable {
-                            if (items.isNotEmpty()) {
-                                onItemInserted(items[0].text)
-                                onClose() // Auto-close upon paste
+            // Top Toolbar of Clipboard:
+            // [⚙️ Settings] [🗑️ Clear] [📋 Paste] [✂️ Cut] [❌ Close]
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (showClearConfirmation) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "مسح جميع النصوص غير المثبتة؟",
+                            color = Color(theme.keyTextColor),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFEF4444),
+                                modifier = Modifier.clickable {
+                                    prefs.clearClipboardHistory()
+                                    items = prefs.getClipboardItems(forceRefresh = true)
+                                    showClearConfirmation = false
+                                }
+                            ) {
+                                Text(
+                                    text = "نعم، مسح",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.ContentPaste, contentDescription = "Paste Recent", tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
-                }
-
-                // Cut icon
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
-                        .clickable {
-                            if (items.isNotEmpty()) {
-                                val first = items[0]
-                                onItemInserted(first.text)
-                                prefs.deleteClipboardItem(first.id)
-                                items = prefs.getClipboardItems()
-                                onClose() // Auto-close
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(theme.keyPressedColor),
+                                modifier = Modifier.clickable { showClearConfirmation = false }
+                            ) {
+                                Text(
+                                    text = "إلغاء",
+                                    color = Color(theme.keyTextColor),
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.ContentCut, contentDescription = "Cut/Pop", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                        }
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Settings
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
+                                .clickable { /* Settings handled in main */ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                        }
+
+                        // Delete all non-pinned with protection against accidental erase
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                                .clickable {
+                                    showClearConfirmation = true
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Clear History", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                        }
+
+                        // Copy all / current
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(theme.accentColor).copy(alpha = 0.15f))
+                                .clickable {
+                                    if (items.isNotEmpty()) {
+                                        onItemInserted(items[0].text)
+                                        onClose()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.ContentPaste, contentDescription = "Paste Recent", tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
+                        }
+
+                        // Cut icon
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
+                                .clickable {
+                                    if (items.isNotEmpty()) {
+                                        val first = items[0]
+                                        onItemInserted(first.text)
+                                        prefs.deleteClipboardItem(first.id)
+                                        items = prefs.getClipboardItems(forceRefresh = true)
+                                        onClose()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.ContentCut, contentDescription = "Cut/Pop", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                        }
+                    }
+
+                    // Close Button ❌
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                            .clickable(onClick = onClose),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
 
-            // Close Button ❌
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            if (filteredItems.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "الحافظة فارغة (يتم حفظ كل ما تنسخه تلقائياً للأبد)",
+                        color = Color(theme.subtextColor),
+                        fontSize = 12.sp
+                    )
+                }
+            } else {
+                // 2-Column Grid with single-tap to paste and long-press for floating menu
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    state = gridState,
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(filteredItems, key = { it.id }) { clip ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(theme.keyBackgroundColor),
+                            border = BorderStroke(
+                                1.dp,
+                                if (clip.isPinned) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(68.dp)
+                                .pointerInput(clip.id) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            selectedClipForMenu = clip
+                                        },
+                                        onTap = {
+                                            // Single tap pastes directly: "وعند الضغطه الواحده يكتبه"
+                                            onItemInserted(clip.text)
+                                            onClose()
+                                        }
+                                    )
+                                }
+                        ) {
+                            Box(modifier = Modifier.padding(6.dp)) {
+                                Text(
+                                    text = clip.text,
+                                    color = Color(theme.keyTextColor),
+                                    fontSize = 11.sp,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                    lineHeight = 15.sp,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+
+                                // Pin icon indicator
+                                if (clip.isPinned) {
+                                    Icon(
+                                        imageVector = Icons.Default.PushPin,
+                                        contentDescription = "Pinned",
+                                        tint = Color(theme.accentColor),
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .align(Alignment.BottomEnd)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        if (filteredItems.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "الحافظة فارغة (يتم حفظ كل ما تنسخه تلقائياً للأبد)",
-                    color = Color(theme.subtextColor),
-                    fontSize = 12.sp
-                )
-            }
-        } else {
-            // 2-Column Grid matching Screenshot 21!
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                state = gridState,
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+        // Floating Context Menu on Long-Press (نافذة عائمة عند الضغط المطول)
+        // Options: حذف | تثبيت | نسخ | لصق
+        if (selectedClipForMenu != null) {
+            val clip = selectedClipForMenu!!
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f))
+                    .clickable { selectedClipForMenu = null },
+                contentAlignment = Alignment.Center
             ) {
-                items(filteredItems, key = { it.id }) { clip ->
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(theme.keyBackgroundColor),
-                        border = BorderStroke(
-                            1.dp,
-                            if (clip.isPinned) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(68.dp)
-                            .clickable {
-                                // 1. Paste text
-                                onItemInserted(clip.text)
-                                // 2. CLOSE CLIPBOARD IMMEDIATELY ("واغلاق الحافظة عند اللصق")
-                                onClose()
-                            }
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(theme.backgroundColor),
+                    border = BorderStroke(1.2.dp, Color(theme.accentColor)),
+                    modifier = Modifier
+                        .fillMaxWidth(0.92f)
+                        .clickable(enabled = false) {}
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Box(modifier = Modifier.padding(6.dp)) {
-                            Text(
-                                text = clip.text,
-                                color = Color(theme.keyTextColor),
-                                fontSize = 11.sp,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis,
-                                lineHeight = 15.sp,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                        Text(
+                            text = clip.text,
+                            color = Color(theme.keyTextColor),
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                        )
 
-                            // Pin icon indicator
-                            if (clip.isPinned) {
+                        HorizontalDivider(
+                            color = Color(theme.borderColor).copy(alpha = 0.4f),
+                            thickness = 0.8.dp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // 4 Interactive Options: حذف | تثبيت | نسخ | لصق
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 1. حذف (Delete this specific item)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        prefs.deleteClipboardItem(clip.id)
+                                        items = prefs.getClipboardItems(forceRefresh = true)
+                                        selectedClipForMenu = null
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Default.PushPin,
-                                    contentDescription = "Pinned",
+                                    Icons.Outlined.Delete,
+                                    contentDescription = "حذف",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "حذف",
+                                    color = Color(0xFFEF4444),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // 2. تثبيت / إلغاء التثبيت (Pin / Unpin)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        prefs.togglePinClipboard(clip.id)
+                                        items = prefs.getClipboardItems(forceRefresh = true)
+                                        selectedClipForMenu = null
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                                    contentDescription = "تثبيت",
                                     tint = Color(theme.accentColor),
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .align(Alignment.BottomEnd)
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = if (clip.isPinned) "إلغاء التثبيت" else "تثبيت",
+                                    color = Color(theme.accentColor),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // 3. نسخ (Copy to system clipboard)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                        cm?.setPrimaryClip(ClipData.newPlainText("text", clip.text))
+                                        selectedClipForMenu = null
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.ContentCopy,
+                                    contentDescription = "نسخ",
+                                    tint = Color(theme.keyTextColor),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "نسخ",
+                                    color = Color(theme.keyTextColor),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // 4. لصق (Paste into active field)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        onItemInserted(clip.text)
+                                        selectedClipForMenu = null
+                                        onClose()
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.ContentPaste,
+                                    contentDescription = "لصق",
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "لصق",
+                                    color = Color(0xFF10B981),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }

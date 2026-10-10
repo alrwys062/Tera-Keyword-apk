@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -1225,6 +1227,31 @@ fun SettingsScreen(
                         )
                     }
 
+                    if (settings.topQuickEmojiRowEnabled) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF1E293B),
+                            border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { activeDialog = "CUSTOMIZE_TOP_EMOJIS" }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Mood, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("تخصيص الابتسامات في الصف العلوي...", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF8E9BAE), modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+
                     Divider(color = Color(0xFF28364F), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 6.dp))
 
                     // تبديل مكان الحافظة ومكان الإيموجي في الصف السفلي
@@ -1276,6 +1303,146 @@ fun SettingsScreen(
                 }
             },
             containerColor = Color(0xFF141A28)
+        )
+    }
+
+    // CUSTOMIZE TOP EMOJIS DIALOG (تخصيص شريط الابتسامات العلوي)
+    if (activeDialog == "CUSTOMIZE_TOP_EMOJIS") {
+        var topEmojisList by remember { mutableStateOf(prefs.getCustomTopEmojis().toMutableList()) }
+        var newCustomEmoji by remember { mutableStateOf("") }
+        val sampleEmojis = listOf("😂", "❤️", "🥺", "🔥", "👏", "🤍", "😍", "✨", "🤲", "🌹", "🌸", "👍", "👑", "💋", "💯", "🙈", "🖤", "🤩", "🕊️", "💎", "🍿", "🚀")
+
+        AlertDialog(
+            onDismissRequest = { activeDialog = "ROWS_TOOLBAR" },
+            containerColor = Color(0xFF141926),
+            title = {
+                Text(
+                    text = "تخصيص شريط الابتسامات العلوي",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "اضغط على أي ابتسامة لحذفها، أو اختر من القائمة أدناه لإضافتها للشريط:",
+                        color = Color(0xFF8E9BAE),
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    // Current chips
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
+                            .padding(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(topEmojisList) { item ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.5f)),
+                                modifier = Modifier.clickable {
+                                    topEmojisList = topEmojisList.toMutableList().apply { remove(item) }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(item, color = Color.White, fontSize = 14.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Input
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = newCustomEmoji,
+                            onValueChange = { newCustomEmoji = it },
+                            placeholder = { Text("اكتب إيموجي أو رمزاً...", fontSize = 11.sp, color = Color(0xFF8E9BAE)) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00E5FF),
+                                unfocusedBorderColor = Color(0xFF28364F)
+                            )
+                        )
+                        Button(
+                            onClick = {
+                                val t = newCustomEmoji.trim()
+                                if (t.isNotEmpty() && !topEmojisList.contains(t)) {
+                                    topEmojisList = topEmojisList.toMutableList().apply { add(t) }
+                                    newCustomEmoji = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                        ) {
+                            Text("إضافة", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text("مقترحات سريعة:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(sampleEmojis) { emo ->
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF1E293B),
+                                modifier = Modifier.clickable {
+                                    if (!topEmojisList.contains(emo)) {
+                                        topEmojisList = topEmojisList.toMutableList().apply { add(emo) }
+                                    }
+                                }
+                            ) {
+                                Text(emo, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (topEmojisList.isEmpty()) {
+                            topEmojisList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+                        }
+                        prefs.saveCustomTopEmojis(topEmojisList)
+                        activeDialog = "ROWS_TOOLBAR"
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                ) {
+                    Text("حفظ", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        topEmojisList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+                    }
+                ) {
+                    Text("استعادة الافتراضي", color = Color(0xFF8E9BAE))
+                }
+            }
         )
     }
 

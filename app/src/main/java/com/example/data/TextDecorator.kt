@@ -11,6 +11,14 @@ object TextDecorator {
     )
 
     val arabicStyles = listOf(
+        DecorationItem("arabic_ashraf_1", "زخرفة أشرف المعربة 1", "Ashraf Ornate 1", "م֠ــۢ͜ـرح֠ــۢ͜ـب֠ــۢ͜ـآ") { ashrafStyle1(it) },
+        DecorationItem("arabic_ashraf_2", "زخرفة أشرف الشدات 2", "Ashraf Ornate 2", "مـْـْْـْرحـْـْْـْبـٌـٌٌـٌُآ") { ashrafStyle2(it) },
+        DecorationItem("arabic_ashraf_3", "زخرفة أشرف المدات 3", "Ashraf Ornate 3", "مــہٰٰ۫ـــرحــہٰٰ۫ـــبــہٰٰ۫ـــا") { ashrafStyle3(it) },
+        DecorationItem("arabic_ashraf_4", "زخرفة أشرف الأقواس 4", "Ashraf Ornate 4", "م̯͡ر̯͡ح̯͡ب̯͡آ") { ashrafStyle4(it) },
+        DecorationItem("arabic_ashraf_hearts", "زخرفة أشرف القلوب ♥", "Ashraf Hearts", "مـ♥ـرحـ♥ـبـ♥ـآ") { ashrafSymbolStyle(it, "♥") },
+        DecorationItem("arabic_ashraf_stars", "زخرفة أشرف النجوم ★", "Ashraf Stars", "مـ★ـرحـ★ـبـ★ـآ") { ashrafSymbolStyle(it, "★") },
+        DecorationItem("arabic_ashraf_smiles", "زخرفة أشرف الابتسامات ☻", "Ashraf Smiles", "مـ☻ـرحـ☻ـبـ☻ـآ") { ashrafSymbolStyle(it, "☻") },
+        DecorationItem("arabic_ashraf_lined", "زخرفة أشرف المسطرة ̲", "Ashraf Underlined", "م̲ر̲ح̲ب̲آ") { ashrafUnderlineStyle(it) },
         DecorationItem("arabic_ornate", "زخرفة عربية حروف", "Arabic Ornate", "مہرحہبہاً") { ornateArabicLetters(it) },
         DecorationItem("arabic_kashida", "زخرفة عربية ممدودة", "Arabic Elongated", "مــرحــبــاً") { elongateArabic(it) },
         DecorationItem("arabic_tashkeel", "تشكيل وتنوين عربي", "Arabic Tashkeel", "مَرْحَبَاً") { tashkeelText(it) },
@@ -50,6 +58,14 @@ object TextDecorator {
             "arabic_ornate" -> ARABIC_ORNATE_MAP[c] ?: charStr
             "arabic_kashida" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}\u0640" else charStr
             "arabic_tashkeel" -> if (isArabicLetter(c)) "${c}\u064E" else charStr
+            "arabic_ashraf_1" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}֠ــۢ͜ـ" else charStr
+            "arabic_ashraf_2" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ـْـْْـْ" else charStr
+            "arabic_ashraf_3" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ــہٰٰ۫ـــ" else charStr
+            "arabic_ashraf_4" -> if (isArabicLetter(c)) "${c}̯͡" else charStr
+            "arabic_ashraf_hearts" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ـ♥ـ" else charStr
+            "arabic_ashraf_stars" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ـ★ـ" else charStr
+            "arabic_ashraf_smiles" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ـ☻ـ" else charStr
+            "arabic_ashraf_lined" -> if (isArabicLetter(c)) "${c}\u0332" else charStr
             else -> charStr
         }
     }
@@ -65,6 +81,72 @@ object TextDecorator {
 
     private fun isNonConnectingArabic(c: Char): Boolean {
         return c in listOf('ا', 'و', 'د', 'ذ', 'ر', 'ز', 'ة', 'ء', 'ى')
+    }
+
+    private fun ashrafStyle1(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch) && !isNonConnectingArabic(ch)) {
+                sb.append("֠ــۢ͜ـ")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun ashrafStyle2(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch) && !isNonConnectingArabic(ch)) {
+                sb.append("ـْـْْـْ")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun ashrafStyle3(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch) && !isNonConnectingArabic(ch)) {
+                sb.append("ــہٰٰ۫ـــ")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun ashrafStyle4(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch)) {
+                sb.append("̯͡")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun ashrafSymbolStyle(text: String, symbol: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch) && !isNonConnectingArabic(ch)) {
+                sb.append("ـ${symbol}ـ")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun ashrafUnderlineStyle(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            sb.append(ch)
+            if (isArabicLetter(ch)) {
+                sb.append("\u0332")
+            }
+        }
+        return sb.toString()
     }
 
     private fun elongateArabic(text: String): String {

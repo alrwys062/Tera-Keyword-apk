@@ -2,14 +2,11 @@ package com.example.sound
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFormat
 import android.media.AudioManager
-import android.media.SoundPool
+import android.media.AudioTrack
 import android.os.Build
 import android.util.Log
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import kotlin.math.PI
@@ -18,19 +15,14 @@ import kotlin.math.sin
 
 /**
  * Ultra-Responsive, Zero-Latency Keyboard Audio Engine.
- * - Completely non-blocking: all audio I/O & playback run on dedicated background threads.
- * - Pre-loads all sounds into memory immediately at startup.
+ * - Completely non-blocking: all audio playback runs on dedicated background threads.
+ * - Pure in-memory AudioTrack synthesis: no media decoders / CCodec / Codec2 HAL allocations.
  * - Zero UI Thread blocking to guarantee 120 FPS buttery smooth typing without dropped letters.
  */
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
     private const val SAMPLE_RATE = 44100
-    private const val MAX_STREAMS = 16
 
-    @Volatile
-    private var isInitialized = false
-
-    private var soundPool: SoundPool? = null
     private var audioManager: AudioManager? = null
     private var appContext: Context? = null
 
@@ -41,8 +33,8 @@ object KeyboardSoundEngine {
         }
     }
 
-    // Cache of loaded SoundPool sound IDs
-    private val loadedSoundIds = ConcurrentHashMap<String, Int>()
+    // Cache of static AudioTracks by profile/key
+    private val loadedAudioTracks = ConcurrentHashMap<String, AudioTrack>()
 
     const val PROFILE_IOS_16 = "ios_16"
     const val PROFILE_MECHANICAL = "mechanical"
@@ -82,76 +74,56 @@ object KeyboardSoundEngine {
                 audioManager = app.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             } catch (_: Throwable) {}
         }
+    }
 
-        if (soundPool != null && isInitialized) return
-
-        try {
-            soundPool?.release()
-        } catch (_: Throwable) {}
-
-        soundPool = createSoundPool()
-        isInitialized = true
-
-        // Synthesize and pre-load all audio assets in background thread
-        audioExecutor.execute {
-            try {
-                loadAllSounds(app)
-            } catch (e: Exception) {
-                Log.w(TAG, "Audio loading error: ${e.message}")
-            }
+    private fun getOptimalSampleRate(context: Context): Int {
+        return try {
+            val am = audioManager ?: (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)
+            val rateStr = am?.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
+            rateStr?.toIntOrNull() ?: SAMPLE_RATE
+        } catch (_: Throwable) {
+            SAMPLE_RATE
         }
     }
 
-    private fun createSoundPool(): SoundPool {
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
-            .build()
+    private fun getAudioTrackForProfile(key: String, context: Context): AudioTrack? {
+        loadedAudioTracks[key]?.let { return it }
 
-        return SoundPool.Builder()
-            .setMaxStreams(MAX_STREAMS)
-            .setAudioAttributes(audioAttributes)
-            .build()
-    }
+        return try {
+            val sampleRate = getOptimalSampleRate(context)
+            val pcm = generatePcmForKey(key)
 
-    private fun loadAllSounds(context: Context) {
-        val sp = soundPool ?: return
-        val soundDir = File(context.cacheDir, "kb_wav_sounds").apply { mkdirs() }
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
 
-        val keys = listOf(
-            PROFILE_IOS_16,
-            PROFILE_MECHANICAL,
-            PROFILE_MODERN_SOFT,
-            PROFILE_WATER_DROP,
-            PROFILE_POP_BUBBLE,
-            PROFILE_WOOD_BLOCK,
-            PROFILE_CYBER_SCIFI,
-            PROFILE_CLASSIC_TYPEWRITER,
-            PROFILE_SYSTEM_DEFAULT,
-            "special_space",
-            "special_delete"
-        )
+            val audioFormat = AudioFormat.Builder()
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                .setSampleRate(sampleRate)
+                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                .build()
 
-        for (key in keys) {
-            try {
-                val wavFile = File(soundDir, "$key.wav")
-                if (!wavFile.exists() || wavFile.length() == 0L) {
-                    val pcm = generatePcmForKey(key)
-                    writeWavFile(wavFile, pcm, SAMPLE_RATE)
-                }
-                val soundId = sp.load(wavFile.absolutePath, 1)
-                if (soundId != 0) {
-                    loadedSoundIds[key] = soundId
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed loading sound $key: ${e.message}")
-            }
+            val bufferSizeInBytes = pcm.size * 2
+
+            val track = AudioTrack.Builder()
+                .setAudioAttributes(audioAttributes)
+                .setAudioFormat(audioFormat)
+                .setBufferSizeInBytes(bufferSizeInBytes)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+
+            track.write(pcm, 0, pcm.size)
+            loadedAudioTracks[key] = track
+            track
+        } catch (e: Exception) {
+            null
         }
     }
 
     /**
      * Plays key sound with ZERO UI latency (asynchronous dispatch to dedicated audio thread).
+     * Pure in-memory AudioTrack: requires zero MediaCodec/CCodec hardware instances, eliminating system resource errors.
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -171,16 +143,22 @@ object KeyboardSoundEngine {
 
         // Asynchronous non-blocking dispatch to prevent UI dropped frames during fast typing
         audioExecutor.execute {
-            // 1. Play custom SoundPool audio via Media channel
-            try {
-                val sp = soundPool
-                val soundId = loadedSoundIds[soundKey]
-                if (sp != null && soundId != null && soundId > 0) {
-                    sp.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f)
-                }
-            } catch (_: Throwable) {}
+            val ctx = appContext
+            if (ctx != null && profile != PROFILE_SYSTEM_DEFAULT) {
+                try {
+                    val track = getAudioTrackForProfile(soundKey, ctx)
+                    if (track != null) {
+                        try {
+                            track.setVolume(safeVolume)
+                            track.stop()
+                            track.playbackHeadPosition = 0
+                            track.play()
+                        } catch (_: Throwable) {}
+                    }
+                } catch (_: Throwable) {}
+            }
 
-            // 2. Play AudioManager standard click effect
+            // Standard system fallback click effect
             try {
                 val fx = when {
                     isDelete -> AudioManager.FX_KEYPRESS_DELETE
@@ -190,43 +168,6 @@ object KeyboardSoundEngine {
                 }
                 audioManager?.playSoundEffect(fx, safeVolume)
             } catch (_: Throwable) {}
-        }
-    }
-
-    // ==========================================
-    // WAV File Generator & PCM Synthesis
-    // ==========================================
-
-    private fun writeWavFile(file: File, pcm: ShortArray, sampleRate: Int) {
-        val numChannels = 1
-        val bitsPerSample = 16
-        val byteRate = sampleRate * numChannels * (bitsPerSample / 8)
-        val blockAlign = numChannels * (bitsPerSample / 8)
-        val dataSize = pcm.size * 2
-        val chunkSize = 36 + dataSize
-
-        val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN)
-        header.put("RIFF".toByteArray())
-        header.putInt(chunkSize)
-        header.put("WAVE".toByteArray())
-        header.put("fmt ".toByteArray())
-        header.putInt(16) // Subchunk1Size for PCM
-        header.putShort(1) // AudioFormat 1 = PCM
-        header.putShort(numChannels.toShort())
-        header.putInt(sampleRate)
-        header.putInt(byteRate)
-        header.putShort(blockAlign.toShort())
-        header.putShort(bitsPerSample.toShort())
-        header.put("data".toByteArray())
-        header.putInt(dataSize)
-
-        FileOutputStream(file).use { fos ->
-            fos.write(header.array())
-            val buffer = ByteBuffer.allocate(dataSize).order(ByteOrder.LITTLE_ENDIAN)
-            for (sample in pcm) {
-                buffer.putShort(sample)
-            }
-            fos.write(buffer.array())
         }
     }
 

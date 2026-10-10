@@ -23,6 +23,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -199,6 +202,9 @@ fun TurboKeyboardView(
             isShifted = false
         }
     }
+
+    var customTopEmojis by remember { mutableStateOf(prefs.getCustomTopEmojis()) }
+    var isCustomizeTopEmojisOpen by remember { mutableStateOf(false) }
 
     // Live Transboard features
     var activeDecorationStyle by remember { mutableStateOf(prefs.getActiveDecorationStyle()) }
@@ -856,7 +862,7 @@ fun TurboKeyboardView(
             )
         }
 
-        // Quick Shortcuts / Emojis Row (Matching Screenshots 14 & 15: 👑 💋 ة ؤ ء ئ ى لأ 😂 خاص)
+        // Quick Shortcuts / Emojis Row (Customizable for user - إضافة وحذف الابتسامات)
         if (activeSubView == KeyboardSubView.NONE && settings.topQuickEmojiRowEnabled) {
             Row(
                 modifier = Modifier
@@ -866,17 +872,23 @@ fun TurboKeyboardView(
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val quickRow = currentWorldLang.quickShortcuts.map { KeyModel(KeyType.Character(it)) }
-                quickRow.forEach { key ->
-                    val char = (key.type as KeyType.Character).primary
+                customTopEmojis.forEach { char ->
                     val quickKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
                     Surface(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clickable {
-                                performFeedback()
-                                sendText(char)
+                            .pointerInput(char) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        performFeedback(isSpecial = true)
+                                        isCustomizeTopEmojisOpen = true
+                                    },
+                                    onTap = {
+                                        performFeedback()
+                                        sendText(char)
+                                    }
+                                )
                             },
                         shape = RoundedCornerShape(theme.cornerRadius.dp),
                         color = quickKeyBg,
@@ -892,7 +904,43 @@ fun TurboKeyboardView(
                         }
                     }
                 }
+
+                // Add / Customize button for the top emoji row (+)
+                Surface(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clickable {
+                            performFeedback(isSpecial = true)
+                            isCustomizeTopEmojisOpen = true
+                        },
+                    shape = RoundedCornerShape(theme.cornerRadius.dp),
+                    color = Color(theme.accentColor).copy(alpha = 0.2f),
+                    border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.6f))
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "تخصيص الابتسامات",
+                            tint = Color(theme.accentColor),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
+        }
+
+        // Floating Dialog to Customize Top Emojis Row
+        if (isCustomizeTopEmojisOpen) {
+            CustomizeTopEmojisDialog(
+                theme = activeTheme,
+                currentEmojis = customTopEmojis,
+                onSave = { updatedList ->
+                    customTopEmojis = updatedList
+                    prefs.saveCustomTopEmojis(updatedList)
+                    isCustomizeTopEmojisOpen = false
+                },
+                onDismiss = { isCustomizeTopEmojisOpen = false }
+            )
         }
 
         // Main Keyboard Keys Section
@@ -1522,6 +1570,16 @@ fun TurboKeyboardView(
                                                     isEnterPressed = false
                                                 }
                                             },
+                                            onLongPress = if (settings.enterLongPressTranslateEnabled) {
+                                                {
+                                                    performFeedback(isSpecial = true)
+                                                    triggerInstantTranslate()
+                                                }
+                                            } else {
+                                                {
+                                                    sendEnter()
+                                                }
+                                            },
                                             onTap = {
                                                 sendEnter()
                                             }
@@ -1985,5 +2043,234 @@ fun BackspaceKeyButton(
             tint = Color(theme.accentColor),
             modifier = Modifier.size(iconSize)
         )
+    }
+}
+
+@Composable
+fun CustomizeTopEmojisDialog(
+    theme: KeyboardTheme,
+    currentEmojis: List<String>,
+    onSave: (List<String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var workingList by remember { mutableStateOf(currentEmojis.toMutableList()) }
+    var newEmojiText by remember { mutableStateOf("") }
+    val popularSuggestions = listOf(
+        "😂", "❤️", "🥺", "🔥", "👏", "🤍", "😍", "✨", "🤲", "🌹", "🌸", "👍",
+        "👑", "💋", "💯", "🙈", "🖤", "🤩", "🕊️", "💎", "🍿", "🚀", "💡", "⚡"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.75f))
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color(theme.backgroundColor),
+            border = BorderStroke(1.2.dp, Color(theme.accentColor)),
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .clickable(enabled = false) {}
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(14.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "تخصيص شريط الابتسامات العلوي",
+                        color = Color(theme.keyTextColor),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color(theme.subtextColor),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "اضغط على أي ابتسامة لحذفها، أو اختر من القائمة لإضافتها",
+                    color = Color(theme.subtextColor),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Current Emojis Chips (scrollable row)
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
+                        .padding(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(workingList) { item ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(theme.keyBackgroundColor),
+                            border = BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.5f)),
+                            modifier = Modifier.clickable {
+                                workingList = workingList.toMutableList().apply { remove(item) }
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = item, color = Color(theme.keyTextColor), fontSize = 14.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Remove",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Add Custom Text / Emoji Field
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    BasicTextField(
+                        value = newEmojiText,
+                        onValueChange = { newEmojiText = it },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = Color(theme.keyTextColor),
+                            fontSize = 13.sp
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .background(Color(theme.keyBackgroundColor), RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(theme.borderColor).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        decorationBox = { innerTextField ->
+                            if (newEmojiText.isEmpty()) {
+                                Text(
+                                    "اكتب إيموجي أو رمزاً لإضافته...",
+                                    color = Color(theme.subtextColor).copy(alpha = 0.6f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(theme.accentColor),
+                        modifier = Modifier.clickable {
+                            val trimmed = newEmojiText.trim()
+                            if (trimmed.isNotEmpty() && !workingList.contains(trimmed)) {
+                                workingList = workingList.toMutableList().apply { add(trimmed) }
+                                newEmojiText = ""
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = "إضافة",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Popular suggestions row
+                Text(
+                    text = "ابتسامات مقترحة (اضغط للإضافة):",
+                    color = Color(theme.keyTextColor),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(popularSuggestions) { sugg ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(theme.keyBackgroundColor),
+                            border = BorderStroke(0.6.dp, Color(theme.borderColor).copy(alpha = 0.3f)),
+                            modifier = Modifier.clickable {
+                                if (!workingList.contains(sugg)) {
+                                    workingList = workingList.toMutableList().apply { add(sugg) }
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = sugg,
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Action buttons: Reset & Save
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            workingList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+                        }
+                    ) {
+                        Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(theme.accentColor),
+                        modifier = Modifier.clickable {
+                            if (workingList.isEmpty()) {
+                                workingList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+                            }
+                            onSave(workingList)
+                        }
+                    ) {
+                        Text(
+                            text = "حفظ الابتسامات",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }

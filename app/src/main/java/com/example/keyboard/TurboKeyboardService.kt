@@ -254,31 +254,51 @@ class TurboKeyboardService : InputMethodService(),
             val action = imeOptions and EditorInfo.IME_MASK_ACTION
             val noEnterAction = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
             val isMultiLine = (inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+            val actionId = info?.actionId ?: 0
+
+            val effectiveAction = when {
+                action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED -> action
+                actionId != 0 && actionId != EditorInfo.IME_ACTION_NONE && actionId != EditorInfo.IME_ACTION_UNSPECIFIED -> actionId
+                else -> EditorInfo.IME_ACTION_NONE
+            }
 
             if (ic != null) {
-                // If it's a multiline field and no explicit action or action is NONE/UNSPECIFIED, insert newline directly
-                if (isMultiLine && !noEnterAction && (action == EditorInfo.IME_ACTION_NONE || action == EditorInfo.IME_ACTION_UNSPECIFIED)) {
-                    val down = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
-                    val up = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
-                    if (!down || !up) {
-                        ic.commitText("\n", 1)
-                    }
-                    return
-                }
-
-                // If an explicit action is defined (Send, Search, Go, Done, Next, etc.)
-                if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
-                    val performed = ic.performEditorAction(action)
+                // If single-line or noEnterAction with explicit action (Send, Search, Go, Next, Done)
+                if (effectiveAction != EditorInfo.IME_ACTION_NONE && (!isMultiLine || noEnterAction)) {
+                    val performed = ic.performEditorAction(effectiveAction)
                     if (performed) return
                 }
 
-                // Try sending standard KEYCODE_ENTER via input connection
+                // If single-line, also try sendDefaultEditorAction(true)
+                if (!isMultiLine && sendDefaultEditorAction(true)) {
+                    return
+                }
+
+                // Send down & up KeyEvent for KEYCODE_ENTER
                 val down = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
                 val up = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
-                if (down && up) return
+
+                // Also trigger sendKeyChar('\n') or sendDownUpKeyEvents for Telegram & messenger handlers
+                if (!down || !up) {
+                    sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_ENTER)
+                }
+
+                // Fallback action if available
+                if (effectiveAction != EditorInfo.IME_ACTION_NONE) {
+                    ic.performEditorAction(effectiveAction)
+                    return
+                }
+
+                // If multiline and neither down event nor IME handled it, insert newline
+                if (isMultiLine && !down) {
+                    ic.commitText("\n", 1)
+                } else if (!isMultiLine && !down) {
+                    ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
+                }
+                return
             }
 
-            // Fallback via InputMethodService.sendDownUpKeyEvents
+            // Fallback via InputMethodService
             sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_ENTER)
         } catch (e: Exception) {
             try {

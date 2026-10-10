@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,6 +41,7 @@ fun ClipboardScreen(
     var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
     var newClipText by remember { mutableStateOf("") }
+    var selectedClipForFloatingMenu by remember { mutableStateOf<com.example.model.ClipboardItem?>(null) }
 
     LaunchedEffect(Unit) {
         prefs.syncWithSystemClipboard(context)
@@ -177,9 +180,16 @@ fun ClipboardScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            clipboardManager.setText(AnnotatedString(clip.text))
-                            Toast.makeText(context, "تم نسخ النص إلى الحافظة", Toast.LENGTH_SHORT).show()
+                        .pointerInput(clip.id) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    selectedClipForFloatingMenu = clip
+                                },
+                                onTap = {
+                                    clipboardManager.setText(AnnotatedString(clip.text))
+                                    Toast.makeText(context, "تم نسخ النص إلى الحافظة", Toast.LENGTH_SHORT).show()
+                                }
+                            )
                         }
                 ) {
                     Row(
@@ -248,6 +258,94 @@ fun ClipboardScreen(
                     }
                 }
             }
+        }
+
+        // Floating Dialog on Long Press (نافذة عائمة عند الضغط المطول)
+        if (selectedClipForFloatingMenu != null) {
+            val clip = selectedClipForFloatingMenu!!
+            AlertDialog(
+                onDismissRequest = { selectedClipForFloatingMenu = null },
+                containerColor = Color(0xFF141926),
+                title = {
+                    Text(
+                        text = "خيارات النص المنسوخ",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = clip.text,
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 13.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        HorizontalDivider(color = Color(0xFF26334A))
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            // 1. حذف
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        prefs.deleteClipboardItem(clip.id)
+                                        items = prefs.getClipboardItems()
+                                        selectedClipForFloatingMenu = null
+                                        Toast.makeText(context, "تم حذف النص", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(8.dp)
+                            ) {
+                                Icon(Icons.Outlined.DeleteOutline, contentDescription = "حذف", tint = Color(0xFFEF4444))
+                                Text("حذف", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            // 2. تثبيت
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        prefs.togglePinClipboard(clip.id)
+                                        items = prefs.getClipboardItems()
+                                        selectedClipForFloatingMenu = null
+                                        Toast.makeText(context, if (!clip.isPinned) "تم التثبيت" else "تم إلغاء التثبيت", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(8.dp)
+                            ) {
+                                Icon(Icons.Default.PushPin, contentDescription = "تثبيت", tint = Color(0xFF00E5FF))
+                                Text(if (clip.isPinned) "إلغاء التثبيت" else "تثبيت", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            // 3. نسخ
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        clipboardManager.setText(AnnotatedString(clip.text))
+                                        selectedClipForFloatingMenu = null
+                                        Toast.makeText(context, "تم نسخ النص", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(8.dp)
+                            ) {
+                                Icon(Icons.Outlined.ContentPaste, contentDescription = "نسخ", tint = Color(0xFF38BDF8))
+                                Text("نسخ", color = Color(0xFF38BDF8), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { selectedClipForFloatingMenu = null }) {
+                        Text("إغلاق", color = Color(0xFF8E9BAE))
+                    }
+                }
+            )
         }
     }
 }

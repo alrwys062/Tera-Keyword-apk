@@ -510,4 +510,27 @@ class PreferencesManager(context: Context) {
             false
         }
     }
+
+    fun getCustomTopEmojis(): List<String> {
+        val raw = prefs.getString("custom_top_emojis_list", null)
+        if (!raw.isNullOrBlank()) {
+            try {
+                val arr = JSONArray(raw)
+                val list = mutableListOf<String>()
+                for (i in 0 until arr.length()) {
+                    val s = arr.getString(i).trim()
+                    if (s.isNotEmpty()) list.add(s)
+                }
+                if (list.isNotEmpty()) return list
+            } catch (_: Exception) {}
+        }
+        return listOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+    }
+
+    fun saveCustomTopEmojis(list: List<String>) {
+        val arr = JSONArray()
+        list.forEach { arr.put(it) }
+        prefs.edit().putString("custom_top_emojis_list", arr.toString()).apply()
+    }
 }
+

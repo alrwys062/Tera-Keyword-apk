@@ -43,6 +43,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -165,6 +166,7 @@ fun TurboKeyboardView(
     editorInfo: EditorInfo? = null,
     getCurrentEditorInfo: (() -> EditorInfo?)? = null,
     onServiceEnter: (() -> Unit)? = null,
+    onServiceNewline: (() -> Unit)? = null,
     onServiceDelete: (() -> Unit)? = null,
     onDirectInsertText: ((String) -> Unit)? = null,
     onDirectDeleteLastChar: (() -> Unit)? = null,
@@ -222,10 +224,19 @@ fun TurboKeyboardView(
     var currentComposingText by remember { mutableStateOf("") }
     var totalDragX by remember { mutableFloatStateOf(0f) }
 
-    // 4-sec Enter hold translation state
+    // 2-sec Enter hold to toggle Newline mode (السطر الثاني ↵)
+    var isEnterInNewlineMode by remember { mutableStateOf(false) }
     var isEnterHolding by remember { mutableStateOf(false) }
     var enterHoldProgress by remember { mutableFloatStateOf(0f) }
     var enterHoldMessage by remember { mutableStateOf("") }
+    var newlineSwitchNotification by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(newlineSwitchNotification) {
+        if (newlineSwitchNotification != null) {
+            delay(2200)
+            newlineSwitchNotification = null
+        }
+    }
 
     val userDict = remember { com.example.data.UserDictionaryManager(context) }
     var userWords by remember { mutableStateOf(userDict.getUserWords()) }
@@ -318,10 +329,21 @@ fun TurboKeyboardView(
     }
 
     fun sendText(text: String) {
-        val textToInsert = if (activeDecorationStyle != "none" && text.length == 1) {
-            TextDecorator.decorateChar(text, activeDecorationStyle)
+        val resolvedText = if (text == "-" || text == "_") {
+            val prevChar = currentComposingText.lastOrNull()
+            val isAfterArabic = prevChar != null && (prevChar in '\u0600'..'\u06FF' || prevChar == 'ـ')
+            if (isAfterArabic || isArabic) {
+                "ـ" // وصل الحروف مع بعض ومدها (Tatweel / Kashida)
+            } else {
+                text
+            }
         } else {
             text
+        }
+        val textToInsert = if (activeDecorationStyle != "none" && resolvedText.length == 1) {
+            TextDecorator.decorateChar(resolvedText, activeDecorationStyle)
+        } else {
+            resolvedText
         }
         currentComposingText = (currentComposingText + textToInsert).takeLast(80)
         val ic = getCurrentInputConnection?.invoke() ?: inputConnection
@@ -503,12 +525,12 @@ fun TurboKeyboardView(
                 .then(if (theme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
                 .navigationBarsPadding()
         ) {
-        // Top status/alert banner when 4-sec translate is active
-        AnimatedVisibility(visible = enterHoldMessage.isNotEmpty() || enterHoldProgress > 0.1f) {
+        // Top status/alert banner when Enter 2-sec newline switch is held or active
+        AnimatedVisibility(visible = newlineSwitchNotification != null || enterHoldProgress > 0.05f || enterHoldMessage.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(theme.accentColor).copy(alpha = 0.2f))
+                    .background(if (isEnterInNewlineMode) Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(theme.accentColor).copy(alpha = 0.2f))
                     .padding(vertical = 4.dp, horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -517,14 +539,23 @@ fun TurboKeyboardView(
                         CircularProgressIndicator(
                             progress = { enterHoldProgress },
                             modifier = Modifier.size(16.dp),
-                            color = Color(theme.accentColor),
+                            color = if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(theme.accentColor),
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
+                        val target = if (isEnterInNewlineMode) "زر الإدخال / الإرسال" else "زر السطر الثاني (↵ انتقال للسطر الثاني)"
+                        val formattedSec = String.format(java.util.Locale.US, "%.1f", (enterHoldProgress * 2f).coerceAtMost(2f))
                         Text(
-                            text = "اضغط مع الاستمرار 4 ثوانٍ لترجمة النص... (${(enterHoldProgress * 4).toInt()}/4s)",
-                            color = Color(theme.accentColor),
+                            text = "استمر بالضغط 2 ثوانٍ للتبديل إلى $target... (${formattedSec}ث/2ث)",
+                            color = if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(theme.accentColor),
                             fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (newlineSwitchNotification != null) {
+                        Text(
+                            text = newlineSwitchNotification ?: "",
+                            color = if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(theme.accentColor),
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     } else if (enterHoldMessage.isNotEmpty()) {
@@ -1531,35 +1562,53 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = enterScale; scaleY = enterScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color(activeTheme.enterButtonColor),
-                                                Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
+                                        if (isEnterInNewlineMode) {
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color(0xFF00E5FF),
+                                                    Color(0xFF0284C7).copy(alpha = if (isEnterPressed) 0.75f else 0.9f)
+                                                )
                                             )
-                                        )
+                                        } else {
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color(activeTheme.enterButtonColor),
+                                                    Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
+                                                )
+                                            )
+                                        }
                                     )
-                                    .border(1.dp, Color(activeTheme.accentColor).copy(alpha = 0.7f), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(settings.enterLongPressTranslateEnabled) {
+                                    .border(
+                                        if (isEnterInNewlineMode) 1.5.dp else 1.dp,
+                                        if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(activeTheme.accentColor).copy(alpha = 0.7f),
+                                        RoundedCornerShape(activeTheme.cornerRadius.dp)
+                                    )
+                                    .pointerInput(isEnterInNewlineMode) {
                                         detectTapGestures(
                                             onPress = {
                                                 isEnterPressed = true
                                                 performFeedback(isSpecial = true)
-                                                if (settings.enterLongPressTranslateEnabled) {
-                                                    enterJob = coroutineScope.launch {
-                                                        isEnterHolding = true
-                                                        enterHoldProgress = 0f
-                                                        val totalTime = 4000L
-                                                        val step = 50L
-                                                        var elapsed = 0L
-                                                        while (elapsed < totalTime) {
-                                                            delay(step)
-                                                            elapsed += step
-                                                            enterHoldProgress = elapsed.toFloat() / totalTime
-                                                        }
-                                                        triggerInstantTranslate()
-                                                        isEnterHolding = false
-                                                        enterHoldProgress = 0f
+                                                enterJob = coroutineScope.launch {
+                                                    isEnterHolding = true
+                                                    enterHoldProgress = 0f
+                                                    val totalTime = 2000L // الضغط المطول لمدة 2 ثوان بالضبط للتبديل
+                                                    val step = 40L
+                                                    var elapsed = 0L
+                                                    while (elapsed < totalTime) {
+                                                        delay(step)
+                                                        elapsed += step
+                                                        enterHoldProgress = (elapsed.toFloat() / totalTime).coerceIn(0f, 1f)
                                                     }
+                                                    // تم اكتمال ثانيتين كاملتين -> تبديل وضع زر انتر / السطر الثاني
+                                                    performFeedback(durationMs = 60, isSpecial = true)
+                                                    isEnterInNewlineMode = !isEnterInNewlineMode
+                                                    newlineSwitchNotification = if (isEnterInNewlineMode) {
+                                                        "↵ تم التبديل لزر السطر الثاني (New Line)"
+                                                    } else {
+                                                        "✓ تمت العودة لزر الإدخال / الإرسال الافتراضي"
+                                                    }
+                                                    isEnterHolding = false
+                                                    enterHoldProgress = 0f
                                                 }
                                                 try {
                                                     tryAwaitRelease()
@@ -1570,29 +1619,62 @@ fun TurboKeyboardView(
                                                     isEnterPressed = false
                                                 }
                                             },
-                                            onLongPress = if (settings.enterLongPressTranslateEnabled) {
-                                                {
+                                            onTap = {
+                                                if (isEnterInNewlineMode) {
                                                     performFeedback(isSpecial = true)
-                                                    triggerInstantTranslate()
-                                                }
-                                            } else {
-                                                {
+                                                    if (onServiceNewline != null) {
+                                                        onServiceNewline.invoke()
+                                                    } else {
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        if (ic != null) {
+                                                            ic.commitText("\n", 1)
+                                                        } else {
+                                                            onDirectInsertText?.invoke("\n")
+                                                        }
+                                                    }
+                                                } else {
                                                     sendEnter()
                                                 }
-                                            },
-                                            onTap = {
-                                                sendEnter()
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = currentImeAction.icon,
-                                    contentDescription = currentImeAction.contentDescription,
-                                    tint = ThemePresets.getEnterIconTint(activeTheme),
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                if (isEnterInNewlineMode) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
+                                            contentDescription = "انتقال للسطر الثاني",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Text(
+                                            text = "سطر ↵",
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                } else {
+                                    Icon(
+                                        imageVector = currentImeAction.icon,
+                                        contentDescription = currentImeAction.contentDescription,
+                                        tint = ThemePresets.getEnterIconTint(activeTheme),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                if (isEnterHolding && enterHoldProgress in 0.05f..0.99f) {
+                                    CircularProgressIndicator(
+                                        progress = { enterHoldProgress },
+                                        modifier = Modifier.size(34.dp),
+                                        color = if (isEnterInNewlineMode) Color.White else Color(activeTheme.accentColor),
+                                        strokeWidth = 2.5.dp
+                                    )
+                                }
                             }
                         }
                     }
@@ -2148,7 +2230,7 @@ fun CustomizeTopEmojisDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Add Custom Text / Emoji Field
+                // Add Custom Text / Emoji Field + Backspace & Add
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -2171,7 +2253,7 @@ fun CustomizeTopEmojisDialog(
                         decorationBox = { innerTextField ->
                             if (newEmojiText.isEmpty()) {
                                 Text(
-                                    "اكتب إيموجي أو رمزاً لإضافته...",
+                                    "اكتب أو اختر من الرموز أدناه...",
                                     color = Color(theme.subtextColor).copy(alpha = 0.6f),
                                     fontSize = 11.sp
                                 )
@@ -2179,6 +2261,27 @@ fun CustomizeTopEmojisDialog(
                             innerTextField()
                         }
                     )
+
+                    // Backspace button for deleting character
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(theme.keyBackgroundColor),
+                        border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
+                        modifier = Modifier.clickable {
+                            if (newEmojiText.isNotEmpty()) {
+                                newEmojiText = newEmojiText.dropLast(1)
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Backspace,
+                            contentDescription = "Backspace",
+                            tint = Color(theme.subtextColor),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp).size(18.dp)
+                        )
+                    }
+
+                    // Add button
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(theme.accentColor),
@@ -2202,33 +2305,66 @@ fun CustomizeTopEmojisDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Popular suggestions row
-                Text(
-                    text = "ابتسامات مقترحة (اضغط للإضافة):",
-                    color = Color(theme.keyTextColor),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.align(Alignment.Start)
+                // Built-in Keyboard Tabs & Emoji Grid (إظهار الكيبورد والابتسامات المدمجة)
+                var activeEmojiCat by remember { mutableStateOf(0) }
+                val emojiCategories = listOf(
+                    "😊 فيسات" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
+                    "❤️ قلوب" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
+                    "🔥 تفاعلات" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
+                    "🔣 رموز" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓")
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                LazyRow(
+
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(popularSuggestions) { sugg ->
+                    emojiCategories.indices.forEach { idx ->
+                        val isCatSelected = activeEmojiCat == idx
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isCatSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
+                            border = BorderStroke(1.dp, if (isCatSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.3f)),
+                            modifier = Modifier.weight(1f).clickable { activeEmojiCat = idx }
+                        ) {
+                            Text(
+                                text = emojiCategories[idx].first,
+                                color = if (isCatSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
+                                fontSize = 10.sp,
+                                fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Grid of clickable emojis/symbols (انقر لإضافة الإيموجي مباشرة للشريط)
+                val currentCategoryItems = emojiCategories[activeEmojiCat].second
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(theme.toolbarColor).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(currentCategoryItems) { item ->
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(theme.keyBackgroundColor),
-                            border = BorderStroke(0.6.dp, Color(theme.borderColor).copy(alpha = 0.3f)),
+                            border = BorderStroke(0.7.dp, Color(theme.borderColor).copy(alpha = 0.4f)),
                             modifier = Modifier.clickable {
-                                if (!workingList.contains(sugg)) {
-                                    workingList = workingList.toMutableList().apply { add(sugg) }
+                                if (!workingList.contains(item)) {
+                                    workingList = workingList.toMutableList().apply { add(item) }
                                 }
+                                newEmojiText = (newEmojiText + item).take(10)
                             }
                         ) {
                             Text(
-                                text = sugg,
-                                fontSize = 16.sp,
+                                text = item,
+                                fontSize = 18.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                             )
                         }

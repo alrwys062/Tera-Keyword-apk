@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
@@ -186,7 +187,6 @@ fun KeyboardToolbar(
                 theme = theme,
                 onClick = {
                     onSubViewSelected(if (isVoiceActive) KeyboardSubView.NONE else KeyboardSubView.VOICE_INPUT)
-                    onVoiceClick()
                 }
             )
         }
@@ -247,7 +247,24 @@ fun KeyboardToolbar(
             )
         }
 
-        // 13. تخصيص الأدوات (Customize Tools button always available at end)
+        // 13. قناة تليجرام للتواصل
+        val context = androidx.compose.ui.platform.LocalContext.current
+        ToolbarFixedItem(
+            icon = Icons.AutoMirrored.Filled.Send,
+            label = "تليجرام",
+            isActive = false,
+            theme = theme,
+            onClick = {
+                try {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/Abu2Saleh")).apply {
+                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        )
+
+        // 14. تخصيص الأدوات (Customize Tools button always available at end)
         val isCustomizeActive = activeSubView == KeyboardSubView.CUSTOMIZE_TOOLBAR
         ToolbarFixedItem(
             icon = Icons.Outlined.Tune,

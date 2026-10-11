@@ -827,6 +827,9 @@ fun EmojiPickerView(
     var searchQuery by remember { mutableStateOf("") }
     var isIosStyle by remember { mutableStateOf(true) }
 
+    val preferencesManager = remember { com.example.data.PreferencesManager(context) }
+    var emojiSizeScale by remember { mutableFloatStateOf(preferencesManager.getEmojiSizeScale()) }
+
     val currentEmojis = remember(selectedCategoryIndex, searchQuery, recentEmojisList) {
         if (searchQuery.isNotBlank()) {
             (recentEmojisList + EmojiData.categories.flatMap { it.emojis })
@@ -846,7 +849,7 @@ fun EmojiPickerView(
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {
-        // Top search & style toggle & close row
+        // Top search & style toggle & size control & close row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -907,7 +910,45 @@ fun EmojiPickerView(
                 }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Emoji Size Toggle (التحكم في حجم الفيسات والإيموجي)
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
+                modifier = Modifier.clickable {
+                    val nextScale = when {
+                        emojiSizeScale < 0.9f -> 1.0f
+                        emojiSizeScale < 1.15f -> 1.3f
+                        emojiSizeScale < 1.4f -> 1.55f
+                        else -> 0.8f
+                    }
+                    emojiSizeScale = nextScale
+                    preferencesManager.saveEmojiSizeScale(nextScale)
+                }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "📏", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = when {
+                            emojiSizeScale >= 1.45f -> "ضخم"
+                            emojiSizeScale >= 1.25f -> "كبير"
+                            emojiSizeScale <= 0.85f -> "صغير"
+                            else -> "وسط"
+                        },
+                        color = Color(theme.accentColor),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
 
             // iOS / Android emoji style toggle
             Surface(
@@ -919,9 +960,9 @@ fun EmojiPickerView(
                 Text(
                     text = if (isIosStyle) "🍏 آيفون" else "🤖 أندرويد",
                     color = if (isIosStyle) Color(0xFF0A84FF) else Color(theme.keyTextColor),
-                    fontSize = 10.5.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp)
                 )
             }
 
@@ -1004,9 +1045,23 @@ fun EmojiPickerView(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Grid of emojis
+        // Grid of emojis (يتكيف مع حجم الفيسات المختار)
+        val gridColumns = when {
+            emojiSizeScale >= 1.45f -> 5
+            emojiSizeScale >= 1.25f -> 6
+            emojiSizeScale <= 0.85f -> 9
+            else -> 8
+        }
+        val emojiFontSize = (21 * emojiSizeScale).coerceIn(16f, 32f).sp
+        val itemBoxSize = when {
+            emojiSizeScale >= 1.45f -> 48.dp
+            emojiSizeScale >= 1.25f -> 42.dp
+            emojiSizeScale <= 0.85f -> 32.dp
+            else -> 36.dp
+        }
+
         LazyVerticalGrid(
-            columns = GridCells.Fixed(8),
+            columns = GridCells.Fixed(gridColumns),
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
@@ -1016,7 +1071,7 @@ fun EmojiPickerView(
             items(currentEmojis) { emoji ->
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(itemBoxSize)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
                             recentEmojiManager.addEmoji(emoji)
@@ -1025,7 +1080,7 @@ fun EmojiPickerView(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = emoji, fontSize = 21.sp)
+                    Text(text = emoji, fontSize = emojiFontSize)
                 }
             }
         }
@@ -1695,9 +1750,23 @@ fun VoiceInputView(
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    var voiceLangArabic by remember { mutableStateOf(isArabic) }
+    var hasAudioPermission by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.RECORD_AUDIO
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
     var isListening by remember { mutableStateOf(false) }
     var recognizedText by remember { mutableStateOf("") }
-    var statusText by remember { mutableStateOf("اضغط على المايك للتحدث...") }
+    var statusText by remember {
+        mutableStateOf(
+            if (hasAudioPermission) "اضغط على المايك للتحدث بصوت واضح..."
+            else "⚠️ يتطلب إذن الميكروفون - اضغط للتفعيل"
+        )
+    }
     var speechRecognizer by remember { mutableStateOf<android.speech.SpeechRecognizer?>(null) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -1712,6 +1781,23 @@ fun VoiceInputView(
     )
 
     fun startListening() {
+        hasAudioPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasAudioPermission) {
+            statusText = "⚠️ يرجى منح إذن الميكروفون من الإعدادات"
+            try {
+                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {}
+            return
+        }
+
         try {
             if (speechRecognizer == null) {
                 if (android.speech.SpeechRecognizer.isRecognitionAvailable(context)) {
@@ -1722,13 +1808,14 @@ fun VoiceInputView(
             if (recognizer != null) {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (isArabic) "ar-SA" else "en-US")
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (voiceLangArabic) "ar-SA" else "en-US")
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                 }
                 recognizer.setRecognitionListener(object : RecognitionListener {
                     override fun onReadyForSpeech(params: Bundle?) {
                         isListening = true
-                        statusText = "جاري الاستماع... تحدث الآن بصوت واضح"
+                        statusText = "جاري الاستماع... تحدث الآن"
                     }
                     override fun onBeginningOfSpeech() {
                         statusText = "جاري التقاط الصوت..."
@@ -1737,18 +1824,25 @@ fun VoiceInputView(
                     override fun onBufferReceived(buffer: ByteArray?) {}
                     override fun onEndOfSpeech() {
                         isListening = false
-                        statusText = "تم التقاط الصوت! اضغط إدراج"
+                        statusText = "تم التقاط الصوت! اضغط إدراج ✓"
                     }
                     override fun onError(error: Int) {
                         isListening = false
-                        statusText = "اضغط على المايك أو اختر عبارة جاهزة"
+                        statusText = when (error) {
+                            android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "يرجى منح إذن الميكروفون"
+                            android.speech.SpeechRecognizer.ERROR_NO_MATCH -> "لم يتم فهم الصوت، تحدث مجدداً"
+                            android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "انتهت المهلة، اضغط للتحدث"
+                            android.speech.SpeechRecognizer.ERROR_NETWORK,
+                            android.speech.SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "تحقق من اتصال الإنترنت"
+                            else -> "اضغط المايك أو اختر عبارة جاهزة"
+                        }
                     }
                     override fun onResults(results: Bundle?) {
                         isListening = false
                         val matches = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
                         if (!matches.isNullOrEmpty()) {
                             recognizedText = matches[0]
-                            statusText = "تم التعرف بنجاح ✓"
+                            statusText = "تم التعرف بنجاح ✓ اضغط إدراج"
                         }
                     }
                     override fun onPartialResults(partialResults: Bundle?) {
@@ -1763,11 +1857,11 @@ fun VoiceInputView(
                 isListening = true
                 statusText = "جاري فتح الميكروفون..."
             } else {
-                statusText = "اختر من العبارات السريعة أدناه أو تحدث"
+                statusText = "خدمة التعرف غير متوفرة، اختر من العبارات"
             }
         } catch (e: Exception) {
             isListening = false
-            statusText = "تحدث أو اضغط على إحدى العبارات:"
+            statusText = "اضغط على المايك للتحدث أو اختر عبارة"
         }
     }
 
@@ -1779,7 +1873,9 @@ fun VoiceInputView(
     }
 
     DisposableEffect(Unit) {
-        startListening()
+        if (hasAudioPermission) {
+            startListening()
+        }
         onDispose {
             try {
                 speechRecognizer?.destroy()
@@ -1811,29 +1907,53 @@ fun VoiceInputView(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "الكتابة بالصوت (Voice Typing)",
+                    text = "الكتابة بالصوت",
                     color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
-                    .clickable(onClick = {
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Language toggle (عربي / English)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor)),
+                    modifier = Modifier.clickable {
+                        voiceLangArabic = !voiceLangArabic
                         stopListening()
-                        onClose()
-                    }),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
+                    }
+                ) {
+                    Text(
+                        text = if (voiceLangArabic) "🇸🇦 عربي" else "🇺🇸 EN",
+                        color = Color(theme.accentColor),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                        .clickable(onClick = {
+                            stopListening()
+                            onClose()
+                        }),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 
@@ -1863,13 +1983,38 @@ fun VoiceInputView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = statusText,
                 color = if (isListening) Color(theme.accentColor) else Color(theme.subtextColor),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
+
+            if (!hasAudioPermission) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFEF4444),
+                    modifier = Modifier.clickable {
+                        try {
+                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = android.net.Uri.fromParts("package", context.packageName, null)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
+                    }
+                ) {
+                    Text(
+                        text = "⚙️ فتح الإعدادات لمنح إذن الميكروفون",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            }
 
             if (recognizedText.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))

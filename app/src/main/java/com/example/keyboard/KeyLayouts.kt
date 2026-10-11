@@ -173,7 +173,7 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    val symbolsRow2 = listOf("@", "#", "/", "+", "%", "_", ".", "-", "*", ":").map {
+    val symbolsRow2 = listOf("@", "#", "/", "+", "%", "ـ", ".", "-", "*", ":").map {
         KeyModel(KeyType.Character(it))
     }
 

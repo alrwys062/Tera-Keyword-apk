@@ -112,6 +112,7 @@ class TurboKeyboardService : InputMethodService(),
                     editorInfo = currentEi ?: currentInputEditorInfo,
                     getCurrentEditorInfo = { currentInputEditorInfo },
                     onServiceEnter = { performServiceEnter() },
+                    onServiceNewline = { performServiceNewline() },
                     onServiceDelete = { performServiceDelete() },
                     onVoiceRequested = {
                         // Voice view is activated directly in toolbar, or fallback to intent
@@ -308,6 +309,24 @@ class TurboKeyboardService : InputMethodService(),
                     currentInputConnection?.commitText("\n", 1)
                 } catch (_: Exception) {}
             }
+        }
+    }
+
+    private fun performServiceNewline() {
+        val ic = currentInputConnection
+        try {
+            if (ic != null) {
+                val committed = ic.commitText("\n", 1)
+                if (!committed) {
+                    sendKeyChar('\n')
+                }
+            } else {
+                sendKeyChar('\n')
+            }
+        } catch (e: Exception) {
+            try {
+                sendKeyChar('\n')
+            } catch (_: Exception) {}
         }
     }
 

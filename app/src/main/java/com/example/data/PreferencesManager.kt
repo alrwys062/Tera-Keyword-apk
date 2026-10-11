@@ -43,6 +43,8 @@ class PreferencesManager(context: Context) {
             defaultLanguage = prefs.getString("defaultLanguage", "ar") ?: "ar",
             swipeSpaceSwitchLanguage = prefs.getBoolean("swipeSpaceSwitchLanguage", true),
             enterLongPressTranslateEnabled = prefs.getBoolean("enterLongPressTranslateEnabled", true),
+            enterLongPressNewlineEnabled = prefs.getBoolean("enterLongPressNewlineEnabled", true),
+            emojiSizeScale = prefs.getFloat("emojiSizeScale", 1.0f),
             showDualHints = prefs.getBoolean("showDualHints", true),
             clipboardCloseOnPaste = prefs.getBoolean("clipboardCloseOnPaste", true),
             clipboardSaveForever = prefs.getBoolean("clipboardSaveForever", true),
@@ -108,6 +110,8 @@ class PreferencesManager(context: Context) {
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
             .putBoolean("enterLongPressTranslateEnabled", settings.enterLongPressTranslateEnabled)
+            .putBoolean("enterLongPressNewlineEnabled", settings.enterLongPressNewlineEnabled)
+            .putFloat("emojiSizeScale", settings.emojiSizeScale)
             .putBoolean("showDualHints", settings.showDualHints)
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
             .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
@@ -531,6 +535,14 @@ class PreferencesManager(context: Context) {
         val arr = JSONArray()
         list.forEach { arr.put(it) }
         prefs.edit().putString("custom_top_emojis_list", arr.toString()).apply()
+    }
+
+    fun getEmojiSizeScale(): Float {
+        return prefs.getFloat("emojiSizeScale", 1.0f)
+    }
+
+    fun saveEmojiSizeScale(scale: Float) {
+        prefs.edit().putFloat("emojiSizeScale", scale).apply()
     }
 }
 

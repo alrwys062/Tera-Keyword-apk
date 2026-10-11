@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -35,7 +36,8 @@ import com.example.model.KeyboardSettings
 import com.example.model.TextShortcut
 import com.example.model.ThemePresets
 import com.example.sound.KeyboardSoundEngine
-import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -320,6 +322,16 @@ fun SettingsScreen(
                     subtitle = "النسخ الإحتياطي للحافظة والإختصارات واستعادتها",
                     icon = Icons.Outlined.CloudUpload,
                     onClick = { activeDialog = "BACKUP" }
+                )
+            }
+
+            // 14. قنوات التليجرام والتواصل
+            item {
+                TransboardSettingsRow(
+                    title = "قنوات التليجرام والتواصل المباشر",
+                    subtitle = "قناة أبو صالح (@Abu2Saleh) وبوت الدعم (@qweqwe2019bot2bot)",
+                    icon = Icons.Outlined.Send,
+                    onClick = { activeDialog = "TELEGRAM_CHANNELS" }
                 )
             }
         }
@@ -1248,6 +1260,44 @@ fun SettingsScreen(
                                     Text("تخصيص الابتسامات في الصف العلوي...", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF8E9BAE), modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+
+                    Divider(color = Color(0xFF28364F), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 6.dp))
+
+                    // التحكم في حجم الفيسات والإيموجي
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Text("التحكم في حجم الفيسات والإيموجي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                "صغير" to 0.85f,
+                                "متوسط" to 1.0f,
+                                "كبير" to 1.25f,
+                                "ضخم" to 1.5f
+                            ).forEach { (label, scale) ->
+                                val isSelected = kotlin.math.abs(settings.emojiSizeScale - scale) < 0.12f
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                    border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color(0xFF28364F)),
+                                    modifier = Modifier.weight(1f).clickable {
+                                        updateSettings(settings.copy(emojiSizeScale = scale))
+                                    }
+                                ) {
+                                    Text(
+                                        text = label,
+                                        color = if (isSelected) Color(0xFF00E5FF) else Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 6.dp)
+                                    )
+                                }
                             }
                         }
                     }

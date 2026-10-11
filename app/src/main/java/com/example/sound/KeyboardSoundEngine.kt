@@ -5,33 +5,27 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
-import android.os.Build
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * Ultra-Responsive, Zero-Latency Keyboard Audio Engine.
- * - Completely non-blocking: all audio playback runs on dedicated background threads.
- * - Pure in-memory AudioTrack synthesis: no media decoders / CCodec / Codec2 HAL allocations.
- * - Zero UI Thread blocking to guarantee 120 FPS buttery smooth typing without dropped letters.
+ * Ultra-Responsive, Zero-Stutter Polyphonic Audio Engine for Keyboard Clicks.
+ * - MODE_STATIC AudioTrack pooling: sample is pre-loaded directly in native hardware buffer.
+ * - Zero streaming thread underruns: clicks never cut off ("لا يتقطع") during fast typing.
+ * - Round-robin multi-voice polyphony per sound: 4 simultaneous tracks allow lightning-fast typing.
+ * - Crisp, loud, tactile waveforms tuned for iOS 16 Tock, Mechanical Switch, Water Drops, and more.
  */
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
     private const val SAMPLE_RATE = 44100
+    private const val POOL_SIZE_PER_VOICE = 4
 
     private var audioManager: AudioManager? = null
     private var appContext: Context? = null
-
-    // Single-threaded high-priority audio executor for instant non-blocking audio dispatching
-    private val audioExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "KeyboardSoundThread").apply {
-            priority = Thread.MAX_PRIORITY
-        }
-    }
 
     const val PROFILE_IOS_16 = "ios_16"
     const val PROFILE_MECHANICAL = "mechanical"
@@ -61,14 +55,76 @@ object KeyboardSoundEngine {
         val nameEn: String
     )
 
-    private const val TRACK_POOL_SIZE = 3
-
-    // Thread-safe cache of pre-synthesized PCM waveform samples (in-memory, zero file IO)
+    // Cached PCM arrays
     private val cachedPcm = ConcurrentHashMap<String, ShortArray>()
 
-    // Pool of streaming AudioTracks for instant multi-voice polyphony (no clipping, zero latency)
-    private val streamTracks = arrayOfNulls<AudioTrack>(TRACK_POOL_SIZE)
-    private var roundRobinIndex = 0
+    // Pool of static AudioTracks per sound key
+    private class StaticVoicePool(val pcm: ShortArray) {
+        val tracks = Array(POOL_SIZE_PER_VOICE) { createTrack(pcm) }
+        val index = AtomicInteger(0)
+
+        fun play(volume: Float) {
+            val idx = (index.getAndIncrement() and 0x7FFFFFFF) % POOL_SIZE_PER_VOICE
+            val track = tracks[idx] ?: return
+            try {
+                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                    track.stop()
+                }
+                track.reloadStaticData()
+                track.setVolume(volume)
+                track.play()
+            } catch (e: Throwable) {
+                // If track had an error, try recreating it
+                try {
+                    track.stop()
+                    track.reloadStaticData()
+                    track.play()
+                } catch (_: Throwable) {}
+            }
+        }
+
+        fun release() {
+            for (track in tracks) {
+                try {
+                    track?.stop()
+                    track?.release()
+                } catch (_: Throwable) {}
+            }
+        }
+
+        companion object {
+            private fun createTrack(pcm: ShortArray): AudioTrack? {
+                return try {
+                    val audioAttributes = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+
+                    val audioFormat = AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(SAMPLE_RATE)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build()
+
+                    val bufferSizeInBytes = pcm.size * 2
+                    val track = AudioTrack.Builder()
+                        .setAudioAttributes(audioAttributes)
+                        .setAudioFormat(audioFormat)
+                        .setBufferSizeInBytes(bufferSizeInBytes)
+                        .setTransferMode(AudioTrack.MODE_STATIC)
+                        .build()
+
+                    track.write(pcm, 0, pcm.size)
+                    track
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Failed to create static AudioTrack", e)
+                    null
+                }
+            }
+        }
+    }
+
+    private val voicePools = ConcurrentHashMap<String, StaticVoicePool>()
 
     @Synchronized
     fun initialize(context: Context) {
@@ -81,84 +137,29 @@ object KeyboardSoundEngine {
             } catch (_: Throwable) {}
         }
 
-        // Pre-warm PCM and audio stream tracks in background
-        audioExecutor.execute {
+        // Preload commonly used sounds in background
+        Thread {
             try {
-                // Pre-generate standard sounds
-                getPcmForSoundKey(PROFILE_IOS_16)
-                getPcmForSoundKey(PROFILE_MECHANICAL)
-                getPcmForSoundKey("special_space")
-                getPcmForSoundKey("special_delete")
-
-                // Pre-initialize stream tracks
-                for (i in 0 until TRACK_POOL_SIZE) {
-                    getStreamTrack(i)
-                }
+                getOrCreatePool(PROFILE_IOS_16)
+                getOrCreatePool(PROFILE_MECHANICAL)
+                getOrCreatePool(PROFILE_MODERN_SOFT)
+                getOrCreatePool(PROFILE_WATER_DROP)
+                getOrCreatePool("special_space")
+                getOrCreatePool("special_delete")
             } catch (_: Throwable) {}
-        }
+        }.start()
     }
 
-    private fun getStreamTrack(index: Int): AudioTrack? {
-        val safeIndex = Math.floorMod(index, TRACK_POOL_SIZE)
-        val existing = streamTracks[safeIndex]
-        if (existing != null && existing.state == AudioTrack.STATE_INITIALIZED) {
-            return existing
+    private fun getOrCreatePool(key: String): StaticVoicePool {
+        return voicePools.computeIfAbsent(key) {
+            val pcm = cachedPcm.computeIfAbsent(it) { k -> generatePcmForKey(k) }
+            StaticVoicePool(pcm)
         }
-
-        synchronized(streamTracks) {
-            val checkAgain = streamTracks[safeIndex]
-            if (checkAgain != null && checkAgain.state == AudioTrack.STATE_INITIALIZED) {
-                return checkAgain
-            }
-
-            return try {
-                try {
-                    existing?.release()
-                } catch (_: Throwable) {}
-
-                val minBuf = AudioTrack.getMinBufferSize(
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT
-                )
-                val bufferSize = maxOf(minBuf * 2, 4096)
-
-                val audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-
-                val audioFormat = AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(SAMPLE_RATE)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-
-                val track = AudioTrack.Builder()
-                    .setAudioAttributes(audioAttributes)
-                    .setAudioFormat(audioFormat)
-                    .setBufferSizeInBytes(bufferSize)
-                    .setTransferMode(AudioTrack.MODE_STREAM)
-                    .build()
-
-                track.play()
-                streamTracks[safeIndex] = track
-                track
-            } catch (e: Throwable) {
-                Log.w(TAG, "Failed to create stream AudioTrack", e)
-                null
-            }
-        }
-    }
-
-    private fun getPcmForSoundKey(key: String): ShortArray {
-        return cachedPcm.computeIfAbsent(key) { generatePcmForKey(it) }
     }
 
     /**
-     * Plays key sound with ZERO UI latency (asynchronous dispatch to dedicated audio thread).
-     * Pure in-memory AudioTrack stream: requires zero MediaCodec/CCodec hardware instances,
-     * routes through STREAM_MUSIC (USAGE_MEDIA) to guarantee loud, clear sound even when system touch sound is off.
+     * Plays key sound with ZERO UI latency, NO stutter, and NO cut-offs.
+     * Fully polyphonic via pre-loaded MODE_STATIC hardware buffers.
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -167,53 +168,33 @@ object KeyboardSoundEngine {
         isSpace: Boolean = false,
         isDelete: Boolean = false
     ) {
-        val safeVolume = volume.coerceIn(0.1f, 1.0f)
+        val safeVolume = volume.coerceIn(0.15f, 1.0f)
+
+        // Android system default clicks
+        if (profile == PROFILE_SYSTEM_DEFAULT) {
+            try {
+                val fx = when {
+                    isDelete -> AudioManager.FX_KEYPRESS_DELETE
+                    isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
+                    isSpecial -> AudioManager.FX_KEYPRESS_RETURN
+                    else -> AudioManager.FX_KEYPRESS_STANDARD
+                }
+                audioManager?.playSoundEffect(fx, safeVolume)
+            } catch (_: Throwable) {}
+            return
+        }
 
         val soundKey = when {
             isDelete -> "special_delete"
             isSpace -> "special_space"
-            isSpecial -> PROFILE_IOS_16
             else -> profile
         }
 
-        // Asynchronous non-blocking dispatch to prevent UI dropped frames during fast typing
-        audioExecutor.execute {
-            val pcm = getPcmForSoundKey(soundKey)
-            val scaledPcm = if (safeVolume >= 0.98f) {
-                pcm
-            } else {
-                val scaled = ShortArray(pcm.size)
-                for (i in pcm.indices) {
-                    scaled[i] = (pcm[i] * safeVolume).toInt().coerceIn(-32767, 32767).toShort()
-                }
-                scaled
-            }
-
-            try {
-                val idx = roundRobinIndex++
-                val track = getStreamTrack(idx)
-                if (track != null) {
-                    if (track.playState != AudioTrack.PLAYSTATE_PLAYING) {
-                        try {
-                            track.play()
-                        } catch (_: Throwable) {}
-                    }
-                    track.write(scaledPcm, 0, scaledPcm.size, AudioTrack.WRITE_NON_BLOCKING)
-                }
-            } catch (_: Throwable) {}
-
-            // Native system click effect when requested or as complementary tactile sound
-            if (profile == PROFILE_SYSTEM_DEFAULT) {
-                try {
-                    val fx = when {
-                        isDelete -> AudioManager.FX_KEYPRESS_DELETE
-                        isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
-                        isSpecial -> AudioManager.FX_KEYPRESS_RETURN
-                        else -> AudioManager.FX_KEYPRESS_STANDARD
-                    }
-                    audioManager?.playSoundEffect(fx, safeVolume)
-                } catch (_: Throwable) {}
-            }
+        try {
+            val pool = getOrCreatePool(soundKey)
+            pool.play(safeVolume)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error playing sound for $soundKey", e)
         }
     }
 
@@ -234,25 +215,10 @@ object KeyboardSoundEngine {
         }
     }
 
+    // --- SYNTHESIZED SOUND WAVEFORMS (Rich, punchy, loud, clear) ---
+
     private fun generateIosPcm(): ShortArray {
-        val durationMs = 38
-        val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
-        val pcm = ShortArray(numSamples)
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 110.0)
-            val attack = if (t < 0.002) (t / 0.002) else 1.0
-            val snap = 0.50 * sin(2.0 * PI * 2200.0 * t) * exp(-t * 350.0)
-            val body = 0.65 * sin(2.0 * PI * 750.0 * t) + 0.35 * sin(2.0 * PI * 1420.0 * t)
-            val sample = (snap + body) * decay * attack
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
-        }
-        return pcm
-    }
-
-    private fun generateMechanicalPcm(): ShortArray {
-        val durationMs = 45
+        val durationMs = 42
         val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
         val pcm = ShortArray(numSamples)
 
@@ -260,27 +226,44 @@ object KeyboardSoundEngine {
             val t = i.toDouble() / SAMPLE_RATE
             val decay = exp(-t * 90.0)
             val attack = if (t < 0.001) (t / 0.001) else 1.0
-            val click1 = 0.65 * sin(2.0 * PI * 3400.0 * t) * exp(-t * 400.0)
-            val click2 = 0.40 * sin(2.0 * PI * 1800.0 * t) * exp(-t * 150.0)
-            val thock = 0.35 * sin(2.0 * PI * 420.0 * t) * exp(-t * 80.0)
-            val sample = (click1 + click2 + thock) * decay * attack
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
+            val snap = 0.55 * sin(2.0 * PI * 2200.0 * t) * exp(-t * 280.0)
+            val body = 0.70 * sin(2.0 * PI * 750.0 * t) + 0.35 * sin(2.0 * PI * 1420.0 * t)
+            val sample = (snap + body) * decay * attack
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
         }
         return pcm
     }
 
-    private fun generateSoftPcm(): ShortArray {
-        val durationMs = 30
+    private fun generateMechanicalPcm(): ShortArray {
+        val durationMs = 48
         val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
         val pcm = ShortArray(numSamples)
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 140.0)
-            val attack = if (t < 0.003) (t / 0.003) else 1.0
-            val body = 0.85 * sin(2.0 * PI * 480.0 * t) + 0.25 * sin(2.0 * PI * 920.0 * t)
+            val decay = exp(-t * 75.0)
+            val attack = if (t < 0.0008) (t / 0.0008) else 1.0
+            val click1 = 0.75 * sin(2.0 * PI * 3400.0 * t) * exp(-t * 320.0)
+            val click2 = 0.45 * sin(2.0 * PI * 1800.0 * t) * exp(-t * 130.0)
+            val thock = 0.40 * sin(2.0 * PI * 420.0 * t) * exp(-t * 65.0)
+            val sample = (click1 + click2 + thock) * decay * attack
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
+        }
+        return pcm
+    }
+
+    private fun generateSoftPcm(): ShortArray {
+        val durationMs = 38
+        val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
+        val pcm = ShortArray(numSamples)
+
+        for (i in 0 until numSamples) {
+            val t = i.toDouble() / SAMPLE_RATE
+            val decay = exp(-t * 105.0)
+            val attack = if (t < 0.0015) (t / 0.0015) else 1.0
+            val body = 0.85 * sin(2.0 * PI * 540.0 * t) + 0.25 * sin(2.0 * PI * 1020.0 * t)
             val sample = body * decay * attack
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 31000).toInt().toShort()
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32400).toInt().toShort()
         }
         return pcm
     }
@@ -292,41 +275,43 @@ object KeyboardSoundEngine {
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val freq = 1200.0 + (t * 2200.0)
-            val decay = exp(-t * 60.0)
-            val sample = sin(2.0 * PI * freq * t) * decay
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 30000).toInt().toShort()
+            val freq = 1150.0 + (t * 2500.0)
+            val decay = exp(-t * 52.0)
+            val attack = if (t < 0.0015) (t / 0.0015) else 1.0
+            val sample = sin(2.0 * PI * freq * t) * decay * attack
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32500).toInt().toShort()
         }
         return pcm
     }
 
     private fun generatePopBubblePcm(): ShortArray {
-        val durationMs = 40
+        val durationMs = 44
         val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
         val pcm = ShortArray(numSamples)
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val freq = 800.0 + (t * 1800.0)
-            val decay = exp(-t * 95.0)
+            val freq = 780.0 + (t * 1950.0)
+            val decay = exp(-t * 80.0)
             val attack = if (t < 0.001) (t / 0.001) else 1.0
             val sample = sin(2.0 * PI * freq * t) * decay * attack
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
         }
         return pcm
     }
 
     private fun generateWoodBlockPcm(): ShortArray {
-        val durationMs = 42
+        val durationMs = 46
         val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
         val pcm = ShortArray(numSamples)
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 85.0)
-            val body = 0.7 * sin(2.0 * PI * 1100.0 * t) + 0.3 * sin(2.0 * PI * 650.0 * t)
-            val sample = body * decay
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
+            val decay = exp(-t * 70.0)
+            val attack = if (t < 0.001) (t / 0.001) else 1.0
+            val body = 0.75 * sin(2.0 * PI * 1100.0 * t) + 0.35 * sin(2.0 * PI * 650.0 * t)
+            val sample = body * decay * attack
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
         }
         return pcm
     }
@@ -338,10 +323,10 @@ object KeyboardSoundEngine {
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val freq = 2800.0 - (t * 2200.0)
-            val decay = exp(-t * 70.0)
+            val freq = 3000.0 - (t * 2400.0)
+            val decay = exp(-t * 60.0)
             val sample = sin(2.0 * PI * freq * t) * decay
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 30000).toInt().toShort()
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
         }
         return pcm
     }
@@ -353,25 +338,25 @@ object KeyboardSoundEngine {
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 75.0)
-            val metalClack = 0.5 * sin(2.0 * PI * 2900.0 * t) * exp(-t * 300.0)
-            val strikeBody = 0.5 * sin(2.0 * PI * 850.0 * t)
+            val decay = exp(-t * 65.0)
+            val metalClack = 0.55 * sin(2.0 * PI * 2900.0 * t) * exp(-t * 250.0)
+            val strikeBody = 0.50 * sin(2.0 * PI * 850.0 * t)
             val sample = (metalClack + strikeBody) * decay
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
         }
         return pcm
     }
 
     private fun generateSystemPcm(): ShortArray {
-        val durationMs = 28
+        val durationMs = 32
         val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
         val pcm = ShortArray(numSamples)
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 130.0)
-            val sample = sin(2.0 * PI * 1000.0 * t) * decay
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 31000).toInt().toShort()
+            val decay = exp(-t * 100.0)
+            val sample = sin(2.0 * PI * 1150.0 * t) * decay
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32400).toInt().toShort()
         }
         return pcm
     }
@@ -383,27 +368,28 @@ object KeyboardSoundEngine {
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 80.0)
-            val attack = if (t < 0.002) (t / 0.002) else 1.0
-            val thud = 0.7 * sin(2.0 * PI * 350.0 * t) + 0.3 * sin(2.0 * PI * 680.0 * t)
+            val decay = exp(-t * 65.0)
+            val attack = if (t < 0.0015) (t / 0.0015) else 1.0
+            val thud = 0.75 * sin(2.0 * PI * 340.0 * t) + 0.35 * sin(2.0 * PI * 680.0 * t)
             val sample = thud * decay * attack
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
         }
         return pcm
     }
 
     private fun generateDeletePcm(): ShortArray {
-        val durationMs = 40
+        val durationMs = 42
         val numSamples = (SAMPLE_RATE * (durationMs / 1000.0)).toInt()
         val pcm = ShortArray(numSamples)
 
         for (i in 0 until numSamples) {
             val t = i.toDouble() / SAMPLE_RATE
-            val decay = exp(-t * 95.0)
-            val click = 0.5 * sin(2.0 * PI * 1600.0 * t) * exp(-t * 200.0)
-            val body = 0.5 * sin(2.0 * PI * 520.0 * t)
-            val sample = (click + body) * decay
-            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32000).toInt().toShort()
+            val decay = exp(-t * 85.0)
+            val attack = if (t < 0.001) (t / 0.001) else 1.0
+            val snap = 0.65 * sin(2.0 * PI * 1650.0 * t) * exp(-t * 220.0)
+            val body = 0.50 * sin(2.0 * PI * 620.0 * t)
+            val sample = (snap + body) * decay * attack
+            pcm[i] = (sample.coerceIn(-1.0, 1.0) * 32600).toInt().toShort()
         }
         return pcm
     }

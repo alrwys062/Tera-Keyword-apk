@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
 import com.example.ui.components.NeonToolGridCard
 
 @Composable
@@ -39,6 +41,7 @@ fun ToolsScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val keyboardStatus = remember { com.example.utils.KeyboardStatusHelper.checkKeyboardStatus(context) }
+    var showVoiceDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -201,7 +204,7 @@ fun ToolsScreen(
                 icon = Icons.Outlined.Mic,
                 neonColor = Color(0xFF60A5FA),
                 modifier = Modifier.weight(1f),
-                onClick = onNavigateToVoice
+                onClick = { showVoiceDialog = true }
             )
             NeonToolGridCard(
                 title = "حافظة النصوص",
@@ -385,7 +388,222 @@ fun ToolsScreen(
             )
         }
 
+        // Voice Typing Dialog for testing and permission
+        if (showVoiceDialog) {
+            val hasAudioPerm = remember {
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.RECORD_AUDIO
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+            AlertDialog(
+                onDismissRequest = { showVoiceDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Mic, contentDescription = null, tint = Color(0xFF60A5FA))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("الكتابة بالصوت (Voice Typing)", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = if (hasAudioPerm) "✓ إذن الميكروفون مفعل ومتاح للاستخدام."
+                                   else "⚠️ إذن الميكروفون غير مفعل. يرجى تفعيله للتمكن من التحدث وتحويل الصوت إلى نص.",
+                            color = if (hasAudioPerm) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontSize = 13.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "طريقة الاستخدام:\n1. افتح الكيبورد في أي تطبيق (تليجرام، واتساب...)\n2. اضغط على أيقونة الميكروفون [🎙️] في شريط الأدوات العلوي للكيبورد\n3. تحدث بصوت واضح وسيقوم الكيبورد بكتابة النص فوراً!",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp
+                        )
+
+                        if (!hasAudioPerm) {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("⚙️ فتح الإعدادات لتفعيل الميكروفون", color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVoiceDialog = false }) {
+                        Text("تم", color = Color(0xFF60A5FA))
+                    }
+                },
+                containerColor = Color(0xFF141A28)
+            )
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
+
+        // Telegram Channels Section (قنوات التليجرام والتواصل المباشر مع المطور)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF131B2A),
+            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF0088CC).copy(alpha = 0.7f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0088CC)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Telegram",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "قنوات التليجرام والتواصل",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "تواصل معنا مباشرة عبر قنواتنا الرسمية",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 11.5.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Channel 1: Bot / Support
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/qweqwe2019bot2bot")).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF1A2438),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0088CC).copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "🤖 بوت وقناة الدعم والتواصل",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "@qweqwe2019bot2bot",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 11.sp
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0088CC)
+                        ) {
+                            Text(
+                                text = "دخول القناة",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Channel 2: Abu Saleh Channel
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Abu2Saleh")).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF1A2438),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0088CC).copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "📢 قناة أبو صالح الرسمية",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "@Abu2Saleh",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 11.sp
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0088CC)
+                        ) {
+                            Text(
+                                text = "دخول القناة",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         // Bottom customizable toolbar banner matching Screenshot 3
         Box(

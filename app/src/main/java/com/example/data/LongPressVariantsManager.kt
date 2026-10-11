@@ -94,6 +94,12 @@ object LongPressVariantsManager {
     )
 
     fun getVariants(char: String): List<String> {
+        if (char == "-" || char == "–" || char == "—") {
+            return listOf("ـ", "-", "—", "–", "•")
+        }
+        if (char == "_") {
+            return listOf("ـ", "_", "–", "—")
+        }
         val lower = char.lowercase()
         return arabicVariants[char]
             ?: arabicVariants[lower]

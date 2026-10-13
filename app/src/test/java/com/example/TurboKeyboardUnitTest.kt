@@ -101,4 +101,38 @@ class TurboKeyboardUnitTest {
         val tones = com.example.data.AiToneEngine.allTones
         assertTrue(tones.size >= 8)
     }
+
+    @Test
+    fun testFawazDecorations() {
+        // Test Fawaz 1
+        val fawaz1 = TextDecorator.arabicStyles.find { it.id == "fawaz_1" }
+        assertNotNull("Fawaz 1 must exist", fawaz1)
+        val fawaz1Decorated = fawaz1!!.transform("مرحبا")
+        assertTrue("Fawaz 1 contains connector", fawaz1Decorated.contains(TextDecorator.FAWAZ_1_CONNECTOR))
+        assertEquals("ـ͜إآ", TextDecorator.decorateChar("ا", "fawaz_1"))
+        assertTrue(TextDecorator.decorateChar("ج", "fawaz_1").contains("ًج"))
+
+        // Test Fawaz 2
+        val fawaz2 = TextDecorator.arabicStyles.find { it.id == "fawaz_2" }
+        assertNotNull("Fawaz 2 must exist", fawaz2)
+        val fawaz2Char = TextDecorator.decorateChar("ج", "fawaz_2")
+        assertEquals("جٰٛ", fawaz2Char)
+        assertEquals("ٲاٖ", TextDecorator.decorateChar("ا", "fawaz_2"))
+        assertEquals("مٰۧ", TextDecorator.decorateChar("م", "fawaz_2"))
+        assertEquals("رٰؔ", TextDecorator.decorateChar("ر", "fawaz_2"))
+        assertEquals("حٰٛ", TextDecorator.decorateChar("ح", "fawaz_2"))
+        assertEquals("بٰۧ", TextDecorator.decorateChar("ب", "fawaz_2"))
+
+        val fawaz2Decorated = fawaz2!!.transform("مرحبا")
+        assertEquals("مٰۧرٰؔحٰٛبٰۧٲاٖ", fawaz2Decorated)
+    }
+
+    @Test
+    fun testKeyboardSoundProfiles() {
+        val profiles = com.example.sound.KeyboardSoundEngine.AVAILABLE_PROFILES
+        assertTrue("Profiles count >= 8", profiles.size >= 8)
+        assertNotNull(profiles.find { it.id == com.example.sound.KeyboardSoundEngine.PROFILE_IOS_16 })
+        assertNotNull(profiles.find { it.id == com.example.sound.KeyboardSoundEngine.PROFILE_MECHANICAL })
+        assertNotNull(profiles.find { it.id == com.example.sound.KeyboardSoundEngine.PROFILE_WATER_DROP })
+    }
 }

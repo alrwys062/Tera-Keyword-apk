@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -36,7 +37,6 @@ import com.example.model.KeyboardSettings
 import com.example.model.TextShortcut
 import com.example.model.ThemePresets
 import com.example.sound.KeyboardSoundEngine
-import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
@@ -1300,6 +1300,21 @@ fun SettingsScreen(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF0F1522))
+                                .padding(vertical = 8.dp, horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            listOf("😊", "🔥", "❤️", "👍", "✨", "🚀", "👑").forEach { em ->
+                                Text(text = em, fontSize = (22 * settings.emojiSizeScale).sp)
+                            }
+                        }
                     }
 
                     Divider(color = Color(0xFF28364F), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 6.dp))
@@ -2561,24 +2576,189 @@ fun SettingsScreen(
         )
     }
 
-    // 13. BACKUP DIALOG
+    // 13. FULL BACKUP & RESTORE DIALOG (النسخ الاحتياطي والاستعادة لبيانات واعدادات التطبيق بالكامل)
     if (activeDialog == "BACKUP") {
+        var backupTab by remember { mutableStateOf("EXPORT") } // EXPORT or IMPORT
+        var restoreCodeInput by remember { mutableStateOf("") }
+        var isRestoring by remember { mutableStateOf(false) }
+
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("النسخ الاحتياطي والاستعادة", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.CloudUpload,
+                        contentDescription = null,
+                        tint = Color(0xFF00E5FF),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("النسخ الاحتياطي والاستعادة الكاملة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
             text = {
-                Column {
-                    Text("يمكنك حفظ نسخة احتياطية من كافة نصوص الحافظة المحفوظة والاختصارات المخصصة واستعادتها بأي وقت.", color = Color(0xFF8E9BAE), fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Button(
-                        onClick = {
-                            val backup = prefs.exportBackupJson()
-                            Toast.makeText(context, "تم حفظ النسخة الاحتياطية بنجاح (${backup.length} حرف)", Toast.LENGTH_SHORT).show()
-                        },
+                Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    // Tabs
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("إنشاء نسخة احتياطية الآن", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (backupTab == "EXPORT") Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(0xFF1E283A),
+                            border = BorderStroke(1.dp, if (backupTab == "EXPORT") Color(0xFF00E5FF) else Color(0xFF28364F)),
+                            modifier = Modifier.weight(1f).clickable { backupTab = "EXPORT" }
+                        ) {
+                            Text(
+                                text = "📤 إنشاء نسخة احتياطية",
+                                color = if (backupTab == "EXPORT") Color(0xFF00E5FF) else Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (backupTab == "IMPORT") Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(0xFF1E283A),
+                            border = BorderStroke(1.dp, if (backupTab == "IMPORT") Color(0xFF00E5FF) else Color(0xFF28364F)),
+                            modifier = Modifier.weight(1f).clickable { backupTab = "IMPORT" }
+                        ) {
+                            Text(
+                                text = "📥 استعادة نسخة سابقة",
+                                color = if (backupTab == "IMPORT") Color(0xFF00E5FF) else Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    if (backupTab == "EXPORT") {
+                        Text(
+                            text = "تشمل النسخة الاحتياطية كافة إعدادات التطبيق بالكامل:\n• الثيمات المخصصة وحجم الكيبورد\n• إعدادات الصوت والاهتزاز وحجم الفيسات\n• نصوص الحافظة والاختصارات المحفوظة\n• شريط الابتسامات المخصص وقاموس الكلمات",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 11.5.sp,
+                            lineHeight = 17.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Button 1: Copy to clipboard
+                        Button(
+                            onClick = {
+                                val backup = prefs.exportBackupJson()
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("TurboKeyboardBackup", backup)
+                                clipboard?.setPrimaryClip(clip)
+                                Toast.makeText(context, "📋 تم نسخ كود النسخة الاحتياطية للحافظة بنجاح!", Toast.LENGTH_LONG).show()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                        ) {
+                            Text("📋 نسخ كود النسخة الاحتياطية", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Button 2: Share via apps
+                        OutlinedButton(
+                            onClick = {
+                                val backup = prefs.exportBackupJson()
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, "نسخة احتياطية - كيبورد برو")
+                                    putExtra(Intent.EXTRA_TEXT, backup)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                try {
+                                    context.startActivity(Intent.createChooser(shareIntent, "مشاركة النسخة الاحتياطية").apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    })
+                                } catch (_: Exception) {}
+                            },
+                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.7f))
+                        ) {
+                            Text("📤 مشاركة وحفظ النسخة الاحتياطية", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    } else {
+                        Text(
+                            text = "قم بلصق كود النسخة الاحتياطية في الحقل أدناه لاستعادة جميع البيانات والإعدادات فوراً:",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 11.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Paste from clipboard button
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF1E283A),
+                                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                modifier = Modifier.clickable {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                    val text = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                                    if (text.isNotBlank()) {
+                                        restoreCodeInput = text
+                                        Toast.makeText(context, "تم لصق كود النسخة!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "الحافظة فارغة", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            ) {
+                                Text("📋 لصق من الحافظة", color = Color(0xFF38BDF8), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        OutlinedTextField(
+                            value = restoreCodeInput,
+                            onValueChange = { restoreCodeInput = it },
+                            placeholder = { Text("الصق كود النسخة الاحتياطية هنا...", color = Color(0xFF64748B), fontSize = 11.sp) },
+                            modifier = Modifier.fillMaxWidth().height(120.dp),
+                            maxLines = 6,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00E5FF),
+                                unfocusedBorderColor = Color(0xFF28364F),
+                                focusedContainerColor = Color(0xFF0F1522),
+                                unfocusedContainerColor = Color(0xFF0F1522)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Button(
+                            onClick = {
+                                if (restoreCodeInput.isBlank()) {
+                                    Toast.makeText(context, "يرجى لصق كود النسخة أولاً", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                isRestoring = true
+                                val success = prefs.restoreBackupJson(restoreCodeInput)
+                                isRestoring = false
+                                if (success) {
+                                    settings = prefs.getSettings()
+                                    Toast.makeText(context, "✅ تم استعادة كافة الإعدادات والبيانات بنجاح!", Toast.LENGTH_LONG).show()
+                                    activeDialog = null
+                                } else {
+                                    Toast.makeText(context, "❌ كود النسخة غير صالح أو تالف", Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                        ) {
+                            Text("✅ استعادة كافة البيانات والإعدادات الآن", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
             },

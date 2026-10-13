@@ -546,7 +546,7 @@ fun ClipboardDrawer(
                                     if (items.isNotEmpty()) {
                                         val first = items[0]
                                         onItemInserted(first.text)
-                                        prefs.deleteClipboardItem(first.id)
+                                        prefs.deleteClipboardItem(first.id, first.text)
                                         items = prefs.getClipboardItems(forceRefresh = true)
                                         onClose()
                                     }
@@ -697,7 +697,7 @@ fun ClipboardDrawer(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable {
-                                        prefs.deleteClipboardItem(clip.id)
+                                        prefs.deleteClipboardItem(clip.id, clip.text)
                                         items = prefs.getClipboardItems(forceRefresh = true)
                                         selectedClipForMenu = null
                                     }
@@ -912,28 +912,39 @@ fun EmojiPickerView(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            // Emoji Size Toggle (التحكم في حجم الفيسات والإيموجي)
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color(theme.keyBackgroundColor),
-                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
-                modifier = Modifier.clickable {
-                    val nextScale = when {
-                        emojiSizeScale < 0.9f -> 1.0f
-                        emojiSizeScale < 1.15f -> 1.3f
-                        emojiSizeScale < 1.4f -> 1.55f
-                        else -> 0.8f
-                    }
-                    emojiSizeScale = nextScale
-                    preferencesManager.saveEmojiSizeScale(nextScale)
-                }
+            // Emoji Size Controls (التحكم في حجم الفيسات والإيموجي: A- / الحجم / A+)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
+                    modifier = Modifier.clickable {
+                        val newScale = (emojiSizeScale - 0.2f).coerceAtLeast(0.75f)
+                        emojiSizeScale = newScale
+                        preferencesManager.saveEmojiSizeScale(newScale)
+                    }
                 ) {
-                    Text(text = "📏", fontSize = 11.sp)
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(text = "A-", color = Color(theme.accentColor), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 5.dp, vertical = 4.dp))
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
+                    modifier = Modifier.clickable {
+                        val nextScale = when {
+                            emojiSizeScale < 0.9f -> 1.0f
+                            emojiSizeScale < 1.15f -> 1.3f
+                            emojiSizeScale < 1.4f -> 1.55f
+                            else -> 0.8f
+                        }
+                        emojiSizeScale = nextScale
+                        preferencesManager.saveEmojiSizeScale(nextScale)
+                    }
+                ) {
                     Text(
                         text = when {
                             emojiSizeScale >= 1.45f -> "ضخم"
@@ -943,8 +954,22 @@ fun EmojiPickerView(
                         },
                         color = Color(theme.accentColor),
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                     )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
+                    modifier = Modifier.clickable {
+                        val newScale = (emojiSizeScale + 0.2f).coerceAtMost(1.6f)
+                        emojiSizeScale = newScale
+                        preferencesManager.saveEmojiSizeScale(newScale)
+                    }
+                ) {
+                    Text(text = "A+", color = Color(theme.accentColor), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 5.dp, vertical = 4.dp))
                 }
             }
 

@@ -70,4 +70,28 @@ class ExampleRobolectricTest {
     com.example.sound.KeyboardSoundEngine.playKeySound(isDelete = true, volume = 0.8f)
     com.example.sound.KeyboardSoundEngine.playKeySound(isSpecial = true, volume = 0.8f)
   }
+
+  @Test
+  fun `test delete clipboard first item and prevent resurrection`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val prefs = com.example.data.PreferencesManager(context)
+    val testText = "نص تجريبي أول في الحافظة"
+    prefs.addClipboardItem(testText)
+    val itemsBefore = prefs.getClipboardItems(forceRefresh = true)
+    assertEquals(testText, itemsBefore[0].text)
+
+    // Delete first item
+    prefs.deleteClipboardItem(itemsBefore[0].id, itemsBefore[0].text)
+    val itemsAfter = prefs.getClipboardItems(forceRefresh = true)
+    org.junit.Assert.assertFalse(itemsAfter.any { it.text == testText })
+
+    // Simulate system clipboard sync with the same text
+    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    cm.setPrimaryClip(android.content.ClipData.newPlainText("test", testText))
+    prefs.syncWithSystemClipboard(context)
+
+    // Verify it was NOT re-added because it was explicitly deleted
+    val itemsAfterSync = prefs.getClipboardItems(forceRefresh = true)
+    org.junit.Assert.assertFalse(itemsAfterSync.any { it.text == testText })
+  }
 }

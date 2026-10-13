@@ -1,7 +1,9 @@
 package com.example.data
 
+import android.content.ClipData
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import com.example.model.ClipboardItem
 import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
@@ -10,7 +12,7 @@ import com.example.model.ThemePresets
 import org.json.JSONArray
 import org.json.JSONObject
 
-class PreferencesManager(context: Context) {
+class PreferencesManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("turbo_keyboard_prefs", Context.MODE_PRIVATE)
 
     // Settings
@@ -326,9 +328,9 @@ class PreferencesManager(context: Context) {
                 val obj = arr.getJSONObject(i)
                 list.add(
                     ClipboardItem(
-                        id = obj.getString("id"),
+                        id = obj.optString("id", java.util.UUID.randomUUID().toString()).ifBlank { java.util.UUID.randomUUID().toString() },
                         text = obj.getString("text"),
-                        timestamp = obj.getLong("timestamp"),
+                        timestamp = obj.optLong("timestamp", System.currentTimeMillis()),
                         isPinned = obj.optBoolean("isPinned", false)
                     )
                 )
@@ -356,10 +358,51 @@ class PreferencesManager(context: Context) {
         prefs.edit().putString("clipboard_history", arr.toString()).commit()
     }
 
+    private fun getDeletedSystemClips(): MutableSet<String> {
+        val set = prefs.getStringSet("recently_deleted_system_clips", null) ?: emptySet()
+        return set.toMutableSet()
+    }
+
+    private fun addDeletedSystemClip(text: String) {
+        val set = getDeletedSystemClips()
+        set.add(text.trim())
+        val trimmedSet = if (set.size > 200) set.toList().takeLast(200).toSet() else set
+        prefs.edit().putStringSet("recently_deleted_system_clips", trimmedSet).apply()
+    }
+
+    private fun isDeletedSystemClip(text: String): Boolean {
+        return getDeletedSystemClips().contains(text.trim())
+    }
+
+    fun unblacklistSystemClip(text: String) {
+        val set = getDeletedSystemClips()
+        if (set.remove(text.trim())) {
+            prefs.edit().putStringSet("recently_deleted_system_clips", set).apply()
+        }
+    }
+
+    private fun clearFromSystemClipboardIfMatches(text: String) {
+        try {
+            val clipManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
+            if (clipManager.hasPrimaryClip()) {
+                val clip = clipManager.primaryClip
+                val clipText = clip?.getItemAt(0)?.text?.toString()?.trim()
+                if (clipText == text.trim()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        clipManager.clearPrimaryClip()
+                    } else {
+                        clipManager.setPrimaryClip(ClipData.newPlainText("", ""))
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     @Synchronized
     fun addClipboardItem(text: String, isPinned: Boolean = false) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
+        unblacklistSystemClip(trimmed)
         val current = getClipboardItems(forceRefresh = true).toMutableList()
         val existingIndex = current.indexOfFirst { it.text == trimmed }
         val finalPinned = if (existingIndex >= 0) (current[existingIndex].isPinned || isPinned) else isPinned
@@ -385,7 +428,10 @@ class PreferencesManager(context: Context) {
                 val item = clip.getItemAt(i)
                 val text = item?.text?.toString() ?: item?.coerceToText(context)?.toString()
                 if (!text.isNullOrBlank()) {
-                    addClipboardItem(text)
+                    val trimmed = text.trim()
+                    if (!isDeletedSystemClip(trimmed)) {
+                        addClipboardItem(trimmed)
+                    }
                 }
             }
         } catch (_: Exception) {}
@@ -400,15 +446,34 @@ class PreferencesManager(context: Context) {
     }
 
     @Synchronized
-    fun deleteClipboardItem(id: String) {
-        val current = getClipboardItems(forceRefresh = true).filterNot { it.id == id }
+    fun deleteClipboardItem(id: String, textToDelete: String? = null) {
+        val current = getClipboardItems(forceRefresh = true).toMutableList()
+        val target = current.firstOrNull { 
+            it.id == id || (textToDelete != null && it.text.trim() == textToDelete.trim())
+        }
+        val textToBlacklist = textToDelete?.trim() ?: target?.text?.trim()
+
+        current.removeAll { 
+            it.id == id || (textToBlacklist != null && it.text.trim() == textToBlacklist)
+        }
         saveClipboardItems(current)
+
+        if (!textToBlacklist.isNullOrBlank()) {
+            addDeletedSystemClip(textToBlacklist)
+            clearFromSystemClipboardIfMatches(textToBlacklist)
+        }
     }
 
     @Synchronized
     fun clearClipboardHistory() {
-        // Keep pinned only
-        val current = getClipboardItems(forceRefresh = true).filter { it.isPinned }
+        val all = getClipboardItems(forceRefresh = true)
+        val unpinned = all.filterNot { it.isPinned }
+        for (item in unpinned) {
+            val t = item.text.trim()
+            addDeletedSystemClip(t)
+            clearFromSystemClipboardIfMatches(t)
+        }
+        val current = all.filter { it.isPinned }
         saveClipboardItems(current)
     }
 
@@ -484,31 +549,100 @@ class PreferencesManager(context: Context) {
         prefs.edit().putString("recent_emojis", current.take(32).joinToString(",")).apply()
     }
 
-    // Backup & Restore
+    // Full App Backup & Restore (النسخ الاحتياطي والاستعادة لبيانات واعدادات التطبيق بالكامل)
     fun exportBackupJson(): String {
         val root = JSONObject().apply {
-            put("clipboard", JSONArray(prefs.getString("clipboard_history", "[]")))
-            put("shortcuts", JSONArray(prefs.getString("text_shortcuts_list", "[]")))
-            put("settings", JSONObject().apply {
-                val s = getSettings()
-                put("vibrationEnabled", s.vibrationEnabled)
-                put("soundEnabled", s.soundEnabled)
-                put("numberRowEnabled", s.numberRowEnabled)
-                put("keyboardLayoutStyle", s.keyboardLayoutStyle)
-            })
+            put("app_id", "com.example.keyboard")
+            put("app_name", "كيبورد برو")
+            put("backup_version", 2)
+            put("timestamp", System.currentTimeMillis())
+
+            // 1. All settings & preferences
+            val allPrefsObj = JSONObject()
+            prefs.all.forEach { (k, v) ->
+                if (v != null) allPrefsObj.put(k, v)
+            }
+            put("all_preferences", allPrefsObj)
+
+            // 2. User personal dictionary
+            try {
+                val dictPrefs = context.getSharedPreferences("turbo_user_dictionary", Context.MODE_PRIVATE)
+                val dictObj = JSONObject()
+                dictPrefs.all.forEach { (k, v) -> if (v != null) dictObj.put(k, v) }
+                put("user_dictionary", dictObj)
+            } catch (_: Exception) {}
+
+            // 3. Recent emojis
+            try {
+                val emojiPrefs = context.getSharedPreferences("turbo_recent_emojis_prefs", Context.MODE_PRIVATE)
+                val emojiObj = JSONObject()
+                emojiPrefs.all.forEach { (k, v) -> if (v != null) emojiObj.put(k, v) }
+                put("recent_emojis", emojiObj)
+            } catch (_: Exception) {}
         }
-        return root.toString()
+        return root.toString(2)
     }
 
     fun restoreBackupJson(jsonString: String): Boolean {
         return try {
             val root = JSONObject(jsonString)
-            if (root.has("clipboard")) {
-                prefs.edit().putString("clipboard_history", root.getJSONArray("clipboard").toString()).apply()
+            val editor = prefs.edit()
+
+            if (root.has("all_preferences")) {
+                val allPrefs = root.getJSONObject("all_preferences")
+                val keys = allPrefs.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    when (val value = allPrefs.get(key)) {
+                        is Boolean -> editor.putBoolean(key, value)
+                        is Int -> editor.putInt(key, value)
+                        is Long -> editor.putLong(key, value)
+                        is Double -> editor.putFloat(key, value.toFloat())
+                        is String -> editor.putString(key, value)
+                        else -> editor.putString(key, value.toString())
+                    }
+                }
+            } else {
+                // Fallback for v1 backups
+                if (root.has("clipboard")) {
+                    editor.putString("clipboard_history", root.getJSONArray("clipboard").toString())
+                }
+                if (root.has("shortcuts")) {
+                    editor.putString("text_shortcuts_list", root.getJSONArray("shortcuts").toString())
+                }
             }
-            if (root.has("shortcuts")) {
-                prefs.edit().putString("text_shortcuts_list", root.getJSONArray("shortcuts").toString()).apply()
+            editor.commit()
+
+            // Restore user dictionary
+            if (root.has("user_dictionary")) {
+                try {
+                    val dictPrefs = context.getSharedPreferences("turbo_user_dictionary", Context.MODE_PRIVATE)
+                    val dictEditor = dictPrefs.edit()
+                    val dictObj = root.getJSONObject("user_dictionary")
+                    val keys = dictObj.keys()
+                    while (keys.hasNext()) {
+                        val k = keys.next()
+                        dictEditor.putString(k, dictObj.optString(k, ""))
+                    }
+                    dictEditor.commit()
+                } catch (_: Exception) {}
             }
+
+            // Restore recent emojis
+            if (root.has("recent_emojis")) {
+                try {
+                    val emojiPrefs = context.getSharedPreferences("turbo_recent_emojis_prefs", Context.MODE_PRIVATE)
+                    val emEditor = emojiPrefs.edit()
+                    val emObj = root.getJSONObject("recent_emojis")
+                    val keys = emObj.keys()
+                    while (keys.hasNext()) {
+                        val k = keys.next()
+                        emEditor.putString(k, emObj.optString(k, ""))
+                    }
+                    emEditor.commit()
+                } catch (_: Exception) {}
+            }
+
             true
         } catch (e: Exception) {
             false

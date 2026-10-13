@@ -244,8 +244,8 @@ fun ClipboardScreen(
 
                             IconButton(
                                 onClick = {
-                                    prefs.deleteClipboardItem(clip.id)
-                                    items = prefs.getClipboardItems()
+                                    prefs.deleteClipboardItem(clip.id, clip.text)
+                                    items = prefs.getClipboardItems(forceRefresh = true)
                                 }
                             ) {
                                 Icon(
@@ -296,8 +296,8 @@ fun ClipboardScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable {
-                                        prefs.deleteClipboardItem(clip.id)
-                                        items = prefs.getClipboardItems()
+                                        prefs.deleteClipboardItem(clip.id, clip.text)
+                                        items = prefs.getClipboardItems(forceRefresh = true)
                                         selectedClipForFloatingMenu = null
                                         Toast.makeText(context, "تم حذف النص", Toast.LENGTH_SHORT).show()
                                     }

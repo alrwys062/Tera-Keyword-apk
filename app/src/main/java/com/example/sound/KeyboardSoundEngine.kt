@@ -5,7 +5,10 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.media.SoundPool
 import android.util.Log
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.PI
@@ -13,10 +16,9 @@ import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * Ultra-Responsive, Zero-Stutter Polyphonic Audio Engine for Keyboard Clicks.
- * - MODE_STATIC AudioTrack pooling: sample is pre-loaded directly in native hardware buffer.
- * - Zero streaming thread underruns: clicks never cut off ("لا يتقطع") during fast typing.
- * - Round-robin multi-voice polyphony per sound: 4 simultaneous tracks allow lightning-fast typing.
+ * Ultra-Responsive, Zero-Stutter Audio Engine for Keyboard Clicks.
+ * - Hybrid Architecture: Primary SoundPool hardware audio + Polyphonic AudioTrack buffers + AudioManager fallback.
+ * - Zero latency: Clicks never cut off, never mute unexpectedly on OEM devices.
  * - Crisp, loud, tactile waveforms tuned for iOS 16 Tock, Mechanical Switch, Water Drops, and more.
  */
 object KeyboardSoundEngine {
@@ -26,6 +28,8 @@ object KeyboardSoundEngine {
 
     private var audioManager: AudioManager? = null
     private var appContext: Context? = null
+    private var soundPool: SoundPool? = null
+    private val soundPoolIds = ConcurrentHashMap<String, Int>()
 
     const val PROFILE_IOS_16 = "ios_16"
     const val PROFILE_MECHANICAL = "mechanical"
@@ -63,23 +67,28 @@ object KeyboardSoundEngine {
         val tracks = Array(POOL_SIZE_PER_VOICE) { createTrack(pcm) }
         val index = AtomicInteger(0)
 
-        fun play(volume: Float) {
+        fun play(volume: Float): Boolean {
             val idx = (index.getAndIncrement() and 0x7FFFFFFF) % POOL_SIZE_PER_VOICE
-            val track = tracks[idx] ?: return
-            try {
-                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                    track.stop()
-                }
-                track.reloadStaticData()
-                track.setVolume(volume)
-                track.play()
-            } catch (e: Throwable) {
-                // If track had an error, try recreating it
+            var track = tracks[idx]
+            if (track == null || track.state != AudioTrack.STATE_INITIALIZED) {
+                track = createTrack(pcm)
+                tracks[idx] = track
+            }
+            val targetTrack = track ?: return false
+            return try {
                 try {
-                    track.stop()
-                    track.reloadStaticData()
-                    track.play()
+                    targetTrack.pause()
+                    targetTrack.flush()
                 } catch (_: Throwable) {}
+                try {
+                    targetTrack.reloadStaticData()
+                } catch (_: Throwable) {}
+                targetTrack.setVolume(volume)
+                targetTrack.play()
+                true
+            } catch (e: Throwable) {
+                Log.e(TAG, "Error playing AudioTrack", e)
+                false
             }
         }
 
@@ -95,6 +104,22 @@ object KeyboardSoundEngine {
         companion object {
             private fun createTrack(pcm: ShortArray): AudioTrack? {
                 return try {
+                    val minBufferSize = AudioTrack.getMinBufferSize(
+                        SAMPLE_RATE,
+                        AudioFormat.CHANNEL_OUT_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT
+                    )
+                    val requiredBytes = maxOf(pcm.size * 2, if (minBufferSize > 0) minBufferSize else 4096)
+                    val requiredSamples = requiredBytes / 2
+
+                    val paddedPcm = if (pcm.size < requiredSamples) {
+                        val padded = ShortArray(requiredSamples)
+                        System.arraycopy(pcm, 0, padded, 0, pcm.size)
+                        padded
+                    } else {
+                        pcm
+                    }
+
                     val audioAttributes = AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -106,15 +131,18 @@ object KeyboardSoundEngine {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                         .build()
 
-                    val bufferSizeInBytes = pcm.size * 2
                     val track = AudioTrack.Builder()
                         .setAudioAttributes(audioAttributes)
                         .setAudioFormat(audioFormat)
-                        .setBufferSizeInBytes(bufferSizeInBytes)
+                        .setBufferSizeInBytes(paddedPcm.size * 2)
                         .setTransferMode(AudioTrack.MODE_STATIC)
                         .build()
 
-                    track.write(pcm, 0, pcm.size)
+                    val written = track.write(paddedPcm, 0, paddedPcm.size)
+                    if (written < 0) {
+                        Log.e(TAG, "AudioTrack write failed with code $written")
+                        return null
+                    }
                     track
                 } catch (e: Throwable) {
                     Log.e(TAG, "Failed to create static AudioTrack", e)
@@ -137,17 +165,113 @@ object KeyboardSoundEngine {
             } catch (_: Throwable) {}
         }
 
-        // Preload commonly used sounds in background
+        if (soundPool == null) {
+            try {
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                soundPool = SoundPool.Builder()
+                    .setMaxStreams(16)
+                    .setAudioAttributes(audioAttributes)
+                    .build()
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to create SoundPool", e)
+            }
+        }
+
+        // Preload sounds into SoundPool and AudioTrack pool in background
         Thread {
             try {
-                getOrCreatePool(PROFILE_IOS_16)
-                getOrCreatePool(PROFILE_MECHANICAL)
-                getOrCreatePool(PROFILE_MODERN_SOFT)
-                getOrCreatePool(PROFILE_WATER_DROP)
-                getOrCreatePool("special_space")
-                getOrCreatePool("special_delete")
+                val soundDir = File(app.cacheDir, "sounds").apply { mkdirs() }
+                val keysToLoad = AVAILABLE_PROFILES.map { it.id } + listOf("special_space", "special_delete")
+
+                for (key in keysToLoad) {
+                    if (key == PROFILE_SYSTEM_DEFAULT) continue
+                    try {
+                        val pcm = cachedPcm.computeIfAbsent(key) { generatePcmForKey(it) }
+                        val wavFile = File(soundDir, "$key.wav")
+                        if (!wavFile.exists() || wavFile.length() < 100L) {
+                            val wavBytes = pcmToWav(pcm)
+                            FileOutputStream(wavFile).use { it.write(wavBytes) }
+                        }
+                        soundPool?.let { sp ->
+                            val sId = sp.load(wavFile.absolutePath, 1)
+                            if (sId > 0) {
+                                soundPoolIds[key] = sId
+                            }
+                        }
+                        // Also initialize AudioTrack pool
+                        getOrCreatePool(key)
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Error preloading sound $key", e)
+                    }
+                }
             } catch (_: Throwable) {}
         }.start()
+    }
+
+    private fun pcmToWav(pcm: ShortArray): ByteArray {
+        val byteData = ByteArray(pcm.size * 2)
+        var idx = 0
+        for (s in pcm) {
+            val v = s.toInt()
+            byteData[idx++] = (v and 0xFF).toByte()
+            byteData[idx++] = ((v shr 8) and 0xFF).toByte()
+        }
+        val totalAudioLen = byteData.size
+        val totalDataLen = totalAudioLen + 36
+        val longSampleRate = SAMPLE_RATE.toLong()
+        val channels = 1
+        val byteRate = (16 * SAMPLE_RATE * channels / 8).toLong()
+
+        val header = ByteArray(44)
+        header[0] = 'R'.code.toByte()
+        header[1] = 'I'.code.toByte()
+        header[2] = 'F'.code.toByte()
+        header[3] = 'F'.code.toByte()
+        header[4] = (totalDataLen and 0xff).toByte()
+        header[5] = ((totalDataLen shr 8) and 0xff).toByte()
+        header[6] = ((totalDataLen shr 16) and 0xff).toByte()
+        header[7] = ((totalDataLen shr 24) and 0xff).toByte()
+        header[8] = 'W'.code.toByte()
+        header[9] = 'A'.code.toByte()
+        header[10] = 'V'.code.toByte()
+        header[11] = 'E'.code.toByte()
+        header[12] = 'f'.code.toByte()
+        header[13] = 'm'.code.toByte()
+        header[14] = 't'.code.toByte()
+        header[15] = ' '.code.toByte()
+        header[16] = 16
+        header[17] = 0
+        header[18] = 0
+        header[19] = 0
+        header[20] = 1 // PCM
+        header[21] = 0
+        header[22] = channels.toByte()
+        header[23] = 0
+        header[24] = (longSampleRate and 0xff).toByte()
+        header[25] = ((longSampleRate shr 8) and 0xff).toByte()
+        header[26] = ((longSampleRate shr 16) and 0xff).toByte()
+        header[27] = ((longSampleRate shr 24) and 0xff).toByte()
+        header[28] = (byteRate and 0xff).toByte()
+        header[29] = ((byteRate shr 8) and 0xff).toByte()
+        header[30] = ((byteRate shr 16) and 0xff).toByte()
+        header[31] = ((byteRate shr 24) and 0xff).toByte()
+        header[32] = (channels * 16 / 8).toByte()
+        header[33] = 0
+        header[34] = 16 // bits
+        header[35] = 0
+        header[36] = 'd'.code.toByte()
+        header[37] = 'a'.code.toByte()
+        header[38] = 't'.code.toByte()
+        header[39] = 'a'.code.toByte()
+        header[40] = (totalAudioLen and 0xff).toByte()
+        header[41] = ((totalAudioLen shr 8) and 0xff).toByte()
+        header[42] = ((totalAudioLen shr 16) and 0xff).toByte()
+        header[43] = ((totalAudioLen shr 24) and 0xff).toByte()
+
+        return header + byteData
     }
 
     private fun getOrCreatePool(key: String): StaticVoicePool {
@@ -159,7 +283,7 @@ object KeyboardSoundEngine {
 
     /**
      * Plays key sound with ZERO UI latency, NO stutter, and NO cut-offs.
-     * Fully polyphonic via pre-loaded MODE_STATIC hardware buffers.
+     * Uses SoundPool as primary engine, with AudioTrack and AudioManager fallbacks.
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -190,11 +314,35 @@ object KeyboardSoundEngine {
             else -> profile
         }
 
+        // 1. Try SoundPool (highest compatibility and speed)
+        val soundId = soundPoolIds[soundKey]
+        if (soundId != null && soundId > 0) {
+            try {
+                val streamId = soundPool?.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f) ?: 0
+                if (streamId > 0) return
+            } catch (_: Throwable) {}
+        }
+
+        // 2. Fallback to AudioTrack StaticVoicePool
+        var playedSuccessfully = false
         try {
             val pool = getOrCreatePool(soundKey)
-            pool.play(safeVolume)
+            playedSuccessfully = pool.play(safeVolume)
         } catch (e: Throwable) {
             Log.e(TAG, "Error playing sound for $soundKey", e)
+        }
+
+        // 3. Fallback to Android system default click
+        if (!playedSuccessfully) {
+            try {
+                val fx = when {
+                    isDelete -> AudioManager.FX_KEYPRESS_DELETE
+                    isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
+                    isSpecial -> AudioManager.FX_KEYPRESS_RETURN
+                    else -> AudioManager.FX_KEYPRESS_STANDARD
+                }
+                audioManager?.playSoundEffect(fx, safeVolume)
+            } catch (_: Throwable) {}
         }
     }
 

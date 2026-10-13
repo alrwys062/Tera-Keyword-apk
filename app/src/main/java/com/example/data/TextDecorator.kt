@@ -11,7 +11,10 @@ object TextDecorator {
     )
 
     val arabicStyles = listOf(
+        DecorationItem("fawaz_1", "زخرفة فواز 1", "Fawaz Ornate 1", "مــــ͡ــٰ̡ـرحــــ͡ــٰ̡ـبــــ͡ــٰ̡ــ͜إآ") { fawazStyle1(it) },
+        DecorationItem("fawaz_2", "زخرفة فواز 2", "Fawaz Ornate 2", "مٰۧرٰؔحٰٛبٰۧٲاٖ") { fawazStyle2(it) },
         DecorationItem("arabic_ashraf_1", "زخرفة أشرف المعربة 1", "Ashraf Ornate 1", "م֠ــۢ͜ـرح֠ــۢ͜ـب֠ــۢ͜ـآ") { ashrafStyle1(it) },
+        DecorationItem("arabic_ashraf_1_reversed", "عكس الكتابة بزخرفة أشرف 1", "Ashraf 1 Reversed", "ابـۢ͜ــ֠حـۢ͜ــ֠رمـۢ͜ــ֠") { ashrafStyle1Reversed(it) },
         DecorationItem("arabic_ashraf_2", "زخرفة أشرف الشدات 2", "Ashraf Ornate 2", "مـْـْْـْرحـْـْْـْبـٌـٌٌـٌُآ") { ashrafStyle2(it) },
         DecorationItem("arabic_ashraf_3", "زخرفة أشرف المدات 3", "Ashraf Ornate 3", "مــہٰٰ۫ـــرحــہٰٰ۫ـــبــہٰٰ۫ـــا") { ashrafStyle3(it) },
         DecorationItem("arabic_ashraf_4", "زخرفة أشرف الأقواس 4", "Ashraf Ornate 4", "م̯͡ر̯͡ح̯͡ب̯͡آ") { ashrafStyle4(it) },
@@ -56,9 +59,19 @@ object TextDecorator {
             "square" -> SQUARE_MAP[c] ?: charStr
             "circle" -> CIRCLE_MAP[c] ?: charStr
             "arabic_ornate" -> ARABIC_ORNATE_MAP[c] ?: charStr
+            "fawaz_1" -> {
+                when {
+                    c == 'ج' -> "ًج$FAWAZ_1_CONNECTOR"
+                    c in listOf('ا', 'أ', 'إ', 'آ') -> "ـ͜إآ"
+                    isArabicLetter(c) && !isNonConnectingArabic(c) -> "$c$FAWAZ_1_CONNECTOR"
+                    else -> charStr
+                }
+            }
+            "fawaz_2" -> FAWAZ_2_MAP[c] ?: charStr
             "arabic_kashida" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}\u0640" else charStr
             "arabic_tashkeel" -> if (isArabicLetter(c)) "${c}\u064E" else charStr
             "arabic_ashraf_1" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}֠ــۢ͜ـ" else charStr
+            "arabic_ashraf_1_reversed" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ـۢ͜ــ֠" else charStr
             "arabic_ashraf_2" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ـْـْْـْ" else charStr
             "arabic_ashraf_3" -> if (isArabicLetter(c) && !isNonConnectingArabic(c)) "${c}ــہٰٰ۫ـــ" else charStr
             "arabic_ashraf_4" -> if (isArabicLetter(c)) "${c}̯͡" else charStr
@@ -83,6 +96,89 @@ object TextDecorator {
         return c in listOf('ا', 'و', 'د', 'ذ', 'ر', 'ز', 'ة', 'ء', 'ى')
     }
 
+    const val FAWAZ_1_CONNECTOR = "ــــ͡ــٰ̡ـ"
+
+    val FAWAZ_2_MAP = mapOf(
+        'ج' to "جٰٛ",
+        'ح' to "حٰٛ",
+        'خ' to "خ",
+        'ه' to "هٰ̐ہ",
+        'ع' to "عٰۧ",
+        'غ' to "غ͜",
+        'ف' to "ف",
+        'ق' to "ق",
+        'ص' to "صٰۧ",
+        'ض' to "ض͜",
+        'ك' to "ګ",
+        'م' to "مٰۧ",
+        'ن' to "ن",
+        'ت' to "ت",
+        'ا' to "ٲاٖ",
+        'أ' to "ٲاٖ",
+        'إ' to "ٲاٖ",
+        'آ' to "ٲاٖ",
+        'ل' to "لٖ",
+        'ب' to "بٰۧ",
+        'ي' to "ي",
+        'ى' to "ي",
+        'س' to "سٖ۪",
+        'ش' to "شٖ۪",
+        'ث' to "ث",
+        'ة' to "ة",
+        'و' to "و۫ۧ",
+        'ر' to "رٰؔ",
+        'ز' to "زؔۧ",
+        'د' to "دٰۧ",
+        'ذ' to "ذٖ۪",
+        'ط' to "طٖ۪",
+        'ظ' to "ظٖ۪"
+    )
+
+    private fun fawazStyle1(text: String): String {
+        val sb = StringBuilder()
+        for (i in text.indices) {
+            val ch = text[i]
+            when {
+                ch == 'ج' -> {
+                    sb.append("ًج")
+                    if (i < text.length - 1 && isConnectingLetter(text[i + 1])) {
+                        sb.append(FAWAZ_1_CONNECTOR)
+                    }
+                }
+                ch in listOf('ا', 'أ', 'إ', 'آ') -> {
+                    sb.append("ـ͜إآ")
+                }
+                isArabicLetter(ch) -> {
+                    sb.append(ch)
+                    if (!isNonConnectingArabic(ch) && i < text.length - 1 && isConnectingLetter(text[i + 1])) {
+                        sb.append(FAWAZ_1_CONNECTOR)
+                    }
+                }
+                else -> {
+                    sb.append(ch)
+                }
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun isConnectingLetter(c: Char): Boolean {
+        return isArabicLetter(c) && !c.isWhitespace()
+    }
+
+    private fun fawazStyle2(text: String): String {
+        val sb = StringBuilder()
+        for (ch in text) {
+            val replacement = FAWAZ_2_MAP[ch]
+            if (replacement != null) {
+                sb.append(replacement)
+            } else {
+                sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
+
     private fun ashrafStyle1(text: String): String {
         val sb = StringBuilder()
         for (ch in text) {
@@ -92,6 +188,21 @@ object TextDecorator {
             }
         }
         return sb.toString()
+    }
+
+    private fun ashrafStyle1Reversed(text: String): String {
+        val words = text.split(" ")
+        return words.joinToString(" ") { word ->
+            val sb = StringBuilder()
+            val rev = word.reversed()
+            for (ch in rev) {
+                sb.append(ch)
+                if (isArabicLetter(ch) && !isNonConnectingArabic(ch)) {
+                    sb.append("ـۢ͜ــ֠")
+                }
+            }
+            sb.toString()
+        }
     }
 
     private fun ashrafStyle2(text: String): String {

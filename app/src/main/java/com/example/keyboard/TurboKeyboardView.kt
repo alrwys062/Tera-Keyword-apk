@@ -393,8 +393,7 @@ fun TurboKeyboardView(
         }
     }
 
-    fun sendEnter() {
-        performFeedback(isSpecial = true)
+    fun executeNormalEnter() {
         if (onServiceEnter != null) {
             onServiceEnter.invoke()
         } else {
@@ -456,6 +455,66 @@ fun TurboKeyboardView(
             isSymbolsMode = false
             isMoreSymbolsMode = false
         }
+    }
+
+    fun sendEnter() {
+        performFeedback(isSpecial = true)
+
+        // إذا كان زر الترجمة مفعلاً: ترجمة النص بعد كتابته والضغط على زر إنتر
+        if (isTranslationBarOpen) {
+            coroutineScope.launch {
+                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                val textBefore = ic?.getTextBeforeCursor(400, 0)?.toString() ?: ""
+                val lastLine = textBefore.substringAfterLast('\n')
+                val textToTranslate = if (currentComposingText.isNotBlank()) {
+                    currentComposingText.trim()
+                } else if (lastLine.isNotBlank()) {
+                    lastLine.trim()
+                } else {
+                    ""
+                }
+
+                if (textToTranslate.isNotBlank()) {
+                    val charsToDelete = if (currentComposingText.isNotBlank()) {
+                        currentComposingText.length
+                    } else {
+                        lastLine.length
+                    }
+                    val translated = com.example.data.TranslationEngine.translate(
+                        text = textToTranslate,
+                        sourceLang = translationSource,
+                        targetLang = translationTarget
+                    )
+                    if (ic != null) {
+                        ic.deleteSurroundingText(charsToDelete, 0)
+                        ic.commitText(translated, 1)
+                    } else {
+                        onDirectClearAndReplaceText?.invoke(translated)
+                    }
+                    currentComposingText = ""
+
+                    if (onServiceEnter != null) {
+                        onServiceEnter.invoke()
+                    } else if (ic != null) {
+                        val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                        val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                        if (!down || !up) {
+                            ic.commitText("\n", 1)
+                        }
+                    }
+                    if (currentSettings.autoReturnToLettersOnSend) {
+                        activeSubView = KeyboardSubView.NONE
+                        isSymbolsMode = false
+                        isMoreSymbolsMode = false
+                    }
+                } else {
+                    executeNormalEnter()
+                }
+            }
+            return
+        }
+
+        executeNormalEnter()
     }
 
     fun replaceAllText(newText: String) {
@@ -929,7 +988,7 @@ fun TurboKeyboardView(
                             Text(
                                 text = char,
                                 color = Color(theme.keyTextColor),
-                                fontSize = if (char.length > 1 && !char.startsWith("\uD83D")) 10.sp else 16.sp,
+                                fontSize = if (char.length > 1 && !char.startsWith("\uD83D")) 10.sp else (16 * currentSettings.emojiSizeScale).sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1620,7 +1679,7 @@ fun TurboKeyboardView(
                                                 }
                                             },
                                             onTap = {
-                                                if (isEnterInNewlineMode) {
+                                                if (isEnterInNewlineMode && !isTranslationBarOpen) {
                                                     performFeedback(isSpecial = true)
                                                     if (onServiceNewline != null) {
                                                         onServiceNewline.invoke()

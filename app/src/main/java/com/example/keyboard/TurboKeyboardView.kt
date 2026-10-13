@@ -328,7 +328,15 @@ fun TurboKeyboardView(
         }
     }
 
+    fun dismissLongPressPopup() {
+        if (longPressChar != null || longPressVariants.isNotEmpty()) {
+            longPressChar = null
+            longPressVariants = emptyList()
+        }
+    }
+
     fun sendText(text: String) {
+        dismissLongPressPopup()
         val resolvedText = if (text == "-" || text == "_") {
             val prevChar = currentComposingText.lastOrNull()
             val isAfterArabic = prevChar != null && (prevChar in '\u0600'..'\u06FF' || prevChar == 'ـ')
@@ -361,6 +369,7 @@ fun TurboKeyboardView(
     }
 
     fun sendDelete() {
+        dismissLongPressPopup()
         performFeedback(isDelete = true)
         if (currentComposingText.isNotEmpty()) {
             currentComposingText = currentComposingText.dropLast(1)
@@ -458,6 +467,7 @@ fun TurboKeyboardView(
     }
 
     fun sendEnter() {
+        dismissLongPressPopup()
         performFeedback(isSpecial = true)
 
         // إذا كان زر الترجمة مفعلاً: ترجمة النص بعد كتابته والضغط على زر إنتر
@@ -518,6 +528,7 @@ fun TurboKeyboardView(
     }
 
     fun replaceAllText(newText: String) {
+        dismissLongPressPopup()
         currentComposingText = newText.takeLast(80)
         val ic = getCurrentInputConnection?.invoke() ?: inputConnection
         if (ic != null) {
@@ -1086,9 +1097,15 @@ fun TurboKeyboardView(
                                         keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                         keyButtonScale = currentSettings.keyButtonScale,
                                         longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                        onPerformFeedback = { performFeedback(it) },
+                                        onPerformFeedback = {
+                                            dismissLongPressPopup()
+                                            performFeedback(it)
+                                        },
                                         modifier = Modifier.weight(key.weight),
-                                        onClick = { sendText(digitChar) },
+                                        onClick = {
+                                            dismissLongPressPopup()
+                                            sendText(digitChar)
+                                        },
                                         onLongClick = {
                                             performFeedback()
                                             val variants = LongPressVariantsManager.getVariants(digitChar)
@@ -1125,9 +1142,13 @@ fun TurboKeyboardView(
                                     keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                     keyButtonScale = currentSettings.keyButtonScale,
                                     longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                    onPerformFeedback = { performFeedback(it) },
+                                    onPerformFeedback = {
+                                        dismissLongPressPopup()
+                                        performFeedback(it)
+                                    },
                                     modifier = Modifier.weight(key.weight),
                                     onClick = {
+                                        dismissLongPressPopup()
                                         sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
                                     },
                                     onLongClick = {
@@ -1162,9 +1183,13 @@ fun TurboKeyboardView(
                                     keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                     keyButtonScale = currentSettings.keyButtonScale,
                                     longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                    onPerformFeedback = { performFeedback(it) },
+                                    onPerformFeedback = {
+                                        dismissLongPressPopup()
+                                        performFeedback(it)
+                                    },
                                     modifier = Modifier.weight(key.weight),
                                     onClick = {
+                                        dismissLongPressPopup()
                                         sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
                                     },
                                     onLongClick = {
@@ -1199,6 +1224,7 @@ fun TurboKeyboardView(
                                             keyHeight = calculatedKeyHeight,
                                             modifier = Modifier.weight(key.weight),
                                             onClick = {
+                                                dismissLongPressPopup()
                                                 performFeedback(isSpecial = true)
                                                 isShifted = !isShifted
                                             }
@@ -1212,8 +1238,12 @@ fun TurboKeyboardView(
                                             keyHeight = calculatedKeyHeight,
                                             backspaceScale = currentSettings.backspaceKeyScale,
                                             repeatSpeedMs = currentSettings.keyRepeatSpeedMs.toLong(),
-                                            onDelete = { sendDelete() },
+                                            onDelete = {
+                                                dismissLongPressPopup()
+                                                sendDelete()
+                                            },
                                             onDeleteWord = {
+                                                dismissLongPressPopup()
                                                 performFeedback(isDelete = true)
                                                 if (currentComposingText.isNotEmpty()) {
                                                     val words = currentComposingText.trimEnd().split(" ")
@@ -1235,6 +1265,7 @@ fun TurboKeyboardView(
                                                 keyHeight = calculatedKeyHeight,
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
+                                                    dismissLongPressPopup()
                                                     performFeedback(isSpecial = true)
                                                     isMoreSymbolsMode = true
                                                 }
@@ -1246,6 +1277,7 @@ fun TurboKeyboardView(
                                                 keyHeight = calculatedKeyHeight,
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
+                                                    dismissLongPressPopup()
                                                     performFeedback(isSpecial = true)
                                                     isMoreSymbolsMode = false
                                                 }
@@ -1262,9 +1294,13 @@ fun TurboKeyboardView(
                                                 keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                                 keyButtonScale = currentSettings.keyButtonScale,
                                                 longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                                onPerformFeedback = { performFeedback(it) },
+                                                onPerformFeedback = {
+                                                    dismissLongPressPopup()
+                                                    performFeedback(it)
+                                                },
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
+                                                    dismissLongPressPopup()
                                                     sendText(if (isShifted && !isArabic && !isSymbolsMode) char.uppercase() else char)
                                                 },
                                                 onLongClick = {
@@ -1738,7 +1774,7 @@ fun TurboKeyboardView(
                         }
                     }
 
-                    // Floating Long-Press Character Popup Overlay (Never pushes rows or resizes keyboard - FROZEN!)
+                    // Floating Long-Press Character Popup Overlay (Automatically hides when any character is pressed)
                     if (longPressChar != null && longPressVariants.isNotEmpty()) {
                         val isLight = ThemePresets.isLightColor(activeTheme.backgroundColor)
                         val popupTextCol = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
@@ -1779,9 +1815,9 @@ fun TurboKeyboardView(
                                                 )
                                                 .clickable {
                                                     performFeedback()
-                                                    sendText(variant)
-                                                    longPressChar = null
-                                                    longPressVariants = emptyList()
+                                                    val chosen = variant
+                                                    dismissLongPressPopup()
+                                                    sendText(chosen)
                                                 },
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -1803,8 +1839,7 @@ fun TurboKeyboardView(
                                             .border(1.dp, Color.White.copy(alpha = 0.85f), CircleShape)
                                             .clickable {
                                                 performFeedback()
-                                                longPressChar = null
-                                                longPressVariants = emptyList()
+                                                dismissLongPressPopup()
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {

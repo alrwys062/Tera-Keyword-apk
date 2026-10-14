@@ -231,6 +231,11 @@ fun TurboKeyboardView(
     var enterHoldMessage by remember { mutableStateOf("") }
     var newlineSwitchNotification by remember { mutableStateOf<String?>(null) }
 
+    // 3-sec Translate button hold state
+    var isTranslateButtonHolding by remember { mutableStateOf(false) }
+    var translateHoldProgress by remember { mutableFloatStateOf(0f) }
+    var translateHoldMessage by remember { mutableStateOf("") }
+
     LaunchedEffect(newlineSwitchNotification) {
         if (newlineSwitchNotification != null) {
             delay(2200)
@@ -526,6 +531,75 @@ fun TurboKeyboardView(
         }
     }
 
+    fun execute3SecTranslation() {
+        if (isTranslatingLive) return
+        coroutineScope.launch {
+            isTranslatingLive = true
+            try {
+                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                val textBefore = ic?.getTextBeforeCursor(2000, 0)?.toString() ?: ""
+                val selectedText = ic?.getSelectedText(0)?.toString() ?: ""
+                val lastLine = textBefore.substringAfterLast('\n')
+                val textToTranslate = when {
+                    selectedText.isNotBlank() -> selectedText.trim()
+                    currentComposingText.isNotBlank() -> currentComposingText.trim()
+                    lastLine.isNotBlank() -> lastLine.trim()
+                    textBefore.isNotBlank() -> textBefore.trim()
+                    getCurrentText?.invoke()?.isNotBlank() == true -> getCurrentText.invoke()!!.trim()
+                    else -> ""
+                }
+
+                if (textToTranslate.isNotBlank()) {
+                    val hasArabic = textToTranslate.any { it in '\u0600'..'\u06FF' }
+                    val src = if (hasArabic) "ar" else "en"
+                    val tgt = if (hasArabic) "en" else "ar"
+
+                    val translated = com.example.data.TranslationEngine.translate(
+                        text = textToTranslate,
+                        sourceLang = src,
+                        targetLang = tgt
+                    )
+
+                    if (ic != null) {
+                        ic.beginBatchEdit()
+                        try {
+                            if (selectedText.isNotBlank()) {
+                                ic.commitText(translated, 1)
+                            } else {
+                                val deleteCount = if (currentComposingText.isNotBlank() && textBefore.endsWith(currentComposingText)) {
+                                    currentComposingText.length
+                                } else if (textBefore.endsWith(textToTranslate)) {
+                                    textToTranslate.length
+                                } else if (currentComposingText.isNotBlank()) {
+                                    currentComposingText.length
+                                } else {
+                                    lastLine.length
+                                }
+                                ic.deleteSurroundingText(deleteCount, 0)
+                                ic.commitText(translated, 1)
+                            }
+                        } finally {
+                            ic.endBatchEdit()
+                        }
+                    } else {
+                        onDirectClearAndReplaceText?.invoke(translated)
+                    }
+                    currentComposingText = ""
+                    performFeedback(isSpecial = true)
+                    translateHoldMessage = "✓ تمت الترجمة بنجاح"
+                } else {
+                    translateHoldMessage = "اكتب نصاً لترجمته"
+                }
+            } catch (_: Exception) {
+                translateHoldMessage = "تعذر الترجمة حالياً"
+            } finally {
+                isTranslatingLive = false
+                delay(2000)
+                translateHoldMessage = ""
+            }
+        }
+    }
+
     fun sendEnter() {
         dismissLongPressPopup()
         performFeedback(isSpecial = true)
@@ -678,17 +752,45 @@ fun TurboKeyboardView(
                 .then(if (theme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
                 .navigationBarsPadding()
         ) {
-        // Top status/alert banner when Enter 2-sec newline switch is held or active
-        AnimatedVisibility(visible = newlineSwitchNotification != null || enterHoldProgress > 0.05f || enterHoldMessage.isNotEmpty()) {
+        // Top status/alert banner when Enter 2-sec newline switch or Translate 3-sec hold is active
+        AnimatedVisibility(visible = newlineSwitchNotification != null || enterHoldProgress > 0.05f || enterHoldMessage.isNotEmpty() || translateHoldProgress > 0.03f || translateHoldMessage.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isEnterInNewlineMode) Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(theme.accentColor).copy(alpha = 0.2f))
+                    .background(
+                        when {
+                            translateHoldProgress > 0.03f || translateHoldMessage.isNotEmpty() -> Color(0xFF00E5FF).copy(alpha = 0.25f)
+                            isEnterInNewlineMode -> Color(0xFF00E5FF).copy(alpha = 0.25f)
+                            else -> Color(theme.accentColor).copy(alpha = 0.2f)
+                        }
+                    )
                     .padding(vertical = 4.dp, horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (enterHoldProgress in 0.05f..0.99f) {
+                    if (translateHoldProgress in 0.03f..0.99f) {
+                        CircularProgressIndicator(
+                            progress = { translateHoldProgress },
+                            modifier = Modifier.size(16.dp),
+                            color = Color(0xFF00E5FF),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val formattedSec = String.format(java.util.Locale.US, "%.1f", (translateHoldProgress * 3f).coerceAtMost(3f))
+                        Text(
+                            text = "استمر بالضغط 3 ثوانٍ لترجمة النص... (${formattedSec}ث/3ث)",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (translateHoldMessage.isNotEmpty()) {
+                        Text(
+                            text = translateHoldMessage,
+                            color = Color(0xFF00E5FF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (enterHoldProgress in 0.05f..0.99f) {
                         CircularProgressIndicator(
                             progress = { enterHoldProgress },
                             modifier = Modifier.size(16.dp),
@@ -1472,48 +1574,88 @@ fun TurboKeyboardView(
                                 )
                             }
 
-                            // 2. Language Switch 🌐
-                            var isLangPressed by remember { mutableStateOf(false) }
-                            val langBg by animateColorAsState(
-                                targetValue = if (isLangPressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isLangPressed) 20 else 90),
-                                label = "lang_bg"
+                            // 2. Translation Button (Replaces Language Switch; Hold for 3s to translate text)
+                            var isTranslatePressed by remember { mutableStateOf(false) }
+                            var translateJob by remember { mutableStateOf<Job?>(null) }
+                            val translateBg by animateColorAsState(
+                                targetValue = if (isTranslatePressed || translateHoldProgress > 0f) bottomKeyPressedBg else bottomKeyBg,
+                                animationSpec = tween(durationMillis = if (isTranslatePressed) 20 else 90),
+                                label = "translate_bg"
                             )
-                            val langScale by animateFloatAsState(
-                                targetValue = if (isLangPressed) 0.95f else 1.0f,
+                            val translateScale by animateFloatAsState(
+                                targetValue = if (isTranslatePressed) 0.95f else 1.0f,
                                 animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "lang_scale"
+                                label = "translate_scale"
                             )
                             Box(
                                 modifier = Modifier
                                     .weight(0.85f)
                                     .fillMaxHeight()
-                                    .graphicsLayer { scaleX = langScale; scaleY = langScale }
+                                    .graphicsLayer { scaleX = translateScale; scaleY = translateScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(langBg)
-                                    .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                    .background(translateBg)
+                                    .border(
+                                        1.dp,
+                                        if (translateHoldProgress > 0f || isTranslationBarOpen) Color(0xFF00E5FF) else Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)),
+                                        RoundedCornerShape(activeTheme.cornerRadius.dp)
+                                    )
                                     .pointerInput(Unit) {
                                         detectTapGestures(
                                             onPress = {
-                                                isLangPressed = true
+                                                isTranslatePressed = true
                                                 performFeedback(isSpecial = true)
-                                                tryAwaitRelease()
-                                                isLangPressed = false
+                                                translateJob = coroutineScope.launch {
+                                                    isTranslateButtonHolding = true
+                                                    translateHoldProgress = 0f
+                                                    val totalTime = 3000L // Hold for 3 seconds to translate
+                                                    val step = 40L
+                                                    var elapsed = 0L
+                                                    while (elapsed < totalTime) {
+                                                        delay(step)
+                                                        elapsed += step
+                                                        translateHoldProgress = (elapsed.toFloat() / totalTime).coerceIn(0f, 1f)
+                                                    }
+                                                    // 3 seconds reached -> translate text
+                                                    performFeedback(durationMs = 60, isSpecial = true)
+                                                    execute3SecTranslation()
+                                                    isTranslateButtonHolding = false
+                                                    translateHoldProgress = 0f
+                                                }
+                                                try {
+                                                    tryAwaitRelease()
+                                                } finally {
+                                                    translateJob?.cancel()
+                                                    isTranslateButtonHolding = false
+                                                    translateHoldProgress = 0f
+                                                    isTranslatePressed = false
+                                                }
                                             },
                                             onTap = {
-                                                val nextLang = InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
-                                                currentLangCode = nextLang.code
+                                                // Quick tap toggles inline translation bar
+                                                performFeedback(isSpecial = true)
+                                                isTranslationBarOpen = !isTranslationBarOpen
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Language,
-                                    contentDescription = "Language",
-                                    tint = Color(activeTheme.accentColor),
-                                    modifier = Modifier.size(19.dp)
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (translateHoldProgress in 0.03f..0.99f) {
+                                        CircularProgressIndicator(
+                                            progress = { translateHoldProgress },
+                                            modifier = Modifier.size(24.dp),
+                                            color = Color(0xFF00E5FF),
+                                            strokeWidth = 2.dp,
+                                            trackColor = Color.Transparent
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Translate,
+                                        contentDescription = "Translate (Hold 3s to translate)",
+                                        tint = if (translateHoldProgress > 0f || isTranslationBarOpen) Color(0xFF00E5FF) else Color(activeTheme.accentColor),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                }
                             }
 
                             // 3. Emoji shortcut button or Clipboard button (Swappable!)

@@ -1190,11 +1190,13 @@ fun TurboKeyboardView(
 
         // Quick Shortcuts / Emojis Row (Customizable for user - إضافة وحذف الابتسامات)
         if (activeSubView == KeyboardSubView.NONE && settings.topQuickEmojiRowEnabled) {
+            val config = androidx.compose.ui.platform.LocalConfiguration.current
+            val isPort = config.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                    .height(if (isPort) 30.dp else 26.dp)
+                    .padding(horizontal = 4.dp, vertical = 1.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1224,7 +1226,7 @@ fun TurboKeyboardView(
                             Text(
                                 text = char,
                                 color = Color(theme.keyTextColor),
-                                fontSize = if (char.length > 1 && !char.startsWith("\uD83D")) 10.sp else (16 * currentSettings.emojiSizeScale).sp,
+                                fontSize = if (char.length > 1 && !char.startsWith("\uD83D")) 9.sp else (13 * currentSettings.emojiSizeScale).sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1234,7 +1236,7 @@ fun TurboKeyboardView(
                 // Add / Customize button for the top emoji row (+)
                 Surface(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(28.dp)
                         .clickable {
                             performFeedback(isSpecial = true)
                             isCustomizeTopEmojisOpen = true
@@ -1248,7 +1250,7 @@ fun TurboKeyboardView(
                             imageVector = Icons.Default.Add,
                             contentDescription = "تخصيص الابتسامات",
                             tint = Color(theme.accentColor),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -1292,6 +1294,39 @@ fun TurboKeyboardView(
                 )
             }
 
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val isPortrait = configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
+            val screenHeightDp = configuration.screenHeightDp
+
+            val baseKeyHeight = remember(isPortrait, screenHeightDp) {
+                if (isPortrait) {
+                    when {
+                        screenHeightDp < 640 -> 39.dp
+                        screenHeightDp < 760 -> 42.dp
+                        screenHeightDp < 900 -> 44.dp
+                        else -> 46.dp
+                    }
+                } else {
+                    when {
+                        screenHeightDp < 360 -> 28.dp
+                        screenHeightDp < 480 -> 32.dp
+                        else -> 35.dp
+                    }
+                }
+            }
+
+            val calculatedKeyHeight = remember(baseKeyHeight, currentSettings.keyHeightFactor, currentSettings.keyButtonScale, isPortrait) {
+                (baseKeyHeight * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
+                    .coerceIn(
+                        minimumValue = if (isPortrait) 32.dp else 24.dp,
+                        maximumValue = if (isPortrait) 48.dp else 36.dp
+                    )
+            }
+
+            val calculatedNumberKeyHeight = remember(calculatedKeyHeight) {
+                (calculatedKeyHeight * 0.84f).coerceAtLeast(28.dp)
+            }
+
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Box(
                     modifier = Modifier
@@ -1300,10 +1335,8 @@ fun TurboKeyboardView(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.5.dp)
+                        verticalArrangement = Arrangement.spacedBy(if (isPortrait) 3.5.dp else 2.dp)
                     ) {
-                        val calculatedKeyHeight = (56.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
-
                         // Optional Number Row
                         if (currentSettings.numberRowEnabled) {
                             Row(
@@ -1319,7 +1352,7 @@ fun TurboKeyboardView(
                                             theme = activeTheme,
                                             isShifted = isShifted,
                                             showKeyPopup = currentSettings.keyPopupEnabled,
-                                            keyHeight = calculatedKeyHeight,
+                                            keyHeight = calculatedNumberKeyHeight,
                                             keyFontSizeFactor = currentSettings.keyFontSizeFactor,
                                             keyButtonScale = currentSettings.keyButtonScale,
                                             longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
@@ -1560,7 +1593,7 @@ fun TurboKeyboardView(
                         Row(
                             modifier = Modifier
                                  .fillMaxWidth()
-                                 .height(56.dp * currentSettings.keyHeightFactor * currentSettings.keyButtonScale),
+                                 .height(calculatedKeyHeight),
                             horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -2294,7 +2327,7 @@ fun KeyButton(
                 )
             }
 
-            val baseFontSize = if (hintText != null) 21.5.sp else 24.sp
+            val baseFontSize = if (hintText != null) 18.5.sp else 21.sp
             Text(
                 text = displayChar,
                 color = customTextColor ?: Color(theme.keyTextColor),
@@ -2310,7 +2343,7 @@ fun KeyButton(
             exit = fadeOut(animationSpec = tween(90)) + scaleOut(targetScale = 0.90f, animationSpec = tween(90)),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-58).dp)
+                .offset(y = (-52).dp)
         ) {
             KeyPreviewBubble(
                 char = displayChar,

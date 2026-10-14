@@ -38,12 +38,16 @@ fun KeyboardSuggestionsBar(
 ) {
     if (suggestions.isEmpty()) return
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val barHeight = if (isLandscape) 26.dp else 36.dp
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(barHeight)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -148,10 +152,12 @@ private fun SuggestionItem(
                 .padding(horizontal = 4.dp),
             contentAlignment = Alignment.Center
         ) {
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
             Text(
                 text = result.word,
                 color = if (isCenter) Color(theme.accentColor) else inactiveTextColor,
-                fontSize = if (isCenter) 14.sp else 12.5.sp,
+                fontSize = if (isCenter) (if (isLandscape) 11.5.sp else 13.5.sp) else (if (isLandscape) 10.sp else 12.sp),
                 fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

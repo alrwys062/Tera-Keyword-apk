@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.KeyboardSubView
@@ -44,6 +45,8 @@ fun KeyboardToolbar(
     isNightMode: Boolean = true,
     visibleTools: List<String> = emptyList(),
     isForceEnglishNumbers: Boolean = true,
+    isCompact: Boolean = false,
+    toolbarHeight: Dp? = null,
     onToggleForceEnglishNumbers: (() -> Unit)? = null,
     onSubViewSelected: (KeyboardSubView) -> Unit,
     onToggleDecorationBar: () -> Unit,
@@ -60,14 +63,16 @@ fun KeyboardToolbar(
         visibleTools
     }
 
+    val actualHeight = toolbarHeight ?: if (isCompact) 32.dp else 40.dp
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(actualHeight)
             .background(Color(theme.toolbarColor))
             .horizontalScroll(scrollState)
-            .padding(horizontal = 2.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+            .padding(horizontal = 2.dp, vertical = 1.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 0. ملصقات (Stickers & Designer)
@@ -284,6 +289,8 @@ private fun ToolbarFixedItem(
     theme: KeyboardTheme,
     onClick: () -> Unit
 ) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val activeColor = Color(theme.accentColor)
     val isLight = remember(theme.toolbarColor) { isLightColor(theme.toolbarColor) }
     val inactiveTextColor = remember(theme.toolbarColor, isLight) {
@@ -292,7 +299,7 @@ private fun ToolbarFixedItem(
 
     Box(
         modifier = Modifier
-            .widthIn(min = 48.dp, max = 56.dp)
+            .widthIn(min = if (isLandscape) 38.dp else 45.dp, max = if (isLandscape) 48.dp else 54.dp)
             .fillMaxHeight()
             .clip(RoundedCornerShape(8.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.25f) else Color.Transparent)
@@ -302,7 +309,7 @@ private fun ToolbarFixedItem(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 1.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -313,13 +320,13 @@ private fun ToolbarFixedItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) activeColor else inactiveTextColor.copy(alpha = 0.90f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(if (isLandscape) 16.dp else 18.5.dp)
             )
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(0.5.dp))
             Text(
                 text = label,
                 color = if (isActive) activeColor else inactiveTextColor,
-                fontSize = 9.5.sp,
+                fontSize = if (isLandscape) 8.sp else 9.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

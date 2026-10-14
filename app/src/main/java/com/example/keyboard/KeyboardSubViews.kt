@@ -72,7 +72,9 @@ fun InlineTranslationBar(
     onSwapLanguages: () -> Unit,
     onSelectSourceLang: (String) -> Unit,
     onSelectTargetLang: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onTranslateNow: (() -> Unit)? = null,
+    isTranslating: Boolean = false
 ) {
     var showSourcePickerModal by remember { mutableStateOf(false) }
     var showTargetPickerModal by remember { mutableStateOf(false) }
@@ -236,12 +238,47 @@ fun InlineTranslationBar(
             }
         }
 
-        Text(
-            text = "ترجمة فورية",
-            color = Color(0xFF00E5FF),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
-        )
+        // Interactive Translate Button
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = Color(theme.accentColor).copy(alpha = 0.22f),
+            border = BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.85f)),
+            modifier = Modifier.clickable { onTranslateNow?.invoke() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isTranslating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(11.dp),
+                        color = Color(theme.accentColor),
+                        strokeWidth = 1.5.dp
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "جاري...",
+                        color = Color(theme.accentColor),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Translate,
+                        contentDescription = "ترجمة",
+                        tint = Color(theme.accentColor),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "ترجمة",
+                        color = Color(theme.accentColor),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
 

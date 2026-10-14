@@ -215,6 +215,7 @@ fun TurboKeyboardView(
     var isTranslationBarOpen by remember { mutableStateOf(false) }
     var translationSource by remember { mutableStateOf(currentSettings.translationSource) }
     var translationTarget by remember { mutableStateOf(currentSettings.translationTarget) }
+    var isTranslatingLive by remember { mutableStateOf(false) }
 
     // Long-Press character variant popup state (Matching Screenshots 1, 2, 4)
     var longPressChar by remember { mutableStateOf<String?>(null) }
@@ -222,7 +223,6 @@ fun TurboKeyboardView(
 
     // Live text tracking for prediction and special 4-sec translate
     var currentComposingText by remember { mutableStateOf("") }
-    var totalDragX by remember { mutableFloatStateOf(0f) }
 
     // 2-sec Enter hold to toggle Newline mode (السطر الثاني ↵)
     var isEnterInNewlineMode by remember { mutableStateOf(false) }
@@ -466,6 +466,66 @@ fun TurboKeyboardView(
         }
     }
 
+    fun executeTranslateInPlace() {
+        if (isTranslatingLive) return
+        coroutineScope.launch {
+            isTranslatingLive = true
+            try {
+                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                val textBefore = ic?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+                val selectedText = ic?.getSelectedText(0)?.toString() ?: ""
+                val lastLine = textBefore.substringAfterLast('\n')
+                val textToTranslate = if (selectedText.isNotBlank()) {
+                    selectedText.trim()
+                } else if (currentComposingText.isNotBlank()) {
+                    currentComposingText.trim()
+                } else if (lastLine.isNotBlank()) {
+                    lastLine.trim()
+                } else if (textBefore.isNotBlank()) {
+                    textBefore.trim()
+                } else {
+                    ""
+                }
+
+                if (textToTranslate.isNotBlank()) {
+                    val translated = com.example.data.TranslationEngine.translate(
+                        text = textToTranslate,
+                        sourceLang = translationSource,
+                        targetLang = translationTarget
+                    )
+                    if (ic != null) {
+                        ic.beginBatchEdit()
+                        try {
+                            if (selectedText.isNotBlank()) {
+                                ic.commitText(translated, 1)
+                            } else {
+                                val deleteCount = if (currentComposingText.isNotBlank() && textBefore.endsWith(currentComposingText)) {
+                                    currentComposingText.length
+                                } else if (textBefore.endsWith(textToTranslate)) {
+                                    textToTranslate.length
+                                } else if (currentComposingText.isNotBlank()) {
+                                    currentComposingText.length
+                                } else {
+                                    lastLine.length
+                                }
+                                ic.deleteSurroundingText(deleteCount, 0)
+                                ic.commitText(translated, 1)
+                            }
+                        } finally {
+                            ic.endBatchEdit()
+                        }
+                    } else {
+                        onDirectClearAndReplaceText?.invoke(translated)
+                    }
+                    currentComposingText = ""
+                    performFeedback(isSpecial = true)
+                }
+            } finally {
+                isTranslatingLive = false
+            }
+        }
+    }
+
     fun sendEnter() {
         dismissLongPressPopup()
         performFeedback(isSpecial = true)
@@ -473,52 +533,75 @@ fun TurboKeyboardView(
         // إذا كان زر الترجمة مفعلاً: ترجمة النص بعد كتابته والضغط على زر إنتر
         if (isTranslationBarOpen) {
             coroutineScope.launch {
-                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-                val textBefore = ic?.getTextBeforeCursor(400, 0)?.toString() ?: ""
-                val lastLine = textBefore.substringAfterLast('\n')
-                val textToTranslate = if (currentComposingText.isNotBlank()) {
-                    currentComposingText.trim()
-                } else if (lastLine.isNotBlank()) {
-                    lastLine.trim()
-                } else {
-                    ""
-                }
-
-                if (textToTranslate.isNotBlank()) {
-                    val charsToDelete = if (currentComposingText.isNotBlank()) {
-                        currentComposingText.length
+                isTranslatingLive = true
+                try {
+                    val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                    val textBefore = ic?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+                    val selectedText = ic?.getSelectedText(0)?.toString() ?: ""
+                    val lastLine = textBefore.substringAfterLast('\n')
+                    val textToTranslate = if (selectedText.isNotBlank()) {
+                        selectedText.trim()
+                    } else if (currentComposingText.isNotBlank()) {
+                        currentComposingText.trim()
+                    } else if (lastLine.isNotBlank()) {
+                        lastLine.trim()
+                    } else if (textBefore.isNotBlank()) {
+                        textBefore.trim()
                     } else {
-                        lastLine.length
+                        ""
                     }
-                    val translated = com.example.data.TranslationEngine.translate(
-                        text = textToTranslate,
-                        sourceLang = translationSource,
-                        targetLang = translationTarget
-                    )
-                    if (ic != null) {
-                        ic.deleteSurroundingText(charsToDelete, 0)
-                        ic.commitText(translated, 1)
-                    } else {
-                        onDirectClearAndReplaceText?.invoke(translated)
-                    }
-                    currentComposingText = ""
 
-                    if (onServiceEnter != null) {
-                        onServiceEnter.invoke()
-                    } else if (ic != null) {
-                        val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                        val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                        if (!down || !up) {
-                            ic.commitText("\n", 1)
+                    if (textToTranslate.isNotBlank()) {
+                        val translated = com.example.data.TranslationEngine.translate(
+                            text = textToTranslate,
+                            sourceLang = translationSource,
+                            targetLang = translationTarget
+                        )
+                        if (ic != null) {
+                            ic.beginBatchEdit()
+                            try {
+                                if (selectedText.isNotBlank()) {
+                                    ic.commitText(translated, 1)
+                                } else {
+                                    val charsToDelete = if (currentComposingText.isNotBlank() && textBefore.endsWith(currentComposingText)) {
+                                        currentComposingText.length
+                                    } else if (textBefore.endsWith(textToTranslate)) {
+                                        textToTranslate.length
+                                    } else if (currentComposingText.isNotBlank()) {
+                                        currentComposingText.length
+                                    } else {
+                                        lastLine.length
+                                    }
+                                    ic.deleteSurroundingText(charsToDelete, 0)
+                                    ic.commitText(translated, 1)
+                                }
+                            } finally {
+                                ic.endBatchEdit()
+                            }
+                        } else {
+                            onDirectClearAndReplaceText?.invoke(translated)
                         }
+                        currentComposingText = ""
+
+                        if (onServiceEnter != null) {
+                            onServiceEnter.invoke()
+                        } else if (ic != null) {
+                            val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                            val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                            if (!down || !up) {
+                                ic.commitText("\n", 1)
+                            }
+                        }
+                        if (currentSettings.autoReturnToLettersOnSend) {
+                            activeSubView = KeyboardSubView.NONE
+                            isSymbolsMode = false
+                            isMoreSymbolsMode = false
+                        }
+                    } else {
+                        executeNormalEnter()
                     }
-                    if (currentSettings.autoReturnToLettersOnSend) {
-                        activeSubView = KeyboardSubView.NONE
-                        isSymbolsMode = false
-                        isMoreSymbolsMode = false
-                    }
-                } else {
-                    executeNormalEnter()
+                } finally {
+                    isTranslatingLive = false
                 }
             }
             return
@@ -694,10 +777,25 @@ fun TurboKeyboardView(
                     val tmp = translationSource
                     translationSource = translationTarget
                     translationTarget = tmp
+                    val updated = currentSettings.copy(translationSource = translationSource, translationTarget = translationTarget)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
                 },
-                onSelectSourceLang = { translationSource = it },
-                onSelectTargetLang = { translationTarget = it },
-                onClose = { isTranslationBarOpen = false }
+                onSelectSourceLang = {
+                    translationSource = it
+                    val updated = currentSettings.copy(translationSource = it)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                },
+                onSelectTargetLang = {
+                    translationTarget = it
+                    val updated = currentSettings.copy(translationTarget = it)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                },
+                onClose = { isTranslationBarOpen = false },
+                onTranslateNow = { executeTranslateInPlace() },
+                isTranslating = isTranslatingLive
             )
         }
 
@@ -1473,7 +1571,7 @@ fun TurboKeyboardView(
                                 }
                             }
 
-                            // 4. Spacebar in the center with active world language name and gesture cursor control
+                            // 4. Spacebar in the center with active world language name and swipe language switch
                             var isSpacePressed by remember { mutableStateOf(false) }
                             val spaceBg by animateColorAsState(
                                 targetValue = if (isSpacePressed) bottomKeyPressedBg else bottomKeyBg,
@@ -1485,7 +1583,6 @@ fun TurboKeyboardView(
                                 animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
                                 label = "space_scale"
                             )
-                            var dragAccumulator by remember { mutableFloatStateOf(0f) }
                             Box(
                                 modifier = Modifier
                                     .weight(3.1f)
@@ -1494,47 +1591,49 @@ fun TurboKeyboardView(
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(spaceBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(Unit) {
-                                        detectDragGestures(
-                                            onDragEnd = {
-                                                if (kotlin.math.abs(totalDragX) > 75f && settings.swipeSpaceSwitchLanguage) {
-                                                    performFeedback()
-                                                    val nextLang = InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
+                                    .pointerInput(settings.swipeSpaceSwitchLanguage, currentLangCode) {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            isSpacePressed = true
+                                            var totalDrag = 0f
+                                            var hasSwitchedLanguage = false
+                                            var isDragGesture = false
+                                            val swipeThreshold = 36.dp.toPx()
+
+                                            while (true) {
+                                                val event = awaitPointerEvent()
+                                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                                if (!change.pressed) {
+                                                    // Pointer lifted
+                                                    change.consume()
+                                                    if (!isDragGesture && !hasSwitchedLanguage) {
+                                                        performFeedback(isSpace = true)
+                                                        sendText(" ")
+                                                    }
+                                                    break
+                                                }
+
+                                                val deltaX = change.position.x - down.position.x
+                                                totalDrag = deltaX
+
+                                                if (kotlin.math.abs(totalDrag) > 14.dp.toPx()) {
+                                                    isDragGesture = true
+                                                }
+
+                                                if (settings.swipeSpaceSwitchLanguage && !hasSwitchedLanguage && kotlin.math.abs(totalDrag) >= swipeThreshold) {
+                                                    hasSwitchedLanguage = true
+                                                    change.consume()
+                                                    performFeedback(isSpecial = true)
+                                                    val nextLang = if (totalDrag > 0) {
+                                                        InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
+                                                    } else {
+                                                        InputLanguagesManager.getPreviousActiveLanguage(context, currentLangCode)
+                                                    }
                                                     currentLangCode = nextLang.code
                                                 }
-                                                totalDragX = 0f
-                                                dragAccumulator = 0f
                                             }
-                                        ) { change, dragAmount ->
-                                            change.consume()
-                                            totalDragX += dragAmount.x
-                                            dragAccumulator += dragAmount.x
-                                            // Smooth cursor control by swiping spacebar (Samsung style)
-                                            if (kotlin.math.abs(dragAccumulator) >= 18f) {
-                                                val isLeft = dragAccumulator < 0
-                                                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-                                                if (ic != null) {
-                                                    val keycode = if (isLeft) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
-                                                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keycode))
-                                                    ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keycode))
-                                                    performFeedback(durationMs = 12L)
-                                                }
-                                                dragAccumulator = 0f
-                                            }
+                                            isSpacePressed = false
                                         }
-                                    }
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                isSpacePressed = true
-                                                performFeedback(isSpace = true)
-                                                tryAwaitRelease()
-                                                isSpacePressed = false
-                                            },
-                                            onTap = {
-                                                sendText(" ")
-                                            }
-                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {

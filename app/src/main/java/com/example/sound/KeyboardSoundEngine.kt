@@ -24,7 +24,6 @@ import kotlin.math.sin
 object KeyboardSoundEngine {
     private const val TAG = "KeyboardSoundEngine"
     private const val SAMPLE_RATE = 44100
-    private const val POOL_SIZE_PER_VOICE = 4
 
     private var audioManager: AudioManager? = null
     private var appContext: Context? = null
@@ -61,98 +60,57 @@ object KeyboardSoundEngine {
 
     // Cached PCM arrays
     private val cachedPcm = ConcurrentHashMap<String, ShortArray>()
+    private val loadedSoundIds = ConcurrentHashMap.newKeySet<Int>()
 
-    // Pool of static AudioTracks per sound key
-    private class StaticVoicePool(val pcm: ShortArray) {
-        val tracks = Array(POOL_SIZE_PER_VOICE) { createTrack(pcm) }
-        val index = AtomicInteger(0)
+    // Dedicated Streaming AudioTrack player for instant, non-blocking zero-latency click feedback
+    private object StreamingAudioPlayer {
+        private var streamingTrack: AudioTrack? = null
+        private val lock = Any()
 
-        fun play(volume: Float): Boolean {
-            val idx = (index.getAndIncrement() and 0x7FFFFFFF) % POOL_SIZE_PER_VOICE
-            var track = tracks[idx]
-            if (track == null || track.state != AudioTrack.STATE_INITIALIZED) {
-                track = createTrack(pcm)
-                tracks[idx] = track
-            }
-            val targetTrack = track ?: return false
-            return try {
+        fun playPcm(pcm: ShortArray, volume: Float) {
+            synchronized(lock) {
                 try {
-                    targetTrack.pause()
-                    targetTrack.flush()
-                } catch (_: Throwable) {}
-                try {
-                    targetTrack.reloadStaticData()
-                } catch (_: Throwable) {}
-                targetTrack.setVolume(volume)
-                targetTrack.play()
-                true
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error playing AudioTrack", e)
-                false
-            }
-        }
-
-        fun release() {
-            for (track in tracks) {
-                try {
-                    track?.stop()
-                    track?.release()
-                } catch (_: Throwable) {}
-            }
-        }
-
-        companion object {
-            private fun createTrack(pcm: ShortArray): AudioTrack? {
-                return try {
-                    val minBufferSize = AudioTrack.getMinBufferSize(
-                        SAMPLE_RATE,
-                        AudioFormat.CHANNEL_OUT_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT
-                    )
-                    val requiredBytes = maxOf(pcm.size * 2, if (minBufferSize > 0) minBufferSize else 4096)
-                    val requiredSamples = requiredBytes / 2
-
-                    val paddedPcm = if (pcm.size < requiredSamples) {
-                        val padded = ShortArray(requiredSamples)
-                        System.arraycopy(pcm, 0, padded, 0, pcm.size)
-                        padded
-                    } else {
-                        pcm
+                    var track = streamingTrack
+                    if (track == null || track.state != AudioTrack.STATE_INITIALIZED) {
+                        val minBuf = AudioTrack.getMinBufferSize(
+                            SAMPLE_RATE,
+                            AudioFormat.CHANNEL_OUT_MONO,
+                            AudioFormat.ENCODING_PCM_16BIT
+                        )
+                        val bufferSize = maxOf(minBuf * 2, 8192)
+                        val audioAttributes = AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                        val audioFormat = AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(SAMPLE_RATE)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                        track = AudioTrack.Builder()
+                            .setAudioAttributes(audioAttributes)
+                            .setAudioFormat(audioFormat)
+                            .setBufferSizeInBytes(bufferSize)
+                            .setTransferMode(AudioTrack.MODE_STREAM)
+                            .build()
+                        if (track.state == AudioTrack.STATE_INITIALIZED) {
+                            track.play()
+                            streamingTrack = track
+                        }
                     }
-
-                    val audioAttributes = AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-
-                    val audioFormat = AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(SAMPLE_RATE)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-
-                    val track = AudioTrack.Builder()
-                        .setAudioAttributes(audioAttributes)
-                        .setAudioFormat(audioFormat)
-                        .setBufferSizeInBytes(paddedPcm.size * 2)
-                        .setTransferMode(AudioTrack.MODE_STATIC)
-                        .build()
-
-                    val written = track.write(paddedPcm, 0, paddedPcm.size)
-                    if (written < 0) {
-                        Log.e(TAG, "AudioTrack write failed with code $written")
-                        return null
+                    val targetTrack = streamingTrack
+                    if (targetTrack != null && targetTrack.state == AudioTrack.STATE_INITIALIZED) {
+                        try {
+                            targetTrack.setVolume(volume.coerceIn(0.1f, 1.0f))
+                        } catch (_: Throwable) {}
+                        targetTrack.write(pcm, 0, pcm.size, AudioTrack.WRITE_NON_BLOCKING)
                     }
-                    track
                 } catch (e: Throwable) {
-                    Log.e(TAG, "Failed to create static AudioTrack", e)
-                    null
+                    Log.e(TAG, "Streaming audio playback error", e)
                 }
             }
         }
     }
-
-    private val voicePools = ConcurrentHashMap<String, StaticVoicePool>()
 
     @Synchronized
     fun initialize(context: Context) {
@@ -168,26 +126,34 @@ object KeyboardSoundEngine {
         if (soundPool == null) {
             try {
                 val audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
-                soundPool = SoundPool.Builder()
+                val sp = SoundPool.Builder()
                     .setMaxStreams(16)
                     .setAudioAttributes(audioAttributes)
                     .build()
+                sp.setOnLoadCompleteListener { _, sampleId, status ->
+                    if (status == 0) {
+                        loadedSoundIds.add(sampleId)
+                    }
+                }
+                soundPool = sp
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to create SoundPool", e)
             }
         }
 
-        // Preload sounds into SoundPool and AudioTrack pool in background
+        // Preload sounds into SoundPool in background
         Thread {
             try {
                 val soundDir = File(app.cacheDir, "sounds").apply { mkdirs() }
-                val keysToLoad = AVAILABLE_PROFILES.map { it.id } + listOf("special_space", "special_delete")
+                // Prioritize default profile and special keys first
+                val priorityKeys = listOf(PROFILE_IOS_16, "special_space", "special_delete")
+                val remainingKeys = AVAILABLE_PROFILES.map { it.id }.filter { it !in priorityKeys && it != PROFILE_SYSTEM_DEFAULT }
+                val keysToLoad = priorityKeys + remainingKeys
 
                 for (key in keysToLoad) {
-                    if (key == PROFILE_SYSTEM_DEFAULT) continue
                     try {
                         val pcm = cachedPcm.computeIfAbsent(key) { generatePcmForKey(it) }
                         val wavFile = File(soundDir, "$key.wav")
@@ -196,13 +162,13 @@ object KeyboardSoundEngine {
                             FileOutputStream(wavFile).use { it.write(wavBytes) }
                         }
                         soundPool?.let { sp ->
-                            val sId = sp.load(wavFile.absolutePath, 1)
-                            if (sId > 0) {
-                                soundPoolIds[key] = sId
+                            if (!soundPoolIds.containsKey(key)) {
+                                val sId = sp.load(wavFile.absolutePath, 1)
+                                if (sId > 0) {
+                                    soundPoolIds[key] = sId
+                                }
                             }
                         }
-                        // Also initialize AudioTrack pool
-                        getOrCreatePool(key)
                     } catch (e: Throwable) {
                         Log.e(TAG, "Error preloading sound $key", e)
                     }
@@ -274,16 +240,9 @@ object KeyboardSoundEngine {
         return header + byteData
     }
 
-    private fun getOrCreatePool(key: String): StaticVoicePool {
-        return voicePools.computeIfAbsent(key) {
-            val pcm = cachedPcm.computeIfAbsent(it) { k -> generatePcmForKey(k) }
-            StaticVoicePool(pcm)
-        }
-    }
-
     /**
      * Plays key sound with ZERO UI latency, NO stutter, and NO cut-offs.
-     * Uses SoundPool as primary engine, with AudioTrack and AudioManager fallbacks.
+     * Uses SoundPool (STREAM_MUSIC / USAGE_MEDIA) as primary engine, with streaming AudioTrack fallback.
      */
     fun playKeySound(
         profile: String = PROFILE_IOS_16,
@@ -294,46 +253,34 @@ object KeyboardSoundEngine {
     ) {
         val safeVolume = volume.coerceIn(0.15f, 1.0f)
 
-        // Android system default clicks
-        if (profile == PROFILE_SYSTEM_DEFAULT) {
-            try {
-                val fx = when {
-                    isDelete -> AudioManager.FX_KEYPRESS_DELETE
-                    isSpace -> AudioManager.FX_KEYPRESS_SPACEBAR
-                    isSpecial -> AudioManager.FX_KEYPRESS_RETURN
-                    else -> AudioManager.FX_KEYPRESS_STANDARD
-                }
-                audioManager?.playSoundEffect(fx, safeVolume)
-            } catch (_: Throwable) {}
-            return
-        }
-
         val soundKey = when {
             isDelete -> "special_delete"
             isSpace -> "special_space"
+            profile == PROFILE_SYSTEM_DEFAULT -> PROFILE_SYSTEM_DEFAULT
             else -> profile
         }
 
-        // 1. Try SoundPool (highest compatibility and speed)
+        var played = false
+
+        // 1. Primary: SoundPool hardware audio stream (fastest, hardware accelerated)
         val soundId = soundPoolIds[soundKey]
-        if (soundId != null && soundId > 0) {
+        if (soundId != null && soundId > 0 && loadedSoundIds.contains(soundId)) {
             try {
                 val streamId = soundPool?.play(soundId, safeVolume, safeVolume, 1, 0, 1.0f) ?: 0
-                if (streamId > 0) return
+                if (streamId > 0) {
+                    played = true
+                }
             } catch (_: Throwable) {}
         }
 
-        // 2. Fallback to AudioTrack StaticVoicePool
-        var playedSuccessfully = false
-        try {
-            val pool = getOrCreatePool(soundKey)
-            playedSuccessfully = pool.play(safeVolume)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Error playing sound for $soundKey", e)
+        // 2. Direct Streaming AudioTrack fallback (immediate in-memory PCM without file delay)
+        if (!played) {
+            val pcm = cachedPcm.computeIfAbsent(soundKey) { generatePcmForKey(it) }
+            StreamingAudioPlayer.playPcm(pcm, safeVolume)
         }
 
-        // 3. Fallback to Android system default click
-        if (!playedSuccessfully) {
+        // 3. Optional Android system click effect when requested
+        if (profile == PROFILE_SYSTEM_DEFAULT) {
             try {
                 val fx = when {
                     isDelete -> AudioManager.FX_KEYPRESS_DELETE

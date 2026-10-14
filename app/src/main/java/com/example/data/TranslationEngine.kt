@@ -110,29 +110,74 @@ object TranslationEngine {
     private val offlinePhrases = mapOf(
         "مرحبا" to "Hello",
         "مرحبا!" to "Hello!",
+        "أهلا" to "Welcome",
+        "أهلاً" to "Welcome",
+        "أهلا وسهلا" to "Welcome",
         "كيف حالك؟" to "How are you?",
         "كيف حالك" to "How are you?",
+        "كيفك" to "How are you?",
+        "شخبارك" to "How are you?",
         "أنا بخير، شكراً!" to "I'm good, thank you!",
         "أنا بخير" to "I'm good",
+        "بخير الحمدلله" to "Fine, thank God",
         "شكرا" to "Thank you",
         "شكراً" to "Thank you",
+        "شكرا جزيلا" to "Thank you very much",
+        "شكراً جزيلاً" to "Thank you very much",
+        "عفوا" to "You're welcome",
+        "عفواً" to "You're welcome",
         "صباح الخير" to "Good morning",
+        "صباح النور" to "Good morning",
         "مساء الخير" to "Good evening",
+        "مساء النور" to "Good evening",
         "تصبح على خير" to "Good night",
         "السلام عليكم" to "Peace be upon you",
+        "وعليكم السلام" to "Peace be upon you too",
         "مع السلامة" to "Goodbye",
+        "وداعا" to "Goodbye",
+        "وداعاً" to "Goodbye",
+        "إلى اللقاء" to "See you later",
         "أراك لاحقاً" to "See you later",
+        "أراك قريبا" to "See you soon",
         "بالتوفيق" to "Good luck",
+        "مبروك" to "Congratulations",
+        "ألف مبروك" to "Congratulations",
         "كل عام وأنتم بخير" to "Happy new year",
         "عيد مبارك" to "Blessed Eid",
         "رمضان كريم" to "Ramadan Kareem",
         "أحبك" to "I love you",
         "نعم" to "Yes",
+        "أجل" to "Yes",
         "لا" to "No",
+        "كلا" to "No",
         "أين أنت؟" to "Where are you?",
+        "أين أنت" to "Where are you?",
+        "وينك" to "Where are you?",
         "ما اسمك؟" to "What is your name?",
+        "ما اسمك" to "What is your name?",
+        "شو اسمك" to "What is your name?",
+        "ماذا تفعل؟" to "What are you doing?",
+        "ماذا تفعل" to "What are you doing?",
+        "شو عم تعمل" to "What are you doing?",
         "حسناً" to "Alright",
-        "تمام" to "OK"
+        "حسنا" to "Alright",
+        "تمام" to "OK",
+        "أوك" to "OK",
+        "أوكي" to "OK",
+        "ان شاء الله" to "God willing",
+        "إن شاء الله" to "God willing",
+        "الحمد لله" to "Praise be to God",
+        "الحمدلله" to "Praise be to God",
+        "ما شاء الله" to "God bless",
+        "ماشالله" to "God bless",
+        "أنا آسف" to "I'm sorry",
+        "اعتذر" to "I apologize",
+        "أعتذر" to "I apologize",
+        "لو سمحت" to "Please",
+        "من فضلك" to "Please",
+        "الله يعطيك العافية" to "May God give you health",
+        "تسلم" to "Thank you",
+        "مشكور" to "Thank you"
     )
 
     private val offlinePhrasesEnToAr = offlinePhrases.entries.associate { (k, v) -> v.lowercase() to k }
@@ -141,43 +186,134 @@ object TranslationEngine {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return ""
 
-        // Check offline fast dictionary first if translating between Arabic and English
-        if ((sourceLang == "ar" || sourceLang == "auto") && targetLang == "en") {
-            offlinePhrases[trimmed]?.let { return it }
-        }
-        if ((sourceLang == "en" || sourceLang == "auto") && targetLang == "ar") {
-            offlinePhrasesEnToAr[trimmed.lowercase()]?.let { return it }
+        val effectiveSource = if (sourceLang.isBlank()) "auto" else sourceLang
+        val effectiveTarget = if (targetLang.isBlank()) "en" else targetLang
+
+        // If source and target are the same, auto detect language based on script
+        val finalTarget = if (effectiveSource == effectiveTarget && effectiveSource != "auto") {
+            val isArabic = trimmed.any { it in '\u0600'..'\u06FF' }
+            if (isArabic) "en" else "ar"
+        } else {
+            effectiveTarget
         }
 
-        // Attempt online translation
+        // 1. Check offline phrases first for instant zero-latency match
+        val offlineMatch = checkOffline(trimmed, effectiveSource, finalTarget)
+        if (offlineMatch != null) {
+            return offlineMatch
+        }
+
+        // 2. Perform online translation in background IO
         return withContext(Dispatchers.IO) {
-            try {
-                val encodedText = URLEncoder.encode(trimmed, "UTF-8")
-                val urlString = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=$sourceLang&tl=$targetLang&dt=t&q=$encodedText"
-                val url = URL(urlString)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.connectTimeout = 3500
-                conn.readTimeout = 3500
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-
-                if (conn.responseCode == 200) {
-                    val response = conn.inputStream.bufferedReader().use { it.readText() }
-                    val jsonArray = JSONArray(response)
-                    val sentences = jsonArray.getJSONArray(0)
-                    val result = StringBuilder()
-                    for (i in 0 until sentences.length()) {
-                        val sentence = sentences.getJSONArray(i)
-                        result.append(sentence.getString(0))
-                    }
-                    result.toString()
-                } else {
-                    fallbackTranslate(trimmed, sourceLang, targetLang)
-                }
-            } catch (e: Exception) {
-                fallbackTranslate(trimmed, sourceLang, targetLang)
-            }
+            // Strategy 1: Google clients5 API (Fastest & most accurate, no captcha blocking)
+            tryGoogleClients5(trimmed, effectiveSource, finalTarget)
+                // Strategy 2: MyMemory Translated API (Reliable secondary fallback)
+                ?: tryMyMemory(trimmed, effectiveSource, finalTarget)
+                // Strategy 3: Smart fallback
+                ?: fallbackTranslate(trimmed, effectiveSource, finalTarget)
         }
+    }
+
+    private fun checkOffline(text: String, sourceLang: String, targetLang: String): String? {
+        val lower = text.lowercase()
+        if (targetLang == "en" || targetLang == "auto") {
+            offlinePhrases[text]?.let { return it }
+        }
+        if (targetLang == "ar" || targetLang == "auto") {
+            offlinePhrasesEnToAr[lower]?.let { return it }
+        }
+        return null
+    }
+
+    private fun tryGoogleClients5(text: String, sourceLang: String, targetLang: String): String? {
+        return try {
+            val encoded = URLEncoder.encode(text, "UTF-8")
+            val sl = if (sourceLang == "auto") "auto" else sourceLang
+            val urlString = "https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=$sl&tl=$targetLang&q=$encoded"
+            val url = URL(urlString)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 4000
+                readTimeout = 4000
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+
+            if (conn.responseCode == 200) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                parseGoogleClients5Response(response)
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun parseGoogleClients5Response(response: String): String? {
+        return try {
+            val jsonArray = JSONArray(response)
+            val sb = StringBuilder()
+            for (i in 0 until jsonArray.length()) {
+                val elem = jsonArray.get(i)
+                when (elem) {
+                    is String -> sb.append(elem)
+                    is JSONArray -> {
+                        if (elem.length() > 0) {
+                            val first = elem.get(0)
+                            if (first is String) {
+                                sb.append(first)
+                            }
+                        }
+                    }
+                }
+            }
+            val result = sb.toString().trim()
+            if (result.isNotEmpty()) result else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun tryMyMemory(text: String, sourceLang: String, targetLang: String): String? {
+        return try {
+            val encoded = URLEncoder.encode(text, "UTF-8")
+            val sl = if (sourceLang == "auto") "" else sourceLang
+            val langpair = if (sl.isEmpty()) targetLang else "$sl|$targetLang"
+            val urlString = "https://api.mymemory.translated.net/get?q=$encoded&langpair=$langpair"
+            val url = URL(urlString)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 4000
+                readTimeout = 4000
+                setRequestProperty("User-Agent", "Mozilla/5.0")
+            }
+
+            if (conn.responseCode == 200) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val root = org.json.JSONObject(response)
+                val responseData = root.optJSONObject("responseData")
+                val translated = responseData?.optString("translatedText")?.trim()
+                if (!translated.isNullOrEmpty() && !translated.startsWith("MYMEMORY WARNING")) {
+                    cleanHtmlEntities(translated)
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun cleanHtmlEntities(text: String): String {
+        return text
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ")
     }
 
     private fun fallbackTranslate(text: String, sourceLang: String, targetLang: String): String {
@@ -185,13 +321,7 @@ object TranslationEngine {
         offlinePhrasesEnToAr[lower]?.let { return it }
         offlinePhrases[text.trim()]?.let { return it }
 
-        val isArabic = text.any { it in '\u0600'..'\u06FF' }
-        return if (isArabic && targetLang == "en") {
-            "Translation: $text"
-        } else if (!isArabic && targetLang == "ar") {
-            "ترجمة: $text"
-        } else {
-            text
-        }
+        // If no translation could be found and all networks failed, return the original text
+        return text
     }
 }

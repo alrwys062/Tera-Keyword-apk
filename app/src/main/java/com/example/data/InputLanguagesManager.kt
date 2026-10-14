@@ -914,4 +914,14 @@ object InputLanguagesManager {
         setCurrentLanguageCode(context, nextCode)
         return getLanguageByCode(nextCode)
     }
+
+    fun getPreviousActiveLanguage(context: Context, currentCode: String): WorldLanguage {
+        val active = getActiveLanguages(context)
+        if (active.isEmpty()) return getLanguageByCode("ar")
+        val currentIndex = active.indexOf(currentCode)
+        val prevIndex = if (currentIndex <= 0) active.size - 1 else currentIndex - 1
+        val prevCode = active[prevIndex]
+        setCurrentLanguageCode(context, prevCode)
+        return getLanguageByCode(prevCode)
+    }
 }

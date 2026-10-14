@@ -238,7 +238,7 @@ object KeyLayouts {
         customRow2: String = "",
         customRow3: String = ""
     ): Triple<List<KeyModel>, List<KeyModel>, List<KeyModel>> {
-        if (lang.code == "ar" || isArabic || lang.isRtl) {
+        if (lang.code == "ar" || isArabic) {
             // Check manual custom layout
             if (layoutStyle == "custom" && (customRow1.isNotBlank() || customRow2.isNotBlank() || customRow3.isNotBlank())) {
                 val r1 = parseCustomRow(customRow1).ifEmpty { arabic10ColRow1 }

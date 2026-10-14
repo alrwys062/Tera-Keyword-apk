@@ -43,6 +43,7 @@ class TurboKeyboardService : InputMethodService(),
     private val activeEditorInfoState = mutableStateOf<EditorInfo?>(null)
     private val keyboardSettingsState = mutableStateOf(KeyboardSettings())
     private val keyboardThemeState = mutableStateOf(com.example.model.ThemePresets.CYBER_PRO)
+    private val keyboardLanguageState = mutableStateOf("ar")
     private var composeView: ComposeView? = null
 
     override fun onCreate() {
@@ -102,6 +103,7 @@ class TurboKeyboardService : InputMethodService(),
                 val currentEi by activeEditorInfoState
                 val currentSettings by keyboardSettingsState
                 val currentTheme by keyboardThemeState
+                val currentLang by keyboardLanguageState
                 val prefs = remember { PreferencesManager(this@TurboKeyboardService) }
 
                 TurboKeyboardView(
@@ -111,6 +113,14 @@ class TurboKeyboardService : InputMethodService(),
                     getCurrentInputConnection = { currentInputConnection },
                     editorInfo = currentEi ?: currentInputEditorInfo,
                     getCurrentEditorInfo = { currentInputEditorInfo },
+                    initialLanguageCode = currentLang,
+                    onLanguageChanged = { newCode ->
+                        keyboardLanguageState.value = newCode
+                        com.example.data.InputLanguagesManager.setCurrentLanguageCode(this@TurboKeyboardService, newCode)
+                    },
+                    onServiceCommitText = { text ->
+                        performServiceCommitText(text)
+                    },
                     onServiceEnter = { performServiceEnter() },
                     onServiceNewline = { performServiceNewline() },
                     onServiceDelete = { performServiceDelete() },
@@ -147,6 +157,7 @@ class TurboKeyboardService : InputMethodService(),
             val prefs = PreferencesManager(this@TurboKeyboardService)
             keyboardSettingsState.value = prefs.getSettings()
             keyboardThemeState.value = prefs.getActiveTheme()
+            keyboardLanguageState.value = com.example.data.InputLanguagesManager.getCurrentLanguageCode(this@TurboKeyboardService)
             com.example.sound.KeyboardSoundEngine.initialize(this@TurboKeyboardService)
             prefs.syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
@@ -178,6 +189,7 @@ class TurboKeyboardService : InputMethodService(),
             val prefs = PreferencesManager(this@TurboKeyboardService)
             keyboardSettingsState.value = prefs.getSettings()
             keyboardThemeState.value = prefs.getActiveTheme()
+            keyboardLanguageState.value = com.example.data.InputLanguagesManager.getCurrentLanguageCode(this@TurboKeyboardService)
             prefs.syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
@@ -191,6 +203,7 @@ class TurboKeyboardService : InputMethodService(),
             val prefs = PreferencesManager(this@TurboKeyboardService)
             keyboardSettingsState.value = prefs.getSettings()
             keyboardThemeState.value = prefs.getActiveTheme()
+            keyboardLanguageState.value = com.example.data.InputLanguagesManager.getCurrentLanguageCode(this@TurboKeyboardService)
             prefs.syncWithSystemClipboard(this@TurboKeyboardService)
         } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
@@ -244,6 +257,42 @@ class TurboKeyboardService : InputMethodService(),
     override fun onFinishInput() {
         super.onFinishInput()
         activeInputConnectionState.value = currentInputConnection
+    }
+
+    private fun performServiceCommitText(text: String): Boolean {
+        val ic = currentInputConnection
+        var committed = false
+        if (ic != null) {
+            try {
+                ic.finishComposingText()
+            } catch (_: Exception) {}
+            try {
+                committed = ic.commitText(text, 1)
+            } catch (e: Exception) {
+                try {
+                    committed = ic.commitText(text, 1)
+                } catch (_: Exception) {}
+            }
+        }
+        if (!committed) {
+            try {
+                if (text.length == 1) {
+                    sendKeyChar(text[0])
+                    committed = true
+                } else {
+                    for (ch in text) {
+                        sendKeyChar(ch)
+                    }
+                    committed = true
+                }
+            } catch (_: Exception) {
+                try {
+                    currentInputConnection?.commitText(text, 1)
+                    committed = true
+                } catch (_: Exception) {}
+            }
+        }
+        return committed
     }
 
     private fun performServiceEnter() {

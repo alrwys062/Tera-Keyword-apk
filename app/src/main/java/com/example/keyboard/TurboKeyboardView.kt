@@ -168,6 +168,9 @@ fun TurboKeyboardView(
     onServiceEnter: (() -> Unit)? = null,
     onServiceNewline: (() -> Unit)? = null,
     onServiceDelete: (() -> Unit)? = null,
+    onServiceCommitText: ((String) -> Boolean)? = null,
+    initialLanguageCode: String? = null,
+    onLanguageChanged: ((String) -> Unit)? = null,
     onDirectInsertText: ((String) -> Unit)? = null,
     onDirectDeleteLastChar: (() -> Unit)? = null,
     onDirectClearAndReplaceText: ((String) -> Unit)? = null,
@@ -182,8 +185,13 @@ fun TurboKeyboardView(
     var currentSettings by remember { mutableStateOf(settings) }
     LaunchedEffect(settings) { currentSettings = settings }
 
-    var currentLangCode by remember {
-        mutableStateOf(InputLanguagesManager.getCurrentLanguageCode(context))
+    var currentLangCode by remember(initialLanguageCode) {
+        mutableStateOf(initialLanguageCode ?: InputLanguagesManager.getCurrentLanguageCode(context))
+    }
+    LaunchedEffect(initialLanguageCode) {
+        if (initialLanguageCode != null && initialLanguageCode != currentLangCode) {
+            currentLangCode = initialLanguageCode
+        }
     }
     val currentWorldLang = remember(currentLangCode) {
         InputLanguagesManager.getLanguageByCode(currentLangCode)
@@ -359,17 +367,34 @@ fun TurboKeyboardView(
             resolvedText
         }
         currentComposingText = (currentComposingText + textToInsert).takeLast(80)
-        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-        if (ic != null) {
+
+        var handled = false
+        if (onServiceCommitText != null) {
             try {
-                ic.commitText(textToInsert, 1)
-            } catch (e: Exception) {
+                handled = onServiceCommitText.invoke(textToInsert)
+            } catch (_: Exception) {}
+        }
+        if (!handled) {
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            if (ic != null) {
                 try {
-                    ic.commitText(textToInsert, 1)
+                    ic.finishComposingText()
                 } catch (_: Exception) {}
+                try {
+                    val committed = ic.commitText(textToInsert, 1)
+                    if (!committed) {
+                        ic.beginBatchEdit()
+                        ic.commitText(textToInsert, 1)
+                        ic.endBatchEdit()
+                    }
+                } catch (e: Exception) {
+                    try {
+                        ic.commitText(textToInsert, 1)
+                    } catch (_: Exception) {}
+                }
+            } else {
+                onDirectInsertText?.invoke(textToInsert)
             }
-        } else {
-            onDirectInsertText?.invoke(textToInsert)
         }
     }
 
@@ -1288,31 +1313,33 @@ fun TurboKeyboardView(
                                 val row = if (isArabic && !currentSettings.forceEnglishNumbers) KeyLayouts.numbersRowAr else KeyLayouts.numbersRowEn
                                 row.forEach { key ->
                                     val digitChar = (key.type as KeyType.Character).primary
-                                    KeyButton(
-                                        key = key,
-                                        theme = activeTheme,
-                                        isShifted = isShifted,
-                                        showKeyPopup = currentSettings.keyPopupEnabled,
-                                        keyHeight = calculatedKeyHeight,
-                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
-                                        keyButtonScale = currentSettings.keyButtonScale,
-                                        longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                        onPerformFeedback = {
-                                            dismissLongPressPopup()
-                                            performFeedback(it)
-                                        },
-                                        modifier = Modifier.weight(key.weight),
-                                        onClick = {
-                                            dismissLongPressPopup()
-                                            sendText(digitChar)
-                                        },
-                                        onLongClick = {
-                                            performFeedback()
-                                            val variants = LongPressVariantsManager.getVariants(digitChar)
-                                            longPressChar = digitChar
-                                            longPressVariants = variants
-                                        }
-                                    )
+                                    key("num_$digitChar") {
+                                        KeyButton(
+                                            key = key,
+                                            theme = activeTheme,
+                                            isShifted = isShifted,
+                                            showKeyPopup = currentSettings.keyPopupEnabled,
+                                            keyHeight = calculatedKeyHeight,
+                                            keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                            keyButtonScale = currentSettings.keyButtonScale,
+                                            longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
+                                            onPerformFeedback = {
+                                                dismissLongPressPopup()
+                                                performFeedback(it)
+                                            },
+                                            modifier = Modifier.weight(key.weight),
+                                            onClick = {
+                                                dismissLongPressPopup()
+                                                sendText(digitChar)
+                                            },
+                                            onLongClick = {
+                                                performFeedback()
+                                                val variants = LongPressVariantsManager.getVariants(digitChar)
+                                                longPressChar = digitChar
+                                                longPressVariants = variants
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1331,33 +1358,35 @@ fun TurboKeyboardView(
                                 val char = (key.type as KeyType.Character).primary
                                 val hint = if (isArabic) LongPressVariantsManager.arabicRow1Hints[char]
                                            else LongPressVariantsManager.englishRow1Hints[char.lowercase()]
-                                KeyButton(
-                                    key = key,
-                                    theme = activeTheme,
-                                    isShifted = isShifted,
-                                    numberHint = hint,
-                                    isArabicLayout = isArabic,
-                                    showKeyPopup = currentSettings.keyPopupEnabled,
-                                    keyHeight = calculatedKeyHeight,
-                                    keyFontSizeFactor = currentSettings.keyFontSizeFactor,
-                                    keyButtonScale = currentSettings.keyButtonScale,
-                                    longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                    onPerformFeedback = {
-                                        dismissLongPressPopup()
-                                        performFeedback(it)
-                                    },
-                                    modifier = Modifier.weight(key.weight),
-                                    onClick = {
-                                        dismissLongPressPopup()
-                                        sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
-                                    },
-                                    onLongClick = {
-                                        performFeedback(22L)
-                                        val variants = LongPressVariantsManager.getVariants(char)
-                                        longPressChar = char
-                                        longPressVariants = variants
-                                    }
-                                )
+                                key("${currentWorldLang.code}_r1_$char") {
+                                    KeyButton(
+                                        key = key,
+                                        theme = activeTheme,
+                                        isShifted = isShifted,
+                                        numberHint = hint,
+                                        isArabicLayout = isArabic,
+                                        showKeyPopup = currentSettings.keyPopupEnabled,
+                                        keyHeight = calculatedKeyHeight,
+                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        keyButtonScale = currentSettings.keyButtonScale,
+                                        longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
+                                        onPerformFeedback = {
+                                            dismissLongPressPopup()
+                                            performFeedback(it)
+                                        },
+                                        modifier = Modifier.weight(key.weight),
+                                        onClick = {
+                                            dismissLongPressPopup()
+                                            sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
+                                        },
+                                        onLongClick = {
+                                            performFeedback(22L)
+                                            val variants = LongPressVariantsManager.getVariants(char)
+                                            longPressChar = char
+                                            longPressVariants = variants
+                                        }
+                                    )
+                                }
                             }
                         }
 
@@ -1373,32 +1402,34 @@ fun TurboKeyboardView(
                             }
                             row.forEach { key ->
                                 val char = (key.type as KeyType.Character).primary
-                                KeyButton(
-                                    key = key,
-                                    theme = activeTheme,
-                                    isShifted = isShifted,
-                                    isArabicLayout = isArabic,
-                                    showKeyPopup = currentSettings.keyPopupEnabled,
-                                    keyHeight = calculatedKeyHeight,
-                                    keyFontSizeFactor = currentSettings.keyFontSizeFactor,
-                                    keyButtonScale = currentSettings.keyButtonScale,
-                                    longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                    onPerformFeedback = {
-                                        dismissLongPressPopup()
-                                        performFeedback(it)
-                                    },
-                                    modifier = Modifier.weight(key.weight),
-                                    onClick = {
-                                        dismissLongPressPopup()
-                                        sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
-                                    },
-                                    onLongClick = {
-                                        performFeedback(22L)
-                                        val variants = LongPressVariantsManager.getVariants(char)
-                                        longPressChar = char
-                                        longPressVariants = variants
-                                    }
-                                )
+                                key("${currentWorldLang.code}_r2_$char") {
+                                    KeyButton(
+                                        key = key,
+                                        theme = activeTheme,
+                                        isShifted = isShifted,
+                                        isArabicLayout = isArabic,
+                                        showKeyPopup = currentSettings.keyPopupEnabled,
+                                        keyHeight = calculatedKeyHeight,
+                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        keyButtonScale = currentSettings.keyButtonScale,
+                                        longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
+                                        onPerformFeedback = {
+                                            dismissLongPressPopup()
+                                            performFeedback(it)
+                                        },
+                                        modifier = Modifier.weight(key.weight),
+                                        onClick = {
+                                            dismissLongPressPopup()
+                                            sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
+                                        },
+                                        onLongClick = {
+                                            performFeedback(22L)
+                                            val variants = LongPressVariantsManager.getVariants(char)
+                                            longPressChar = char
+                                            longPressVariants = variants
+                                        }
+                                    )
+                                }
                             }
                         }
 
@@ -1415,104 +1446,107 @@ fun TurboKeyboardView(
                             }
 
                             row.forEach { key ->
-                                when (key.type) {
-                                    is KeyType.Shift -> {
-                                        SpecialKeyButton(
-                                            icon = Icons.Default.ArrowUpward,
-                                            theme = activeTheme,
-                                            isActive = isShifted,
-                                            keyHeight = calculatedKeyHeight,
-                                            modifier = Modifier.weight(key.weight),
-                                            onClick = {
-                                                dismissLongPressPopup()
-                                                performFeedback(isSpecial = true)
-                                                isShifted = !isShifted
-                                            }
-                                        )
-                                    }
-                                    is KeyType.Backspace -> {
-                                        val bWeight = (key.weight * currentSettings.backspaceKeyScale).coerceIn(1.0f, 1.85f)
-                                        BackspaceKeyButton(
-                                            theme = activeTheme,
-                                            modifier = Modifier.weight(bWeight),
-                                            keyHeight = calculatedKeyHeight,
-                                            backspaceScale = currentSettings.backspaceKeyScale,
-                                            repeatSpeedMs = currentSettings.keyRepeatSpeedMs.toLong(),
-                                            onDelete = {
-                                                dismissLongPressPopup()
-                                                sendDelete()
-                                            },
-                                            onDeleteWord = {
-                                                dismissLongPressPopup()
-                                                performFeedback(isDelete = true)
-                                                if (currentComposingText.isNotEmpty()) {
-                                                    val words = currentComposingText.trimEnd().split(" ")
-                                                    currentComposingText = if (words.size > 1) words.dropLast(1).joinToString(" ") + " " else ""
-                                                }
-                                                if (inputConnection != null) {
-                                                    inputConnection.deleteSurroundingText(10, 0)
-                                                } else {
-                                                    onDirectClearAndReplaceText?.invoke(currentComposingText)
-                                                }
-                                            }
-                                        )
-                                    }
-                                    is KeyType.Character -> {
-                                        if (key.type.primary == "=\\<") {
+                                key("${currentWorldLang.code}_r3_${key.type}") {
+                                    when (key.type) {
+                                        is KeyType.Shift -> {
                                             SpecialKeyButton(
-                                                text = "=\\<",
+                                                icon = Icons.Default.ArrowUpward,
                                                 theme = activeTheme,
+                                                isActive = isShifted,
                                                 keyHeight = calculatedKeyHeight,
                                                 modifier = Modifier.weight(key.weight),
                                                 onClick = {
                                                     dismissLongPressPopup()
                                                     performFeedback(isSpecial = true)
-                                                    isMoreSymbolsMode = true
-                                                }
-                                            )
-                                        } else if (key.type.primary == "123") {
-                                            SpecialKeyButton(
-                                                text = "123",
-                                                theme = activeTheme,
-                                                keyHeight = calculatedKeyHeight,
-                                                modifier = Modifier.weight(key.weight),
-                                                onClick = {
-                                                    dismissLongPressPopup()
-                                                    performFeedback(isSpecial = true)
-                                                    isMoreSymbolsMode = false
-                                                }
-                                            )
-                                        } else {
-                                            val char = key.type.primary
-                                            KeyButton(
-                                                key = key,
-                                                theme = activeTheme,
-                                                isShifted = isShifted,
-                                                isArabicLayout = isArabic,
-                                                showKeyPopup = currentSettings.keyPopupEnabled,
-                                                keyHeight = calculatedKeyHeight,
-                                                keyFontSizeFactor = currentSettings.keyFontSizeFactor,
-                                                keyButtonScale = currentSettings.keyButtonScale,
-                                                longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
-                                                onPerformFeedback = {
-                                                    dismissLongPressPopup()
-                                                    performFeedback(it)
-                                                },
-                                                modifier = Modifier.weight(key.weight),
-                                                onClick = {
-                                                    dismissLongPressPopup()
-                                                    sendText(if (isShifted && !isArabic && !isSymbolsMode) char.uppercase() else char)
-                                                },
-                                                onLongClick = {
-                                                    performFeedback(22L)
-                                                    val variants = LongPressVariantsManager.getVariants(char)
-                                                    longPressChar = char
-                                                    longPressVariants = variants
+                                                    isShifted = !isShifted
                                                 }
                                             )
                                         }
+                                        is KeyType.Backspace -> {
+                                            val bWeight = (key.weight * currentSettings.backspaceKeyScale).coerceIn(1.0f, 1.85f)
+                                            BackspaceKeyButton(
+                                                theme = activeTheme,
+                                                modifier = Modifier.weight(bWeight),
+                                                keyHeight = calculatedKeyHeight,
+                                                backspaceScale = currentSettings.backspaceKeyScale,
+                                                repeatSpeedMs = currentSettings.keyRepeatSpeedMs.toLong(),
+                                                onDelete = {
+                                                    dismissLongPressPopup()
+                                                    sendDelete()
+                                                },
+                                                onDeleteWord = {
+                                                    dismissLongPressPopup()
+                                                    performFeedback(isDelete = true)
+                                                    if (currentComposingText.isNotEmpty()) {
+                                                        val words = currentComposingText.trimEnd().split(" ")
+                                                        currentComposingText = if (words.size > 1) words.dropLast(1).joinToString(" ") + " " else ""
+                                                    }
+                                                    val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                    if (ic != null) {
+                                                        ic.deleteSurroundingText(10, 0)
+                                                    } else {
+                                                        onDirectClearAndReplaceText?.invoke(currentComposingText)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        is KeyType.Character -> {
+                                            if (key.type.primary == "=\\<") {
+                                                SpecialKeyButton(
+                                                    text = "=\\<",
+                                                    theme = activeTheme,
+                                                    keyHeight = calculatedKeyHeight,
+                                                    modifier = Modifier.weight(key.weight),
+                                                    onClick = {
+                                                        dismissLongPressPopup()
+                                                        performFeedback(isSpecial = true)
+                                                        isMoreSymbolsMode = true
+                                                    }
+                                                )
+                                            } else if (key.type.primary == "123") {
+                                                SpecialKeyButton(
+                                                    text = "123",
+                                                    theme = activeTheme,
+                                                    keyHeight = calculatedKeyHeight,
+                                                    modifier = Modifier.weight(key.weight),
+                                                    onClick = {
+                                                        dismissLongPressPopup()
+                                                        performFeedback(isSpecial = true)
+                                                        isMoreSymbolsMode = false
+                                                    }
+                                                )
+                                            } else {
+                                                val char = key.type.primary
+                                                KeyButton(
+                                                    key = key,
+                                                    theme = activeTheme,
+                                                    isShifted = isShifted,
+                                                    isArabicLayout = isArabic,
+                                                    showKeyPopup = currentSettings.keyPopupEnabled,
+                                                    keyHeight = calculatedKeyHeight,
+                                                    keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                                    keyButtonScale = currentSettings.keyButtonScale,
+                                                    longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
+                                                    onPerformFeedback = {
+                                                        dismissLongPressPopup()
+                                                        performFeedback(it)
+                                                    },
+                                                    modifier = Modifier.weight(key.weight),
+                                                    onClick = {
+                                                        dismissLongPressPopup()
+                                                        sendText(if (isShifted && !currentWorldLang.isRtl && !isSymbolsMode) char.uppercase() else char)
+                                                    },
+                                                    onLongClick = {
+                                                        performFeedback(22L)
+                                                        val variants = LongPressVariantsManager.getVariants(char)
+                                                        longPressChar = char
+                                                        longPressVariants = variants
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        else -> {}
                                     }
-                                    else -> {}
                                 }
                             }
                         }
@@ -1725,6 +1759,9 @@ fun TurboKeyboardView(
                                 animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
                                 label = "space_scale"
                             )
+                            val currentSwipeEnabled by rememberUpdatedState(currentSettings.swipeSpaceSwitchLanguage)
+                            val currentLangRef by rememberUpdatedState(currentLangCode)
+
                             Box(
                                 modifier = Modifier
                                     .weight(3.1f)
@@ -1733,48 +1770,60 @@ fun TurboKeyboardView(
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(spaceBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(settings.swipeSpaceSwitchLanguage, currentLangCode) {
+                                    .pointerInput(Unit) {
                                         awaitEachGesture {
                                             val down = awaitFirstDown(requireUnconsumed = false)
                                             isSpacePressed = true
                                             var totalDrag = 0f
                                             var hasSwitchedLanguage = false
                                             var isDragGesture = false
-                                            val swipeThreshold = 36.dp.toPx()
+                                            val swipeThreshold = 34.dp.toPx()
 
-                                            while (true) {
-                                                val event = awaitPointerEvent()
-                                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                                if (!change.pressed) {
-                                                    // Pointer lifted
-                                                    change.consume()
-                                                    if (!isDragGesture && !hasSwitchedLanguage) {
-                                                        performFeedback(isSpace = true)
-                                                        sendText(" ")
+                                            try {
+                                                while (true) {
+                                                    val event = awaitPointerEvent()
+                                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                                    if (!change.pressed) {
+                                                        // Pointer lifted
+                                                        change.consume()
+                                                        if (!isDragGesture && !hasSwitchedLanguage) {
+                                                            performFeedback(isSpace = true)
+                                                            sendText(" ")
+                                                        }
+                                                        break
                                                     }
-                                                    break
-                                                }
 
-                                                val deltaX = change.position.x - down.position.x
-                                                totalDrag = deltaX
+                                                    val deltaX = change.position.x - down.position.x
+                                                    totalDrag = deltaX
 
-                                                if (kotlin.math.abs(totalDrag) > 14.dp.toPx()) {
-                                                    isDragGesture = true
-                                                }
-
-                                                if (settings.swipeSpaceSwitchLanguage && !hasSwitchedLanguage && kotlin.math.abs(totalDrag) >= swipeThreshold) {
-                                                    hasSwitchedLanguage = true
-                                                    change.consume()
-                                                    performFeedback(isSpecial = true)
-                                                    val nextLang = if (totalDrag > 0) {
-                                                        InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
-                                                    } else {
-                                                        InputLanguagesManager.getPreviousActiveLanguage(context, currentLangCode)
+                                                    if (kotlin.math.abs(totalDrag) > 12.dp.toPx()) {
+                                                        isDragGesture = true
                                                     }
-                                                    currentLangCode = nextLang.code
+
+                                                    if (currentSwipeEnabled && !hasSwitchedLanguage && kotlin.math.abs(totalDrag) >= swipeThreshold) {
+                                                        hasSwitchedLanguage = true
+                                                        change.consume()
+                                                        performFeedback(isSpecial = true)
+                                                        val nextLang = if (totalDrag > 0) {
+                                                            InputLanguagesManager.getNextActiveLanguage(context, currentLangRef)
+                                                        } else {
+                                                            InputLanguagesManager.getPreviousActiveLanguage(context, currentLangRef)
+                                                        }
+                                                        InputLanguagesManager.setCurrentLanguageCode(context, nextLang.code)
+                                                        currentLangCode = nextLang.code
+                                                        onLanguageChanged?.invoke(nextLang.code)
+
+                                                        // Clear composing text and finish composing in the target app
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        try {
+                                                            ic?.finishComposingText()
+                                                        } catch (_: Exception) {}
+                                                        currentComposingText = ""
+                                                    }
                                                 }
+                                            } finally {
+                                                isSpacePressed = false
                                             }
-                                            isSpacePressed = false
                                         }
                                     },
                                 contentAlignment = Alignment.Center
@@ -2160,8 +2209,12 @@ fun KeyButton(
         }
     }
 
+    val currentOnClick by rememberUpdatedState(onClick)
+    val currentOnLongClick by rememberUpdatedState(onLongClick)
+    val currentFeedback by rememberUpdatedState(onPerformFeedback)
+
     fun triggerFeedback(durationMs: Long) {
-        onPerformFeedback?.invoke(durationMs)
+        currentFeedback?.invoke(durationMs)
     }
 
     val normalKeyColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
@@ -2205,7 +2258,7 @@ fun KeyButton(
                     else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                     shape = RoundedCornerShape(theme.cornerRadius.dp)
                 )
-                .pointerInput(displayChar, onLongClick, longPressDelayMs) {
+                .pointerInput(displayChar, onLongClick != null, longPressDelayMs) {
                     detectTapGestures(
                         onPress = {
                             isTouching = true
@@ -2219,11 +2272,11 @@ fun KeyButton(
                         onLongPress = if (onLongClick != null) {
                             {
                                 triggerFeedback(30L)
-                                onLongClick()
+                                currentOnLongClick?.invoke()
                             }
                         } else null,
                         onTap = {
-                            onClick()
+                            currentOnClick()
                         }
                     )
                 },

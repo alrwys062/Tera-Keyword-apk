@@ -6,6 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import androidx.compose.animation.*
@@ -89,6 +90,21 @@ data class ImeActionInfo(
     val isNewline: Boolean
 )
 
+fun isNumericInputType(editorInfo: EditorInfo?): Boolean {
+    if (editorInfo == null) return false
+    val inputType = editorInfo.inputType
+    if (inputType == InputType.TYPE_NULL) return false
+    val inputClass = inputType and InputType.TYPE_MASK_CLASS
+    return inputClass == InputType.TYPE_CLASS_PHONE ||
+           inputClass == InputType.TYPE_CLASS_NUMBER ||
+           inputClass == InputType.TYPE_CLASS_DATETIME
+}
+
+fun isPhoneInputType(editorInfo: EditorInfo?): Boolean {
+    if (editorInfo == null) return false
+    return (editorInfo.inputType and InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_PHONE
+}
+
 fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
     if (editorInfo == null) {
         return ImeActionInfo(
@@ -161,6 +177,7 @@ private fun isLightColor(colorLong: Long): Boolean {
 fun TurboKeyboardView(
     theme: KeyboardTheme = ThemePresets.CYBER_PRO,
     settings: KeyboardSettings = KeyboardSettings(),
+    inputSessionId: Long = 0L,
     inputConnection: InputConnection? = null,
     getCurrentInputConnection: (() -> InputConnection?)? = null,
     editorInfo: EditorInfo? = null,
@@ -201,10 +218,23 @@ fun TurboKeyboardView(
     var isShifted by remember { mutableStateOf(false) }
     var isSymbolsMode by remember { mutableStateOf(false) }
     var isMoreSymbolsMode by remember { mutableStateOf(false) }
+    var isNumberPadMode by remember { mutableStateOf(false) }
     var activeSubView by remember { mutableStateOf(KeyboardSubView.NONE) }
 
     val currentImeAction = remember(editorInfo, getCurrentEditorInfo) {
         resolveImeAction(getCurrentEditorInfo?.invoke() ?: editorInfo)
+    }
+
+    // Auto-detect number and phone input types (التعرف على إدخال الأرقام والهاتف تلقائياً)
+    LaunchedEffect(inputSessionId, editorInfo) {
+        val info = getCurrentEditorInfo?.invoke() ?: editorInfo
+        if (isNumericInputType(info)) {
+            isNumberPadMode = true
+            isSymbolsMode = false
+            isMoreSymbolsMode = false
+        } else {
+            isNumberPadMode = false
+        }
     }
 
     LaunchedEffect(isArabic) {
@@ -1165,7 +1195,7 @@ fun TurboKeyboardView(
         }
 
         // Suggestions Bar with spell correction & dictionary addition
-        if (activeSubView == KeyboardSubView.NONE && settings.suggestionsEnabled) {
+        if (activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.suggestionsEnabled) {
             KeyboardSuggestionsBar(
                 theme = theme,
                 suggestions = suggestions,
@@ -1189,7 +1219,7 @@ fun TurboKeyboardView(
         }
 
         // Quick Shortcuts / Emojis Row (Customizable for user - إضافة وحذف الابتسامات)
-        if (activeSubView == KeyboardSubView.NONE && settings.topQuickEmojiRowEnabled) {
+        if (activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.topQuickEmojiRowEnabled) {
             val config = androidx.compose.ui.platform.LocalConfiguration.current
             val isPort = config.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
             Row(
@@ -1327,8 +1357,40 @@ fun TurboKeyboardView(
                 (calculatedKeyHeight * 0.84f).coerceAtLeast(28.dp)
             }
 
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Box(
+            if (isNumberPadMode) {
+                val effectiveEi = getCurrentEditorInfo?.invoke() ?: editorInfo
+                val isPhone = isPhoneInputType(effectiveEi)
+                val numRowHeight = remember(calculatedKeyHeight, isPortrait) {
+                    if (isPortrait) (calculatedKeyHeight * 1.15f).coerceIn(44.dp, 56.dp)
+                    else 36.dp
+                }
+                KeyboardNumericPad(
+                    theme = activeTheme,
+                    isPhoneField = isPhone,
+                    actionInfo = currentImeAction,
+                    rowHeight = numRowHeight,
+                    currentLanguageName = if (isArabic) "ع" else "En",
+                    isArabicDefault = isArabic,
+                    forceEnglishNumbers = currentSettings.forceEnglishNumbers,
+                    onSendText = { text ->
+                        sendText(text)
+                    },
+                    onDeleteChar = {
+                        sendDelete()
+                    },
+                    onActionClick = {
+                        executeNormalEnter()
+                    },
+                    onSwitchToAlphabet = {
+                        isNumberPadMode = false
+                    },
+                    onFeedback = { dur, isSpec ->
+                        performFeedback(dur, isSpec)
+                    }
+                )
+            } else {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 1.5.dp, vertical = 2.dp)
@@ -1625,16 +1687,31 @@ fun TurboKeyboardView(
                                                 tryAwaitRelease()
                                                 isModePressed = false
                                             },
-                                            onTap = {
-                                                isSymbolsMode = !isSymbolsMode
+                                            onLongPress = {
+                                                performFeedback(isSpecial = true)
+                                                isNumberPadMode = true
+                                                isSymbolsMode = false
                                                 isMoreSymbolsMode = false
+                                            },
+                                            onTap = {
+                                                val info = getCurrentEditorInfo?.invoke() ?: editorInfo
+                                                if (isNumericInputType(info)) {
+                                                    isNumberPadMode = true
+                                                    isSymbolsMode = false
+                                                    isMoreSymbolsMode = false
+                                                } else {
+                                                    isSymbolsMode = !isSymbolsMode
+                                                    isMoreSymbolsMode = false
+                                                }
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
+                                val info = getCurrentEditorInfo?.invoke() ?: editorInfo
+                                val isNumField = isNumericInputType(info)
                                 Text(
-                                    text = if (isSymbolsMode) currentWorldLang.nameNative else "123!#()",
+                                    text = if (isNumField) "123" else if (isSymbolsMode) currentWorldLang.nameNative else "123!#()",
                                     color = Color(activeTheme.keyTextColor),
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold
@@ -2178,6 +2255,7 @@ fun TurboKeyboardView(
                         }
                     }
                 }
+            }
             }
         }
         Spacer(modifier = Modifier.height(4.dp))

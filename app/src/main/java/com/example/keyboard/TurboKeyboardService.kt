@@ -44,6 +44,7 @@ class TurboKeyboardService : InputMethodService(),
     private val keyboardSettingsState = mutableStateOf(KeyboardSettings())
     private val keyboardThemeState = mutableStateOf(com.example.model.ThemePresets.CYBER_PRO)
     private val keyboardLanguageState = mutableStateOf("ar")
+    private val inputSessionSignal = mutableStateOf(0L)
     private var composeView: ComposeView? = null
 
     override fun onCreate() {
@@ -104,11 +105,13 @@ class TurboKeyboardService : InputMethodService(),
                 val currentSettings by keyboardSettingsState
                 val currentTheme by keyboardThemeState
                 val currentLang by keyboardLanguageState
+                val currentSessionId by inputSessionSignal
                 val prefs = remember { PreferencesManager(this@TurboKeyboardService) }
 
                 TurboKeyboardView(
                     theme = currentTheme,
                     settings = currentSettings,
+                    inputSessionId = currentSessionId,
                     inputConnection = currentIc ?: currentInputConnection,
                     getCurrentInputConnection = { currentInputConnection },
                     editorInfo = currentEi ?: currentInputEditorInfo,
@@ -191,6 +194,7 @@ class TurboKeyboardService : InputMethodService(),
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        inputSessionSignal.value = System.currentTimeMillis()
         activeInputConnectionState.value = currentInputConnection
         activeEditorInfoState.value = attribute ?: currentInputEditorInfo
         try {
@@ -222,6 +226,7 @@ class TurboKeyboardService : InputMethodService(),
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        inputSessionSignal.value = System.currentTimeMillis()
         setupWindowDecorOwners()
         activeInputConnectionState.value = currentInputConnection
         activeEditorInfoState.value = info ?: currentInputEditorInfo

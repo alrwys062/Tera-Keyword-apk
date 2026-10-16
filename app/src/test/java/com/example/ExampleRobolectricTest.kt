@@ -94,4 +94,33 @@ class ExampleRobolectricTest {
     val itemsAfterSync = prefs.getClipboardItems(forceRefresh = true)
     org.junit.Assert.assertFalse(itemsAfterSync.any { it.text == testText })
   }
+
+  @Test
+  fun `test numeric and phone inputType auto detection`() {
+    val phoneInfo = android.view.inputmethod.EditorInfo().apply {
+      inputType = android.text.InputType.TYPE_CLASS_PHONE
+    }
+    org.junit.Assert.assertTrue(com.example.keyboard.isNumericInputType(phoneInfo))
+    org.junit.Assert.assertTrue(com.example.keyboard.isPhoneInputType(phoneInfo))
+
+    val numberInfo = android.view.inputmethod.EditorInfo().apply {
+      inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+    }
+    org.junit.Assert.assertTrue(com.example.keyboard.isNumericInputType(numberInfo))
+    org.junit.Assert.assertFalse(com.example.keyboard.isPhoneInputType(numberInfo))
+
+    val decimalInfo = android.view.inputmethod.EditorInfo().apply {
+      inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+    }
+    org.junit.Assert.assertTrue(com.example.keyboard.isNumericInputType(decimalInfo))
+
+    val textInfo = android.view.inputmethod.EditorInfo().apply {
+      inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+    }
+    org.junit.Assert.assertFalse(com.example.keyboard.isNumericInputType(textInfo))
+    org.junit.Assert.assertFalse(com.example.keyboard.isPhoneInputType(textInfo))
+
+    val nullInfo: android.view.inputmethod.EditorInfo? = null
+    org.junit.Assert.assertFalse(com.example.keyboard.isNumericInputType(nullInfo))
+  }
 }

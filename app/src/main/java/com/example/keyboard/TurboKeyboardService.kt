@@ -142,49 +142,9 @@ class TurboKeyboardService : InputMethodService(),
         return view
     }
 
-    override fun onConfigureWindow(win: android.view.Window, isFullscreen: Boolean, isCandidatesOnly: Boolean) {
-        super.onConfigureWindow(win, false, isCandidatesOnly)
-        try {
-            win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            win.setGravity(android.view.Gravity.BOTTOM)
-        } catch (_: Exception) {}
-    }
-
     override fun onEvaluateFullscreenMode(): Boolean {
-        // Prevent fullscreen extract mode on portrait, landscape, or small screens
+        // Prevent fullscreen extract mode on landscape / small screens (Honor / EMUI / HyperOS / tablets)
         return false
-    }
-
-    override fun updateFullscreenMode() {
-        super.updateFullscreenMode()
-        try {
-            val extractArea = window?.window?.findViewById<View>(android.R.id.extractArea)
-            extractArea?.visibility = View.GONE
-        } catch (_: Exception) {}
-    }
-
-    override fun onComputeInsets(outInsets: InputMethodService.Insets) {
-        super.onComputeInsets(outInsets)
-        try {
-            val cv = composeView ?: return
-            if (!isInputViewShown) return
-            val loc = IntArray(2)
-            cv.getLocationInWindow(loc)
-            val decorHeight = window?.window?.decorView?.height ?: 0
-            val keyboardHeight = cv.height
-            val visibleTop = if (loc[1] > 0) {
-                loc[1]
-            } else if (decorHeight > 0 && keyboardHeight > 0) {
-                decorHeight - keyboardHeight
-            } else {
-                outInsets.contentTopInsets
-            }
-            if (visibleTop > 0) {
-                outInsets.contentTopInsets = visibleTop
-                outInsets.visibleTopInsets = visibleTop
-                outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_CONTENT
-            }
-        } catch (_: Exception) {}
     }
 
     override fun onEvaluateInputViewShown(): Boolean {

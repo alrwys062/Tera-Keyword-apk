@@ -9,6 +9,7 @@ import android.view.KeyEvent
 import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
+import kotlinx.coroutines.isActive
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -95,9 +96,21 @@ fun isNumericInputType(editorInfo: EditorInfo?): Boolean {
     val inputType = editorInfo.inputType
     if (inputType == InputType.TYPE_NULL) return false
     val inputClass = inputType and InputType.TYPE_MASK_CLASS
-    return inputClass == InputType.TYPE_CLASS_PHONE ||
-           inputClass == InputType.TYPE_CLASS_NUMBER ||
-           inputClass == InputType.TYPE_CLASS_DATETIME
+    if (inputClass == InputType.TYPE_CLASS_PHONE ||
+        inputClass == InputType.TYPE_CLASS_NUMBER ||
+        inputClass == InputType.TYPE_CLASS_DATETIME) {
+        return true
+    }
+    val variation = inputType and InputType.TYPE_MASK_VARIATION
+    if (variation == InputType.TYPE_TEXT_VARIATION_PHONETIC) return true
+
+    val hint = editorInfo.hintText?.toString()?.lowercase() ?: ""
+    val label = editorInfo.label?.toString()?.lowercase() ?: ""
+    val fieldName = editorInfo.fieldName?.lowercase() ?: ""
+    val isOtpOrPin = listOf("otp", "pin", "رمز", "كود", "هاتف", "جوال", "phone", "mobile", "cvv", "numpad", "رقم", "verification").any {
+        hint.contains(it) || label.contains(it) || fieldName.contains(it)
+    }
+    return isOtpOrPin && (inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE == 0)
 }
 
 fun isPhoneInputType(editorInfo: EditorInfo?): Boolean {
@@ -258,6 +271,7 @@ fun TurboKeyboardView(
     // Long-Press character variant popup state (Matching Screenshots 1, 2, 4)
     var longPressChar by remember { mutableStateOf<String?>(null) }
     var longPressVariants by remember { mutableStateOf<List<String>>(emptyList()) }
+    var selectedVariantIndex by remember { mutableIntStateOf(0) }
 
     // Live text tracking for prediction and special 4-sec translate
     var currentComposingText by remember { mutableStateOf("") }
@@ -311,16 +325,28 @@ fun TurboKeyboardView(
         }
     }
 
-    // Prediction suggestions + auto-correction + shortcuts expansion
+    // Prediction suggestions + auto-correction + contextual next-word predictions
     val suggestions = remember(currentComposingText, currentWorldLang, userWords, shortcuts) {
         if (currentSettings.suggestionsEnabled) {
             val lastWord = currentComposingText.trim().split(" ").lastOrNull() ?: ""
-            val shortcutMatch = shortcuts.find { it.trigger.equals(lastWord, ignoreCase = true) }
-            val baseList = PredictionEngine.getPredictionsWithCorrection(lastWord, isArabic, userWords)
-            if (shortcutMatch != null) {
-                listOf(PredictionEngine.PredictionResult(shortcutMatch.expansion)) + baseList.take(2)
+            if (lastWord.isNotBlank()) {
+                val shortcutMatch = shortcuts.find { it.trigger.equals(lastWord, ignoreCase = true) }
+                val baseList = PredictionEngine.getPredictionsWithCorrection(lastWord, isArabic, userWords)
+                if (shortcutMatch != null) {
+                    listOf(PredictionEngine.PredictionResult(shortcutMatch.expansion)) + baseList.take(2)
+                } else {
+                    baseList
+                }
             } else {
-                baseList
+                // When currentComposingText is blank, inspect preceding text before cursor for next-word prediction
+                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                val textBefore = try {
+                    ic?.getTextBeforeCursor(40, 0)?.toString() ?: ""
+                } catch (_: Exception) {
+                    ""
+                }
+                val prevWord = textBefore.trim().split(Regex("\\s+")).lastOrNull() ?: ""
+                PredictionEngine.getNextWordPredictions(prevWord, isArabic)
             }
         } else {
             emptyList()
@@ -375,6 +401,7 @@ fun TurboKeyboardView(
         if (longPressChar != null || longPressVariants.isNotEmpty()) {
             longPressChar = null
             longPressVariants = emptyList()
+            selectedVariantIndex = 0
         }
     }
 
@@ -396,7 +423,11 @@ fun TurboKeyboardView(
         } else {
             resolvedText
         }
-        currentComposingText = (currentComposingText + textToInsert).takeLast(80)
+        if (textToInsert == " " || textToInsert.contains(" ") || textToInsert in listOf("\n", "\r", ".", "!", "?", "،", "؛", "؟", ",", ";", ":")) {
+            currentComposingText = ""
+        } else {
+            currentComposingText = (currentComposingText + textToInsert).takeLast(30)
+        }
 
         var handled = false
         if (onServiceCommitText != null) {
@@ -425,6 +456,26 @@ fun TurboKeyboardView(
             } else {
                 onDirectInsertText?.invoke(textToInsert)
             }
+        }
+    }
+
+    val onDragVariantHandler: (Float) -> Unit = { deltaX ->
+        if (longPressVariants.isNotEmpty()) {
+            val stepPx = 35f
+            val step = (deltaX / stepPx).toInt()
+            val targetIdx = (if (isArabic) -step else step).coerceIn(0, longPressVariants.lastIndex)
+            if (targetIdx != selectedVariantIndex) {
+                selectedVariantIndex = targetIdx
+                performFeedback(12L)
+            }
+        }
+    }
+
+    val onReleaseVariantHandler: () -> Unit = {
+        if (longPressVariants.isNotEmpty() && selectedVariantIndex in longPressVariants.indices) {
+            val chosen = longPressVariants[selectedVariantIndex]
+            dismissLongPressPopup()
+            sendText(chosen)
         }
     }
 
@@ -1201,14 +1252,22 @@ fun TurboKeyboardView(
                 suggestions = suggestions,
                 onSuggestionClick = { word ->
                     performFeedback()
-                    val words = currentComposingText.trim().split(" ")
-                    if (words.isNotEmpty()) {
-                        val base = words.dropLast(1).joinToString(" ")
-                        val updated = if (base.isEmpty()) "$word " else "$base $word "
-                        replaceAllText(updated)
+                    val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                    val deleteLen = currentComposingText.length
+                    if (ic != null) {
+                        ic.beginBatchEdit()
+                        try {
+                            if (deleteLen > 0) {
+                                ic.deleteSurroundingText(deleteLen, 0)
+                            }
+                            ic.commitText("$word ", 1)
+                        } finally {
+                            ic.endBatchEdit()
+                        }
                     } else {
                         sendText("$word ")
                     }
+                    currentComposingText = ""
                 },
                 onAddWordToDictionary = { word ->
                     userDict.addWord(word)
@@ -1348,20 +1407,20 @@ fun TurboKeyboardView(
             val calculatedKeyHeight = remember(baseKeyHeight, currentSettings.keyHeightFactor, currentSettings.keyButtonScale, isPortrait) {
                 (baseKeyHeight * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
                     .coerceIn(
-                        minimumValue = if (isPortrait) 32.dp else 24.dp,
-                        maximumValue = if (isPortrait) 48.dp else 36.dp
+                        minimumValue = if (isPortrait) 24.dp else 18.dp,
+                        maximumValue = if (isPortrait) 85.dp else 56.dp
                     )
             }
 
             val calculatedNumberKeyHeight = remember(calculatedKeyHeight) {
-                (calculatedKeyHeight * 0.84f).coerceAtLeast(28.dp)
+                (calculatedKeyHeight * 0.84f).coerceAtLeast(24.dp)
             }
 
             if (isNumberPadMode) {
                 val effectiveEi = getCurrentEditorInfo?.invoke() ?: editorInfo
                 val isPhone = isPhoneInputType(effectiveEi)
                 val numRowHeight = remember(calculatedKeyHeight, isPortrait) {
-                    if (isPortrait) (calculatedKeyHeight * 1.15f).coerceIn(44.dp, 56.dp)
+                    if (isPortrait) (calculatedKeyHeight * 1.15f).coerceIn(36.dp, 85.dp)
                     else 36.dp
                 }
                 KeyboardNumericPad(
@@ -1430,9 +1489,14 @@ fun TurboKeyboardView(
                                             onLongClick = {
                                                 performFeedback()
                                                 val variants = LongPressVariantsManager.getVariants(digitChar)
-                                                longPressChar = digitChar
-                                                longPressVariants = variants
-                                            }
+                                                if (variants.isNotEmpty()) {
+                                                    longPressChar = digitChar
+                                                    longPressVariants = variants
+                                                    selectedVariantIndex = 0
+                                                }
+                                            },
+                                            onDragVariant = onDragVariantHandler,
+                                            onReleaseVariant = onReleaseVariantHandler
                                         )
                                     }
                                 }
@@ -1477,9 +1541,14 @@ fun TurboKeyboardView(
                                         onLongClick = {
                                             performFeedback(22L)
                                             val variants = LongPressVariantsManager.getVariants(char)
-                                            longPressChar = char
-                                            longPressVariants = variants
-                                        }
+                                            if (variants.isNotEmpty()) {
+                                                longPressChar = char
+                                                longPressVariants = variants
+                                                selectedVariantIndex = 0
+                                            }
+                                        },
+                                        onDragVariant = onDragVariantHandler,
+                                        onReleaseVariant = onReleaseVariantHandler
                                     )
                                 }
                             }
@@ -1520,9 +1589,14 @@ fun TurboKeyboardView(
                                         onLongClick = {
                                             performFeedback(22L)
                                             val variants = LongPressVariantsManager.getVariants(char)
-                                            longPressChar = char
-                                            longPressVariants = variants
-                                        }
+                                            if (variants.isNotEmpty()) {
+                                                longPressChar = char
+                                                longPressVariants = variants
+                                                selectedVariantIndex = 0
+                                            }
+                                        },
+                                        onDragVariant = onDragVariantHandler,
+                                        onReleaseVariant = onReleaseVariantHandler
                                     )
                                 }
                             }
@@ -1634,9 +1708,14 @@ fun TurboKeyboardView(
                                                     onLongClick = {
                                                         performFeedback(22L)
                                                         val variants = LongPressVariantsManager.getVariants(char)
-                                                        longPressChar = char
-                                                        longPressVariants = variants
-                                                    }
+                                                        if (variants.isNotEmpty()) {
+                                                            longPressChar = char
+                                                            longPressVariants = variants
+                                                            selectedVariantIndex = 0
+                                                        }
+                                                    },
+                                                    onDragVariant = onDragVariantHandler,
+                                                    onReleaseVariant = onReleaseVariantHandler
                                                 )
                                             }
                                         }
@@ -2178,6 +2257,12 @@ fun TurboKeyboardView(
                     if (longPressChar != null && longPressVariants.isNotEmpty()) {
                         val isLight = ThemePresets.isLightColor(activeTheme.backgroundColor)
                         val popupTextCol = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
+                        val popupScrollState = rememberScrollState()
+                        LaunchedEffect(selectedVariantIndex) {
+                            if (longPressVariants.isNotEmpty()) {
+                                popupScrollState.animateScrollTo((selectedVariantIndex * 48 * 2).coerceAtLeast(0))
+                            }
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2193,23 +2278,50 @@ fun TurboKeyboardView(
                             ) {
                                 Row(
                                     modifier = Modifier
-                                        .horizontalScroll(rememberScrollState())
+                                        .horizontalScroll(popupScrollState)
+                                        .pointerInput(longPressVariants) {
+                                            detectDragGestures(
+                                                onDragStart = { offset ->
+                                                    val itemWidthPx = 49.dp.toPx()
+                                                    val idx = ((offset.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
+                                                    if (idx != selectedVariantIndex) {
+                                                        selectedVariantIndex = idx
+                                                        performFeedback(12L)
+                                                    }
+                                                },
+                                                onDrag = { change, _ ->
+                                                    val itemWidthPx = 49.dp.toPx()
+                                                    val idx = ((change.position.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
+                                                    if (idx != selectedVariantIndex) {
+                                                        selectedVariantIndex = idx
+                                                        performFeedback(12L)
+                                                    }
+                                                },
+                                                onDragEnd = {
+                                                    if (selectedVariantIndex in longPressVariants.indices) {
+                                                        val chosen = longPressVariants[selectedVariantIndex]
+                                                        dismissLongPressPopup()
+                                                        sendText(chosen)
+                                                    }
+                                                }
+                                            )
+                                        }
                                         .padding(horizontal = 6.dp, vertical = 6.dp),
                                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    longPressVariants.forEach { variant ->
-                                        val isCurrent = variant == longPressChar
+                                    longPressVariants.forEachIndexed { index, variant ->
+                                        val isCurrent = index == selectedVariantIndex
                                         Box(
                                             modifier = Modifier
-                                                .size(width = 40.dp, height = 46.dp)
+                                                .size(width = 44.dp, height = 48.dp)
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .background(
                                                     if (isCurrent) Color(activeTheme.keyPressedColor)
                                                     else Color(activeTheme.keyBackgroundColor)
                                                 )
                                                 .border(
-                                                    1.dp,
+                                                    if (isCurrent) 2.dp else 1.dp,
                                                     if (isCurrent) Color(activeTheme.accentColor) else Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha),
                                                     RoundedCornerShape(8.dp)
                                                 )
@@ -2224,8 +2336,8 @@ fun TurboKeyboardView(
                                             Text(
                                                 text = variant,
                                                 color = if (isCurrent) Color(activeTheme.accentColor) else popupTextCol,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Bold
+                                                fontSize = if (isCurrent) 20.sp else 17.sp,
+                                                fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold
                                             )
                                         }
                                     }
@@ -2298,7 +2410,9 @@ fun KeyButton(
     modifier: Modifier = Modifier,
     onPerformFeedback: ((Long) -> Unit)? = null,
     onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    onDragVariant: ((Float) -> Unit)? = null,
+    onReleaseVariant: (() -> Unit)? = null
 ) {
     val char = (key.type as? KeyType.Character)?.primary ?: ""
     val displayChar = if (isShifted) char.uppercase() else char
@@ -2308,6 +2422,7 @@ fun KeyButton(
         englishSecondaryHintMap[char.lowercase()]
     }
 
+    val coroutineScope = rememberCoroutineScope()
     var isTouching by remember { mutableStateOf(false) }
     var isBubbleVisible by remember { mutableStateOf(false) }
 
@@ -2322,6 +2437,8 @@ fun KeyButton(
 
     val currentOnClick by rememberUpdatedState(onClick)
     val currentOnLongClick by rememberUpdatedState(onLongClick)
+    val currentOnDragVariant by rememberUpdatedState(onDragVariant)
+    val currentOnReleaseVariant by rememberUpdatedState(onReleaseVariant)
     val currentFeedback by rememberUpdatedState(onPerformFeedback)
 
     fun triggerFeedback(durationMs: Long) {
@@ -2370,26 +2487,67 @@ fun KeyButton(
                     shape = RoundedCornerShape(theme.cornerRadius.dp)
                 )
                 .pointerInput(displayChar, onLongClick != null, longPressDelayMs) {
-                    detectTapGestures(
-                        onPress = {
+                    if (onLongClick != null) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
                             isTouching = true
                             triggerFeedback(0L)
+                            val startX = down.position.x
+                            var isLongPressed = false
+                            var hasDragged = false
+                            val job = coroutineScope.launch {
+                                delay(longPressDelayMs)
+                                if (isActive && isTouching) {
+                                    isLongPressed = true
+                                    triggerFeedback(30L)
+                                    currentOnLongClick?.invoke()
+                                }
+                            }
                             try {
-                                tryAwaitRelease()
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!change.pressed) {
+                                        change.consume()
+                                        break
+                                    }
+                                    if (isLongPressed) {
+                                        val deltaX = change.position.x - startX
+                                        if (kotlin.math.abs(deltaX) > 5.dp.toPx()) {
+                                            hasDragged = true
+                                        }
+                                        currentOnDragVariant?.invoke(deltaX)
+                                        change.consume()
+                                    }
+                                }
                             } finally {
+                                job.cancel()
                                 isTouching = false
+                                if (isLongPressed) {
+                                    if (hasDragged) {
+                                        currentOnReleaseVariant?.invoke()
+                                    }
+                                } else {
+                                    currentOnClick()
+                                }
                             }
-                        },
-                        onLongPress = if (onLongClick != null) {
-                            {
-                                triggerFeedback(30L)
-                                currentOnLongClick?.invoke()
-                            }
-                        } else null,
-                        onTap = {
-                            currentOnClick()
                         }
-                    )
+                    } else {
+                        detectTapGestures(
+                            onPress = {
+                                isTouching = true
+                                triggerFeedback(0L)
+                                try {
+                                    tryAwaitRelease()
+                                } finally {
+                                    isTouching = false
+                                }
+                            },
+                            onTap = {
+                                currentOnClick()
+                            }
+                        )
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {

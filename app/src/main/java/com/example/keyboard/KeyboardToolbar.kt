@@ -252,20 +252,15 @@ fun KeyboardToolbar(
             )
         }
 
-        // 13. قناة تليجرام للتواصل
-        val context = androidx.compose.ui.platform.LocalContext.current
+        // 13. قنوات تليجرام للتواصل
+        val isTelegramActive = activeSubView == KeyboardSubView.TELEGRAM_CHANNELS
         ToolbarFixedItem(
             icon = Icons.AutoMirrored.Filled.Send,
             label = "تليجرام",
-            isActive = false,
+            isActive = isTelegramActive,
             theme = theme,
             onClick = {
-                try {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/Abu2Saleh")).apply {
-                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                } catch (_: Exception) {}
+                onSubViewSelected(if (isTelegramActive) KeyboardSubView.NONE else KeyboardSubView.TELEGRAM_CHANNELS)
             }
         )
 

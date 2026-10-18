@@ -2421,6 +2421,63 @@ fun QuickSettingsView(
                 }
             }
 
+            // 2.1 ارتفاع الكيبورد وحجم المفاتيح المباشر
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Tune, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("ارتفاع الكيبورد وحجمه (${(settings.keyHeightFactor * 100).toInt()}%)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("تحكم مباشر بارتفاع صفوف الكيبورد وحجم الأزرار", color = subTextColor, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = settings.keyHeightFactor,
+                        onValueChange = { onUpdateSettings(settings.copy(keyHeightFactor = it)) },
+                        valueRange = 0.70f..1.60f,
+                        colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            Pair("صغير 85%", 0.85f),
+                            Pair("طبيعي 100%", 1.0f),
+                            Pair("كبير 120%", 1.20f),
+                            Pair("عملاق 140%", 1.40f)
+                        ).forEach { (lbl, factor) ->
+                            val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.04f
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                modifier = Modifier.weight(1f).clickable {
+                                    onUpdateSettings(settings.copy(keyHeightFactor = factor))
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // 3. معاينة الحرف عند اللمس
             item {
                 QuickSettingToggleRow(
@@ -3155,4 +3212,171 @@ fun CustomizeToolbarDrawer(
         }
     }
 }
+
+@Composable
+fun TelegramChannelsSubView(
+    theme: KeyboardTheme,
+    onClose: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+    val accentCol = Color(theme.accentColor)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(255.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null,
+                    tint = Color(0xFF0088CC),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "قنوات التليجرام الرسمية",
+                    color = textColor,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Channel 1: Abu Saleh Channel
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable {
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/Abu2Saleh")).apply {
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    } catch (_: Exception) {}
+                },
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF131F33),
+            border = BorderStroke(1.2.dp, Color(0xFF0088CC).copy(alpha = 0.8f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "📢 القناة الأولى: قناة أبو صالح الرسمية",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "t.me/Abu2Saleh",
+                        color = Color(0xFF38BDF8),
+                        fontSize = 11.sp
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF0088CC)
+                ) {
+                    Text(
+                        text = "انضمام للقناة",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Channel 2: Special / Second Channel
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable {
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/+OWBdNfDNS8MzYzQ0")).apply {
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    } catch (_: Exception) {}
+                },
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF131F33),
+            border = BorderStroke(1.2.dp, Color(0xFF0088CC).copy(alpha = 0.8f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "🚀 القناة الثانية: قناة المطور والتحديثات",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "t.me/+OWBdNfDNS8MzYzQ0",
+                        color = Color(0xFF38BDF8),
+                        fontSize = 11.sp
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF0088CC)
+                ) {
+                    Text(
+                        text = "انضمام للقناة",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
 

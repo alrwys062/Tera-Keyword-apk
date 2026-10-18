@@ -42,6 +42,10 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 @Composable
 fun SettingsScreen(
     prefs: PreferencesManager,
@@ -51,6 +55,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var settings by remember { mutableStateOf(prefs.getSettings()) }
     var searchQuery by remember { mutableStateOf("") }
     var showLanguagesScreen by remember { mutableStateOf(false) }
@@ -329,7 +334,7 @@ fun SettingsScreen(
             item {
                 TransboardSettingsRow(
                     title = "قنوات التليجرام والتواصل المباشر",
-                    subtitle = "قناة أبو صالح (@Abu2Saleh) وبوت الدعم (@qweqwe2019bot2bot)",
+                    subtitle = "القناة الأولى (@Abu2Saleh) والقناة الثانية الرسمية",
                     icon = Icons.Outlined.Send,
                     onClick = { activeDialog = "TELEGRAM_CHANNELS" }
                 )
@@ -729,8 +734,29 @@ fun SettingsScreen(
                     Slider(
                         value = settings.keyHeightFactor,
                         onValueChange = { updateSettings(settings.copy(keyHeightFactor = it)) },
-                        valueRange = 0.75f..1.50f
+                        valueRange = 0.70f..1.60f
                     )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            Pair("صغير 85%", 0.85f),
+                            Pair("افتراضي 100%", 1.0f),
+                            Pair("كبير 120%", 1.20f),
+                            Pair("عملاق 140%", 1.40f)
+                        ).forEach { (lbl, factor) ->
+                            val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.04f
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) Color(0xFF00E5FF) else Color(0xFF1E2838),
+                                modifier = Modifier.weight(1f).clickable {
+                                    updateSettings(settings.copy(keyHeightFactor = factor))
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else Color.White, fontSize = 9.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(6.dp))
 
@@ -1116,65 +1142,126 @@ fun SettingsScreen(
             onDismissRequest = { activeDialog = null },
             title = { Text("إدارة الاختصارات", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
-                Column(modifier = Modifier.height(300.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 450.dp)) {
+                    Text(
+                        text = "أضف اختصاراتك السريعة؛ عند كتابة رمز الاختصار (مثل: سلام) سيظهر النص الكامل فوراً في شريط الاقتراحات:",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
                             value = newTrigger,
                             onValueChange = { newTrigger = it },
-                            placeholder = { Text("الاختصار (سلام)", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1f).height(44.dp),
-                            singleLine = true
+                            placeholder = { Text("الرمز: سلام", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                            modifier = Modifier.weight(1.1f),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00E5FF),
+                                unfocusedBorderColor = Color(0xFF334155),
+                                focusedContainerColor = Color(0xFF0F1522),
+                                unfocusedContainerColor = Color(0xFF0F1522)
+                            )
                         )
                         OutlinedTextField(
                             value = newExpansion,
                             onValueChange = { newExpansion = it },
-                            placeholder = { Text("النص الكامل", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1.5f).height(44.dp),
-                            singleLine = true
+                            placeholder = { Text("النص الكامل البديل", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                            modifier = Modifier.weight(1.8f),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00E5FF),
+                                unfocusedBorderColor = Color(0xFF334155),
+                                focusedContainerColor = Color(0xFF0F1522),
+                                unfocusedContainerColor = Color(0xFF0F1522)
+                            )
                         )
-                        Button(
-                            onClick = {
-                                if (newTrigger.isNotBlank() && newExpansion.isNotBlank()) {
-                                    prefs.addShortcut(newTrigger, newExpansion)
-                                    shortcutsList = prefs.getShortcuts()
-                                    newTrigger = ""
-                                    newExpansion = ""
-                                }
-                            },
-                            modifier = Modifier.height(44.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
-                        ) {
-                            Text("إضافة", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (newTrigger.isNotBlank() && newExpansion.isNotBlank()) {
+                                prefs.addShortcut(newTrigger.trim(), newExpansion.trim())
+                                shortcutsList = prefs.getShortcuts()
+                                newTrigger = ""
+                                newExpansion = ""
+                                Toast.makeText(context, "تمت إضافة الاختصار بنجاح", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(42.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("إضافة الاختصار الجديد ➕", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("قائمة الاختصارات المحفوظة (${shortcutsList.size}):", color = Color(0xFFCBD5E1), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         items(shortcutsList) { item ->
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 color = Color(0xFF1B2335),
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                                border = BorderStroke(1.dp, Color(0xFF28364F)),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(8.dp),
+                                    modifier = Modifier.padding(10.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(item.trigger, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                        Text(item.expansion, color = Color.White, fontSize = 10.sp)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color(0xFF00E5FF).copy(alpha = 0.2f),
+                                                border = BorderStroke(1.dp, Color(0xFF00E5FF))
+                                            ) {
+                                                Text(
+                                                    text = item.trigger,
+                                                    color = Color(0xFF00E5FF),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.5.sp,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("➔ يُستبدل بـ:", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = item.expansion,
+                                            color = Color.White,
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            lineHeight = 18.sp
+                                        )
                                     }
                                     IconButton(
                                         onClick = {
                                             prefs.deleteShortcut(item.id)
                                             shortcutsList = prefs.getShortcuts()
                                         },
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(32.dp)
                                     ) {
-                                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
                                     }
                                 }
                             }
@@ -2516,8 +2603,29 @@ fun SettingsScreen(
                     Slider(
                         value = settings.keyHeightFactor,
                         onValueChange = { updateSettings(settings.copy(keyHeightFactor = it)) },
-                        valueRange = 0.8f..1.4f
+                        valueRange = 0.70f..1.60f
                     )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            Pair("صغير 85%", 0.85f),
+                            Pair("طبيعي 100%", 1.0f),
+                            Pair("كبير 120%", 1.20f),
+                            Pair("عملاق 140%", 1.40f)
+                        ).forEach { (lbl, factor) ->
+                            val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.04f
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) Color(0xFF00E5FF) else Color(0xFF1E2838),
+                                modifier = Modifier.weight(1f).clickable {
+                                    updateSettings(settings.copy(keyHeightFactor = factor))
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else Color.White, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text("حجم الأحرف على المفاتيح: ${(settings.keyFontSizeFactor * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
                     Slider(
@@ -2743,21 +2851,138 @@ fun SettingsScreen(
                                     return@Button
                                 }
                                 isRestoring = true
-                                val success = prefs.restoreBackupJson(restoreCodeInput)
-                                isRestoring = false
-                                if (success) {
-                                    settings = prefs.getSettings()
-                                    Toast.makeText(context, "✅ تم استعادة كافة الإعدادات والبيانات بنجاح!", Toast.LENGTH_LONG).show()
-                                    activeDialog = null
-                                } else {
-                                    Toast.makeText(context, "❌ كود النسخة غير صالح أو تالف", Toast.LENGTH_LONG).show()
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val success = prefs.restoreBackupJson(restoreCodeInput.trim())
+                                    withContext(Dispatchers.Main) {
+                                        isRestoring = false
+                                        if (success) {
+                                            val reloadedSettings = prefs.getSettings()
+                                            settings = reloadedSettings
+                                            customRow1Input = reloadedSettings.customArabicRow1.ifBlank { "ض ص ق ف غ ع ه خ ح ج" }
+                                            customRow2Input = reloadedSettings.customArabicRow2.ifBlank { "ش س ي ب ل ا ت ن م ك" }
+                                            customRow3Input = reloadedSettings.customArabicRow3.ifBlank { "ظ ط ذ د ز ر و ة ث" }
+                                            Toast.makeText(context, "✅ تم استعادة كافة الإعدادات والبيانات بنجاح!", Toast.LENGTH_LONG).show()
+                                            activeDialog = null
+                                        } else {
+                                            Toast.makeText(context, "❌ كود النسخة غير صالح أو تالف", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                            enabled = !isRestoring,
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
                         ) {
-                            Text("✅ استعادة كافة البيانات والإعدادات الآن", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            if (isRestoring) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("جاري استعادة البيانات بأمان...", color = Color.White, fontSize = 12.sp)
+                            } else {
+                                Text("✅ استعادة كافة البيانات والإعدادات الآن", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { activeDialog = null }) {
+                    Text("إغلاق", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF141A28)
+        )
+    }
+
+    // 14. TELEGRAM CHANNELS DIALOG (قنوات التليجرام والتواصل)
+    if (activeDialog == "TELEGRAM_CHANNELS") {
+        AlertDialog(
+            onDismissRequest = { activeDialog = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Send,
+                        contentDescription = null,
+                        tint = Color(0xFF0088CC),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("قنوات التليجرام الرسمية", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "تابع آخر التحديثات والإصدارات والدعم الفني عبر قنواتنا الرسمية على تليجرام:",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Channel 1
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Abu2Saleh")).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF182234),
+                        border = BorderStroke(1.2.dp, Color(0xFF0088CC).copy(alpha = 0.7f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("📢 القناة الأولى: قناة أبو صالح الرسمية", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("t.me/Abu2Saleh", color = Color(0xFF38BDF8), fontSize = 11.sp)
+                            }
+                            Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0088CC)) {
+                                Text("انضمام", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Channel 2
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/+OWBdNfDNS8MzYzQ0")).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF182234),
+                        border = BorderStroke(1.2.dp, Color(0xFF0088CC).copy(alpha = 0.7f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("🚀 القناة الثانية: قناة المطور والدعم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("t.me/+OWBdNfDNS8MzYzQ0", color = Color(0xFF38BDF8), fontSize = 11.sp)
+                            }
+                            Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0088CC)) {
+                                Text("انضمام", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                            }
                         }
                     }
                 }

@@ -495,61 +495,7 @@ fun ToolsScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Channel 1: Bot / Support
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/qweqwe2019bot2bot")).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
-                        },
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF1A2438),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0088CC).copy(alpha = 0.4f))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "🤖 بوت وقناة الدعم والتواصل",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "@qweqwe2019bot2bot",
-                                color = Color(0xFF38BDF8),
-                                fontSize = 11.sp
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF0088CC)
-                        ) {
-                            Text(
-                                text = "دخول القناة",
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Channel 2: Abu Saleh Channel
+                // Channel 1: Abu Saleh Channel
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -575,13 +521,13 @@ fun ToolsScreen(
                     ) {
                         Column {
                             Text(
-                                text = "📢 قناة أبو صالح الرسمية",
+                                text = "📢 القناة الأولى: قناة أبو صالح الرسمية",
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "@Abu2Saleh",
+                                text = "t.me/Abu2Saleh",
                                 color = Color(0xFF38BDF8),
                                 fontSize = 11.sp
                             )
@@ -600,6 +546,62 @@ fun ToolsScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Channel 2: Second Channel
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/+OWBdNfDNS8MzYzQ0")).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF1A2438),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0088CC).copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "🚀 القناة الثانية: قناة المطور والدعم",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "t.me/+OWBdNfDNS8MzYzQ0",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 11.sp
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0088CC)
+                        ) {
+                            Text(
+                                text = "دخول القناة",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+
             }
         }
 

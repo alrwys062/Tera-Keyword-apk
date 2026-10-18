@@ -112,5 +112,6 @@ enum class KeyboardSubView {
     TOOLS_MORE,
     VOICE_INPUT,
     SETTINGS,
-    CUSTOMIZE_TOOLBAR
+    CUSTOMIZE_TOOLBAR,
+    TELEGRAM_CHANNELS
 }

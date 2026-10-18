@@ -15,62 +15,240 @@ import org.json.JSONObject
 class PreferencesManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("turbo_keyboard_prefs", Context.MODE_PRIVATE)
 
-    // Settings
-    fun getSettings(): KeyboardSettings {
-        return KeyboardSettings(
-            vibrationEnabled = prefs.getBoolean("vibrationEnabled", true),
-            vibrationDurationMs = prefs.getInt("vibrationDurationMs", 30),
-            soundEnabled = prefs.getBoolean("soundEnabled", true),
-            soundProfile = prefs.getString("soundProfile", "ios_16") ?: "ios_16",
-            soundVolume = prefs.getFloat("soundVolume", 0.85f),
-            keyPressTimingStyle = prefs.getString("keyPressTimingStyle", "ios_balanced") ?: "ios_balanced",
-            typingSpeedMode = prefs.getString("typingSpeedMode", "medium") ?: "medium",
-            typingSpeedMultiplier = prefs.getFloat("typingSpeedMultiplier", 1.0f),
-            keyRepeatSpeedMs = prefs.getInt("keyRepeatSpeedMs", 45),
-            longPressDelayMs = prefs.getInt("longPressDelayMs", 340),
-            autoReturnToLettersOnSend = prefs.getBoolean("autoReturnToLettersOnSend", true),
-            autoReturnToLettersOnShortcut = prefs.getBoolean("autoReturnToLettersOnShortcut", true),
-            keyPopupEnabled = prefs.getBoolean("keyPopupEnabled", true),
-            autoCapitalization = prefs.getBoolean("autoCapitalization", true),
-            doubleSpacePeriod = prefs.getBoolean("doubleSpacePeriod", true),
-            suggestionsEnabled = prefs.getBoolean("suggestionsEnabled", true),
-            autoCorrection = prefs.getBoolean("autoCorrection", false),
-            numberRowEnabled = prefs.getBoolean("numberRowEnabled", false),
-            topQuickEmojiRowEnabled = prefs.getBoolean("topQuickEmojiRowEnabled", true),
-            keyHeightFactor = prefs.getFloat("keyHeightFactor", 1.0f),
-            keyFontSizeFactor = prefs.getFloat("keyFontSizeFactor", 1.0f),
-            keyButtonScale = prefs.getFloat("keyButtonScale", 1.0f),
-            backspaceKeyScale = prefs.getFloat("backspaceKeyScale", 1.15f),
-            currentThemeId = prefs.getString("currentThemeId", "cyber_pro") ?: "cyber_pro",
-            defaultLanguage = prefs.getString("defaultLanguage", "ar") ?: "ar",
-            swipeSpaceSwitchLanguage = prefs.getBoolean("swipeSpaceSwitchLanguage", true),
-            enterLongPressTranslateEnabled = prefs.getBoolean("enterLongPressTranslateEnabled", true),
-            enterLongPressNewlineEnabled = prefs.getBoolean("enterLongPressNewlineEnabled", true),
-            emojiSizeScale = prefs.getFloat("emojiSizeScale", 1.0f),
-            showDualHints = prefs.getBoolean("showDualHints", true),
-            clipboardCloseOnPaste = prefs.getBoolean("clipboardCloseOnPaste", true),
-            clipboardSaveForever = prefs.getBoolean("clipboardSaveForever", true),
-            swapClipboardAndEmoji = prefs.getBoolean("swapClipboardAndEmoji", true),
-            enterKeyOnLeft = prefs.getBoolean("enterKeyOnLeft", false),
-            isNightModeEnabled = prefs.getBoolean("isNightModeEnabled", true),
-            autoReturnAfterEmojiInsert = prefs.getBoolean("autoReturnAfterEmojiInsert", false),
-            activeDecorationStyle = prefs.getString("activeDecorationStyle", "none") ?: "none",
-            keyboardLayoutStyle = prefs.getString("keyboardLayoutStyle", "10_columns") ?: "10_columns",
-            arabicColumnsCount = prefs.getInt("arabicColumnsCount", 10),
-            customArabicRow1 = prefs.getString("customArabicRow1", "") ?: "",
-            customArabicRow2 = prefs.getString("customArabicRow2", "") ?: "",
-            customArabicRow3 = prefs.getString("customArabicRow3", "") ?: "",
-            forceEnglishNumbers = prefs.getBoolean("forceEnglishNumbers", true),
-            translationSource = prefs.getString("translationSource", "ar") ?: "ar",
-            translationTarget = prefs.getString("translationTarget", "en") ?: "en",
-            autoTranslateOnCopy = prefs.getBoolean("autoTranslateOnCopy", false),
-            visibleToolbarTools = getVisibleToolbarTools()
+    companion object {
+        val FLOAT_KEYS = setOf(
+            "soundVolume", "typingSpeedMultiplier", "keyHeightFactor", "keyFontSizeFactor",
+            "keyButtonScale", "backspaceKeyScale", "emojiSizeScale"
+        )
+        val INT_KEYS = setOf(
+            "vibrationDurationMs", "keyRepeatSpeedMs", "longPressDelayMs", "arabicColumnsCount",
+            "last_clipboard_scroll_idx", "last_clipboard_scroll_offset"
+        )
+        val BOOLEAN_KEYS = setOf(
+            "vibrationEnabled", "soundEnabled", "autoReturnToLettersOnSend", "autoReturnToLettersOnShortcut",
+            "autoReturnAfterEmojiInsert", "keyPopupEnabled", "autoCapitalization", "doubleSpacePeriod",
+            "suggestionsEnabled", "autoCorrection", "numberRowEnabled", "topQuickEmojiRowEnabled",
+            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled", "enterLongPressNewlineEnabled",
+            "showDualHints", "clipboardCloseOnPaste", "clipboardSaveForever", "swapClipboardAndEmoji",
+            "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy"
+        )
+        val STRING_KEYS = setOf(
+            "soundProfile", "keyPressTimingStyle", "typingSpeedMode", "currentThemeId",
+            "defaultLanguage", "activeDecorationStyle", "keyboardLayoutStyle",
+            "customArabicRow1", "customArabicRow2", "customArabicRow3",
+            "translationSource", "translationTarget", "visibleToolbarTools",
+            "custom_stickers_list", "custom_themes_list", "clipboard_history",
+            "text_shortcuts_list", "recent_emojis", "custom_top_emojis_list"
         )
     }
 
+    init {
+        sanitizePrefs()
+    }
+
+    fun sanitizePrefs() {
+        try {
+            val all = prefs.all
+            val editor = prefs.edit()
+            var changed = false
+            for (fk in FLOAT_KEYS) {
+                val v = all[fk]
+                if (v != null && v !is Float) {
+                    val f = when (v) {
+                        is Number -> v.toFloat()
+                        is String -> v.toFloatOrNull() ?: 1.0f
+                        else -> 1.0f
+                    }
+                    editor.remove(fk)
+                    editor.putFloat(fk, f)
+                    changed = true
+                }
+            }
+            for (ik in INT_KEYS) {
+                val v = all[ik]
+                if (v != null && v !is Int) {
+                    val i = when (v) {
+                        is Number -> v.toInt()
+                        is String -> v.toIntOrNull() ?: 30
+                        else -> 30
+                    }
+                    editor.remove(ik)
+                    editor.putInt(ik, i)
+                    changed = true
+                }
+            }
+            for (bk in BOOLEAN_KEYS) {
+                val v = all[bk]
+                if (v != null && v !is Boolean) {
+                    val b = when (v) {
+                        is Boolean -> v
+                        is Number -> v.toInt() != 0
+                        is String -> v.equals("true", ignoreCase = true) || v == "1"
+                        else -> true
+                    }
+                    editor.remove(bk)
+                    editor.putBoolean(bk, b)
+                    changed = true
+                }
+            }
+            for (sk in STRING_KEYS) {
+                val v = all[sk]
+                if (v != null && v !is String) {
+                    editor.remove(sk)
+                    editor.putString(sk, v.toString())
+                    changed = true
+                }
+            }
+            val clips = all["recently_deleted_system_clips"]
+            if (clips != null && clips !is Set<*>) {
+                editor.remove("recently_deleted_system_clips")
+                val repairedClips = when (clips) {
+                    is String -> {
+                        try {
+                            val a = JSONArray(clips)
+                            val s = mutableSetOf<String>()
+                            for (i in 0 until a.length()) s.add(a.getString(i))
+                            s
+                        } catch (_: Exception) {
+                            clips.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                        }
+                    }
+                    else -> emptySet()
+                }
+                editor.putStringSet("recently_deleted_system_clips", repairedClips)
+                changed = true
+            }
+            if (changed) {
+                editor.commit()
+            }
+        } catch (_: Exception) {}
+    }
+
+    fun getBooleanSafe(key: String, def: Boolean): Boolean {
+        return try {
+            prefs.getBoolean(key, def)
+        } catch (_: Exception) {
+            try {
+                val v = prefs.all[key]
+                when (v) {
+                    is Boolean -> v
+                    is Number -> v.toInt() != 0
+                    is String -> v.equals("true", ignoreCase = true) || v == "1"
+                    else -> def
+                }
+            } catch (_: Exception) {
+                def
+            }
+        }
+    }
+
+    fun getIntSafe(key: String, def: Int): Int {
+        return try {
+            prefs.getInt(key, def)
+        } catch (_: Exception) {
+            try {
+                val v = prefs.all[key]
+                when (v) {
+                    is Number -> v.toInt()
+                    is String -> v.toIntOrNull() ?: def
+                    is Boolean -> if (v) 1 else 0
+                    else -> def
+                }
+            } catch (_: Exception) {
+                def
+            }
+        }
+    }
+
+    fun getFloatSafe(key: String, def: Float): Float {
+        return try {
+            prefs.getFloat(key, def)
+        } catch (_: Exception) {
+            try {
+                val v = prefs.all[key]
+                when (v) {
+                    is Number -> v.toFloat()
+                    is String -> v.toFloatOrNull() ?: def
+                    else -> def
+                }
+            } catch (_: Exception) {
+                def
+            }
+        }
+    }
+
+    fun getStringSafe(key: String, def: String): String {
+        return try {
+            prefs.getString(key, def) ?: def
+        } catch (_: Exception) {
+            try {
+                prefs.all[key]?.toString() ?: def
+            } catch (_: Exception) {
+                def
+            }
+        }
+    }
+
+    // Settings
+    fun getSettings(): KeyboardSettings {
+        return try {
+            KeyboardSettings(
+                vibrationEnabled = getBooleanSafe("vibrationEnabled", true),
+                vibrationDurationMs = getIntSafe("vibrationDurationMs", 30),
+                soundEnabled = getBooleanSafe("soundEnabled", true),
+                soundProfile = getStringSafe("soundProfile", "ios_16"),
+                soundVolume = getFloatSafe("soundVolume", 0.85f),
+                keyPressTimingStyle = getStringSafe("keyPressTimingStyle", "ios_balanced"),
+                typingSpeedMode = getStringSafe("typingSpeedMode", "medium"),
+                typingSpeedMultiplier = getFloatSafe("typingSpeedMultiplier", 1.0f),
+                keyRepeatSpeedMs = getIntSafe("keyRepeatSpeedMs", 45),
+                longPressDelayMs = getIntSafe("longPressDelayMs", 340),
+                autoReturnToLettersOnSend = getBooleanSafe("autoReturnToLettersOnSend", true),
+                autoReturnToLettersOnShortcut = getBooleanSafe("autoReturnToLettersOnShortcut", true),
+                keyPopupEnabled = getBooleanSafe("keyPopupEnabled", true),
+                autoCapitalization = getBooleanSafe("autoCapitalization", true),
+                doubleSpacePeriod = getBooleanSafe("doubleSpacePeriod", true),
+                suggestionsEnabled = getBooleanSafe("suggestionsEnabled", true),
+                autoCorrection = getBooleanSafe("autoCorrection", false),
+                numberRowEnabled = getBooleanSafe("numberRowEnabled", false),
+                topQuickEmojiRowEnabled = getBooleanSafe("topQuickEmojiRowEnabled", true),
+                keyHeightFactor = getFloatSafe("keyHeightFactor", 1.0f),
+                keyFontSizeFactor = getFloatSafe("keyFontSizeFactor", 1.0f),
+                keyButtonScale = getFloatSafe("keyButtonScale", 1.0f),
+                backspaceKeyScale = getFloatSafe("backspaceKeyScale", 1.15f),
+                currentThemeId = getStringSafe("currentThemeId", "cyber_pro"),
+                defaultLanguage = getStringSafe("defaultLanguage", "ar"),
+                swipeSpaceSwitchLanguage = getBooleanSafe("swipeSpaceSwitchLanguage", true),
+                enterLongPressTranslateEnabled = getBooleanSafe("enterLongPressTranslateEnabled", true),
+                enterLongPressNewlineEnabled = getBooleanSafe("enterLongPressNewlineEnabled", true),
+                emojiSizeScale = getFloatSafe("emojiSizeScale", 1.0f),
+                showDualHints = getBooleanSafe("showDualHints", true),
+                clipboardCloseOnPaste = getBooleanSafe("clipboardCloseOnPaste", true),
+                clipboardSaveForever = getBooleanSafe("clipboardSaveForever", true),
+                swapClipboardAndEmoji = getBooleanSafe("swapClipboardAndEmoji", true),
+                enterKeyOnLeft = getBooleanSafe("enterKeyOnLeft", false),
+                isNightModeEnabled = getBooleanSafe("isNightModeEnabled", true),
+                autoReturnAfterEmojiInsert = getBooleanSafe("autoReturnAfterEmojiInsert", false),
+                activeDecorationStyle = getStringSafe("activeDecorationStyle", "none"),
+                keyboardLayoutStyle = getStringSafe("keyboardLayoutStyle", "10_columns"),
+                arabicColumnsCount = getIntSafe("arabicColumnsCount", 10),
+                customArabicRow1 = getStringSafe("customArabicRow1", ""),
+                customArabicRow2 = getStringSafe("customArabicRow2", ""),
+                customArabicRow3 = getStringSafe("customArabicRow3", ""),
+                forceEnglishNumbers = getBooleanSafe("forceEnglishNumbers", true),
+                translationSource = getStringSafe("translationSource", "ar"),
+                translationTarget = getStringSafe("translationTarget", "en"),
+                autoTranslateOnCopy = getBooleanSafe("autoTranslateOnCopy", false),
+                visibleToolbarTools = getVisibleToolbarTools()
+            )
+        } catch (e: Exception) {
+            KeyboardSettings()
+        }
+    }
+
     fun getVisibleToolbarTools(): List<String> {
-        val raw = prefs.getString("visibleToolbarTools", null)
-        return if (raw.isNullOrBlank()) {
+        val raw = getStringSafe("visibleToolbarTools", "")
+        return if (raw.isBlank()) {
             listOf("stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
         } else {
             raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -135,8 +313,8 @@ class PreferencesManager(private val context: Context) {
 
     // Custom stickers persistence
     fun getCustomStickers(): List<String> {
-        val raw = prefs.getString("custom_stickers_list", null)
-        return if (raw.isNullOrBlank()) {
+        val raw = getStringSafe("custom_stickers_list", "")
+        return if (raw.isBlank()) {
             listOf("صباح الورد والياسمين 🌸", "ألف مبروك التميز 🥳", "فديتك يا الغالي ❤️", "الله يسعدك ويحفظك 🤲")
         } else {
             raw.split(";;;").map { it.trim() }.filter { it.isNotEmpty() }
@@ -166,12 +344,12 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun getActiveDecorationStyle(): String {
-        return prefs.getString("activeDecorationStyle", "none") ?: "none"
+        return getStringSafe("activeDecorationStyle", "none")
     }
 
     // Scroll position in Clipboard (Index and exact pixel Offset)
     fun getLastClipboardScrollIndex(): Int {
-        return prefs.getInt("last_clipboard_scroll_idx", 0)
+        return getIntSafe("last_clipboard_scroll_idx", 0)
     }
 
     fun setLastClipboardScrollIndex(idx: Int) {
@@ -179,7 +357,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun getLastClipboardScrollOffset(): Int {
-        return prefs.getInt("last_clipboard_scroll_offset", 0)
+        return getIntSafe("last_clipboard_scroll_offset", 0)
     }
 
     fun setLastClipboardScrollOffset(offset: Int) {
@@ -188,7 +366,7 @@ class PreferencesManager(private val context: Context) {
 
     // Custom Themes storage
     fun getCustomThemes(): List<KeyboardTheme> {
-        val json = prefs.getString("custom_themes_list", "[]") ?: "[]"
+        val json = getStringSafe("custom_themes_list", "[]")
         val list = mutableListOf<KeyboardTheme>()
         try {
             val arr = JSONArray(json)
@@ -196,22 +374,22 @@ class PreferencesManager(private val context: Context) {
                 val obj = arr.getJSONObject(i)
                 list.add(
                     KeyboardTheme(
-                        id = obj.getString("id"),
-                        nameAr = obj.getString("nameAr"),
-                        nameEn = obj.getString("nameEn"),
+                        id = obj.optString("id", java.util.UUID.randomUUID().toString()),
+                        nameAr = obj.optString("nameAr", "ثيم مخصص"),
+                        nameEn = obj.optString("nameEn", "Custom Theme"),
                         isCustom = true,
-                        backgroundColor = obj.getLong("backgroundColor"),
-                        keyBackgroundColor = obj.getLong("keyBackgroundColor"),
-                        keyPressedColor = obj.getLong("keyPressedColor"),
-                        keyTextColor = obj.getLong("keyTextColor"),
-                        subtextColor = obj.getLong("subtextColor"),
-                        accentColor = obj.getLong("accentColor"),
-                        enterButtonColor = obj.getLong("enterButtonColor"),
-                        toolbarColor = obj.getLong("toolbarColor"),
-                        borderColor = obj.getLong("borderColor"),
-                        cornerRadius = obj.getDouble("cornerRadius").toFloat(),
-                        borderAlpha = obj.getDouble("borderAlpha").toFloat(),
-                        backgroundImageUri = if (obj.has("backgroundImageUri") && !obj.isNull("backgroundImageUri")) obj.getString("backgroundImageUri") else null,
+                        backgroundColor = obj.optLong("backgroundColor", 0xFF0D1117L),
+                        keyBackgroundColor = obj.optLong("keyBackgroundColor", 0xFF161B22L),
+                        keyPressedColor = obj.optLong("keyPressedColor", 0xFF21262DL),
+                        keyTextColor = obj.optLong("keyTextColor", 0xFFF0F6FCL),
+                        subtextColor = obj.optLong("subtextColor", 0xFF8B949EL),
+                        accentColor = obj.optLong("accentColor", 0xFF00E5FFL),
+                        enterButtonColor = obj.optLong("enterButtonColor", 0xFF00E5FFL),
+                        toolbarColor = obj.optLong("toolbarColor", 0xFF0D1117L),
+                        borderColor = obj.optLong("borderColor", 0xFF30363DL),
+                        cornerRadius = obj.optDouble("cornerRadius", 8.0).toFloat(),
+                        borderAlpha = obj.optDouble("borderAlpha", 0.5).toFloat(),
+                        backgroundImageUri = if (obj.has("backgroundImageUri") && !obj.isNull("backgroundImageUri")) obj.optString("backgroundImageUri") else null,
                         keyStyle = obj.optString("keyStyle", "rounded"),
                         category = obj.optString("category", "modern")
                     )
@@ -281,14 +459,18 @@ class PreferencesManager(private val context: Context) {
             arr.put(obj)
         }
         prefs.edit().putString("custom_themes_list", arr.toString()).apply()
-        if (prefs.getString("currentThemeId", "") == themeId) {
+        if (getStringSafe("currentThemeId", "") == themeId) {
             setCurrentTheme("cyber_pro")
         }
     }
 
     fun getActiveTheme(): KeyboardTheme {
-        val id = prefs.getString("currentThemeId", "cyber_pro") ?: "cyber_pro"
-        return getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
+        return try {
+            val id = getStringSafe("currentThemeId", "cyber_pro")
+            getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
+        } catch (_: Exception) {
+            ThemePresets.CYBER_PRO
+        }
     }
 
     fun saveActiveTheme(theme: KeyboardTheme) {
@@ -306,8 +488,8 @@ class PreferencesManager(private val context: Context) {
             if (cached != null) return cached
         }
 
-        val json = prefs.getString("clipboard_history", null)
-        if (json == null) {
+        val json = getStringSafe("clipboard_history", "")
+        if (json.isBlank()) {
             val initial = listOf(
                 ClipboardItem(text = "مرحبا! كيف حالك اليوم؟", isPinned = true),
                 ClipboardItem(text = "السلام عليكم ورحمة الله وبركاته", isPinned = true),
@@ -326,14 +508,17 @@ class PreferencesManager(private val context: Context) {
             val arr = JSONArray(json)
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
-                list.add(
-                    ClipboardItem(
-                        id = obj.optString("id", java.util.UUID.randomUUID().toString()).ifBlank { java.util.UUID.randomUUID().toString() },
-                        text = obj.getString("text"),
-                        timestamp = obj.optLong("timestamp", System.currentTimeMillis()),
-                        isPinned = obj.optBoolean("isPinned", false)
+                val txt = obj.optString("text", "")
+                if (txt.isNotEmpty()) {
+                    list.add(
+                        ClipboardItem(
+                            id = obj.optString("id", java.util.UUID.randomUUID().toString()).ifBlank { java.util.UUID.randomUUID().toString() },
+                            text = txt,
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis()),
+                            isPinned = obj.optBoolean("isPinned", false)
+                        )
                     )
-                )
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -359,8 +544,32 @@ class PreferencesManager(private val context: Context) {
     }
 
     private fun getDeletedSystemClips(): MutableSet<String> {
-        val set = prefs.getStringSet("recently_deleted_system_clips", null) ?: emptySet()
-        return set.toMutableSet()
+        return try {
+            val set = prefs.getStringSet("recently_deleted_system_clips", null) ?: emptySet()
+            set.toMutableSet()
+        } catch (_: Exception) {
+            try {
+                val raw = prefs.all["recently_deleted_system_clips"]
+                val repaired = when (raw) {
+                    is Set<*> -> raw.filterIsInstance<String>().toSet()
+                    is String -> {
+                        try {
+                            val a = JSONArray(raw)
+                            val s = mutableSetOf<String>()
+                            for (i in 0 until a.length()) s.add(a.getString(i))
+                            s
+                        } catch (_: Exception) {
+                            raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                        }
+                    }
+                    else -> emptySet()
+                }
+                prefs.edit().remove("recently_deleted_system_clips").putStringSet("recently_deleted_system_clips", repaired).apply()
+                repaired.toMutableSet()
+            } catch (_: Exception) {
+                mutableSetOf()
+            }
+        }
     }
 
     private fun addDeletedSystemClip(text: String) {
@@ -479,8 +688,8 @@ class PreferencesManager(private val context: Context) {
 
     // Text Shortcuts (الاختصارات)
     fun getShortcuts(): List<TextShortcut> {
-        val json = prefs.getString("text_shortcuts_list", null)
-        if (json == null) {
+        val json = getStringSafe("text_shortcuts_list", "")
+        if (json.isBlank()) {
             val initial = listOf(
                 TextShortcut(trigger = "سلام", expansion = "السلام عليكم ورحمة الله وبركاته"),
                 TextShortcut(trigger = "ص", expansion = "صلى الله عليه وسلم"),
@@ -496,13 +705,17 @@ class PreferencesManager(private val context: Context) {
             val arr = JSONArray(json)
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
-                list.add(
-                    TextShortcut(
-                        id = obj.getString("id"),
-                        trigger = obj.getString("trigger"),
-                        expansion = obj.getString("expansion")
+                val tr = obj.optString("trigger", "").trim()
+                val exp = obj.optString("expansion", "").trim()
+                if (tr.isNotEmpty() && exp.isNotEmpty()) {
+                    list.add(
+                        TextShortcut(
+                            id = obj.optString("id", java.util.UUID.randomUUID().toString()),
+                            trigger = tr,
+                            expansion = exp
+                        )
                     )
-                )
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -538,7 +751,7 @@ class PreferencesManager(private val context: Context) {
 
     // Recent Emojis
     fun getRecentEmojis(): List<String> {
-        val saved = prefs.getString("recent_emojis", "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙,👑,💋") ?: "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙,👑,💋"
+        val saved = getStringSafe("recent_emojis", "😊,❤️,😂,👍,🔥,✨,🎉,👋,🤲,🌙,👑,💋")
         return saved.split(",").filter { it.isNotBlank() }
     }
 
@@ -560,7 +773,13 @@ class PreferencesManager(private val context: Context) {
             // 1. All settings & preferences
             val allPrefsObj = JSONObject()
             prefs.all.forEach { (k, v) ->
-                if (v != null) allPrefsObj.put(k, v)
+                if (v is Set<*>) {
+                    val arr = JSONArray()
+                    v.forEach { item -> if (item != null) arr.put(item.toString()) }
+                    allPrefsObj.put(k, arr)
+                } else if (v != null) {
+                    allPrefsObj.put(k, v)
+                }
             }
             put("all_preferences", allPrefsObj)
 
@@ -568,7 +787,15 @@ class PreferencesManager(private val context: Context) {
             try {
                 val dictPrefs = context.getSharedPreferences("turbo_user_dictionary", Context.MODE_PRIVATE)
                 val dictObj = JSONObject()
-                dictPrefs.all.forEach { (k, v) -> if (v != null) dictObj.put(k, v) }
+                dictPrefs.all.forEach { (k, v) ->
+                    if (v is Set<*>) {
+                        val arr = JSONArray()
+                        v.forEach { item -> if (item != null) arr.put(item.toString()) }
+                        dictObj.put(k, arr)
+                    } else if (v != null) {
+                        dictObj.put(k, v)
+                    }
+                }
                 put("user_dictionary", dictObj)
             } catch (_: Exception) {}
 
@@ -585,7 +812,20 @@ class PreferencesManager(private val context: Context) {
 
     fun restoreBackupJson(jsonString: String): Boolean {
         return try {
-            val root = JSONObject(jsonString)
+            var cleaned = jsonString.trim()
+            if (cleaned.startsWith("```")) {
+                cleaned = cleaned.removePrefix("```json").removePrefix("```").trim()
+                if (cleaned.endsWith("```")) {
+                    cleaned = cleaned.removeSuffix("```").trim()
+                }
+            }
+            val startIdx = cleaned.indexOf('{')
+            val endIdx = cleaned.lastIndexOf('}')
+            if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+                cleaned = cleaned.substring(startIdx, endIdx + 1)
+            }
+
+            val root = JSONObject(cleaned)
             val editor = prefs.edit()
 
             if (root.has("all_preferences")) {
@@ -593,25 +833,81 @@ class PreferencesManager(private val context: Context) {
                 val keys = allPrefs.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
-                    when (val value = allPrefs.get(key)) {
-                        is Boolean -> editor.putBoolean(key, value)
-                        is Int -> editor.putInt(key, value)
-                        is Long -> editor.putLong(key, value)
-                        is Double -> editor.putFloat(key, value.toFloat())
-                        is String -> editor.putString(key, value)
-                        else -> editor.putString(key, value.toString())
+                    val value = allPrefs.get(key)
+                    editor.remove(key)
+
+                    if (key == "recently_deleted_system_clips") {
+                        val s = mutableSetOf<String>()
+                        when (value) {
+                            is JSONArray -> for (idx in 0 until value.length()) s.add(value.getString(idx))
+                            is String -> {
+                                try {
+                                    val a = JSONArray(value)
+                                    for (idx in 0 until a.length()) s.add(a.getString(idx))
+                                } catch (_: Exception) {
+                                    s.addAll(value.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+                                }
+                            }
+                        }
+                        editor.putStringSet(key, s)
+                    } else if (key in FLOAT_KEYS) {
+                        val f = when (value) {
+                            is Number -> value.toFloat()
+                            is String -> value.toFloatOrNull() ?: 1.0f
+                            else -> 1.0f
+                        }
+                        editor.putFloat(key, f)
+                    } else if (key in INT_KEYS || key == "last_clipboard_scroll_idx" || key == "last_clipboard_scroll_offset") {
+                        val i = when (value) {
+                            is Number -> value.toInt()
+                            is String -> value.toIntOrNull() ?: 0
+                            else -> 0
+                        }
+                        editor.putInt(key, i)
+                    } else if (key in BOOLEAN_KEYS) {
+                        val b = when (value) {
+                            is Boolean -> value
+                            is Number -> value.toInt() != 0
+                            is String -> value.equals("true", ignoreCase = true) || value == "1"
+                            else -> true
+                        }
+                        editor.putBoolean(key, b)
+                    } else if (key in STRING_KEYS) {
+                        val str = when (value) {
+                            is JSONArray -> value.toString()
+                            is JSONObject -> value.toString()
+                            null -> ""
+                            else -> value.toString()
+                        }
+                        editor.putString(key, str)
+                    } else {
+                        when (value) {
+                            is Boolean -> editor.putBoolean(key, value)
+                            is Int -> editor.putInt(key, value)
+                            is Long -> editor.putLong(key, value)
+                            is Double -> editor.putFloat(key, value.toFloat())
+                            is Float -> editor.putFloat(key, value)
+                            is String -> editor.putString(key, value)
+                            is JSONArray -> editor.putString(key, value.toString())
+                            is JSONObject -> editor.putString(key, value.toString())
+                            else -> editor.putString(key, value.toString())
+                        }
                     }
                 }
             } else {
                 // Fallback for v1 backups
                 if (root.has("clipboard")) {
+                    editor.remove("clipboard_history")
                     editor.putString("clipboard_history", root.getJSONArray("clipboard").toString())
                 }
                 if (root.has("shortcuts")) {
+                    editor.remove("text_shortcuts_list")
                     editor.putString("text_shortcuts_list", root.getJSONArray("shortcuts").toString())
                 }
             }
             editor.commit()
+            sanitizePrefs()
+            cachedClipboardItems = null
 
             // Restore user dictionary
             if (root.has("user_dictionary")) {
@@ -622,7 +918,25 @@ class PreferencesManager(private val context: Context) {
                     val keys = dictObj.keys()
                     while (keys.hasNext()) {
                         val k = keys.next()
-                        dictEditor.putString(k, dictObj.optString(k, ""))
+                        dictEditor.remove(k)
+                        if (k == "custom_words") {
+                            val raw = dictObj.get(k)
+                            val wordsSet = mutableSetOf<String>()
+                            when (raw) {
+                                is JSONArray -> for (idx in 0 until raw.length()) wordsSet.add(raw.getString(idx))
+                                is String -> {
+                                    try {
+                                        val a = JSONArray(raw)
+                                        for (idx in 0 until a.length()) wordsSet.add(a.getString(idx))
+                                    } catch (_: Exception) {
+                                        wordsSet.addAll(raw.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+                                    }
+                                }
+                            }
+                            dictEditor.putStringSet("custom_words", wordsSet)
+                        } else {
+                            dictEditor.putString(k, dictObj.optString(k, ""))
+                        }
                     }
                     dictEditor.commit()
                 } catch (_: Exception) {}
@@ -637,6 +951,7 @@ class PreferencesManager(private val context: Context) {
                     val keys = emObj.keys()
                     while (keys.hasNext()) {
                         val k = keys.next()
+                        emEditor.remove(k)
                         emEditor.putString(k, emObj.optString(k, ""))
                     }
                     emEditor.commit()
@@ -650,8 +965,8 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun getCustomTopEmojis(): List<String> {
-        val raw = prefs.getString("custom_top_emojis_list", null)
-        if (!raw.isNullOrBlank()) {
+        val raw = getStringSafe("custom_top_emojis_list", "")
+        if (raw.isNotBlank()) {
             try {
                 val arr = JSONArray(raw)
                 val list = mutableListOf<String>()
@@ -672,7 +987,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun getEmojiSizeScale(): Float {
-        return prefs.getFloat("emojiSizeScale", 1.0f)
+        return getFloatSafe("emojiSizeScale", 1.0f)
     }
 
     fun saveEmojiSizeScale(scale: Float) {

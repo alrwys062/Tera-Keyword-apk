@@ -196,12 +196,12 @@ fun KeyboardToolbar(
             )
         }
 
-        // 8. ذكاء ونبرة (AI Tone & Smart Assistant)
+        // 8. تدقيق وتصحيح إملائي صارم
         if ("ai" in toolsToShow) {
             val isAiActive = activeSubView == KeyboardSubView.AI_ASSISTANT
             ToolbarFixedItem(
-                icon = Icons.Outlined.Psychology,
-                label = "ذكاء",
+                icon = Icons.Outlined.Spellcheck,
+                label = "تدقيق",
                 isActive = isAiActive,
                 theme = theme,
                 onClick = {

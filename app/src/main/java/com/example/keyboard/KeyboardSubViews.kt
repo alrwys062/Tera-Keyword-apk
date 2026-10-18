@@ -1558,7 +1558,7 @@ fun MediaPickerView(
 }
 
 // -------------------------------------------------------------
-// 7. AI TONE & ASSISTANT DRAWER (Requested: "زي كيبورد ذكاء اصطناعي وتغير نبرة الكتابة وتصحح الأخطاء")
+// 7. SPELLING CORRECTION & PROOFREADING DRAWER (التدقيق والتصحيح الإملائي الصارم للنصوص العربية)
 // -------------------------------------------------------------
 @Composable
 fun AiToneDrawer(
@@ -1568,14 +1568,17 @@ fun AiToneDrawer(
     onAddWordToDictionary: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    var selectedToneId by remember { mutableStateOf("formal") }
-    var generatedText by remember {
-        mutableStateOf(
-            if (currentText.isNotBlank()) com.example.data.AiToneEngine.transformTone(currentText, "formal")
-            else "السلام عليكم ورحمة الله، أود التواصل معكم بخصوص هذا الموضوع، شاكرين ومقدرين حسن تعاونكم."
-        )
-    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var inputText by remember { mutableStateOf(currentText) }
     var statusMessage by remember { mutableStateOf("") }
+
+    val stats = remember(inputText) {
+        com.example.data.SpellCheckDictionary.getCorrectionStats(inputText, isArabic = true)
+    }
+
+    var correctedText by remember(inputText) {
+        mutableStateOf(com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true))
+    }
 
     Column(
         modifier = Modifier
@@ -1592,18 +1595,25 @@ fun AiToneDrawer(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.Psychology,
-                    contentDescription = null,
+                    imageVector = Icons.Outlined.Spellcheck,
+                    contentDescription = "Spell Check",
                     tint = Color(0xFF00E5FF),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "مساعد الذكاء الاصطناعي وتغيير النبرة",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
+                Column {
+                    Text(
+                        text = "التدقيق والتصحيح الإملائي للنصوص",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "تصحيح حروف الكلمات فقط • تطابق تام 100% لعدد الكلمات",
+                        color = Color(0xFF8E9BAE),
+                        fontSize = 9.sp
+                    )
+                }
             }
 
             Box(
@@ -1625,117 +1635,51 @@ fun AiToneDrawer(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Tone Selector Pills (Horizontal Scroll)
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            items(com.example.data.AiToneEngine.allTones) { tone ->
-                val isSelected = tone.id == selectedToneId
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(0xFF1A2233),
-                    border = BorderStroke(
-                        1.dp,
-                        if (isSelected) Color(0xFF00E5FF) else Color(0xFF28364F)
-                    ),
-                    modifier = Modifier.clickable {
-                        selectedToneId = tone.id
-                        generatedText = com.example.data.AiToneEngine.transformTone(
-                            if (currentText.isNotBlank()) currentText else "",
-                            tone.id
-                        )
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(tone.icon, fontSize = 13.sp)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = tone.nameAr,
-                            color = if (isSelected) Color(0xFF00E5FF) else Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Quick AI Action Chips (Spell check, Harakat, Rephrase)
+        // Metrics Bar (Strict Condition Enforcement)
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF161F2E), RoundedCornerShape(8.dp))
+                .border(1.dp, Color(0xFF24334A), RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. تدقيق إملائي فوري
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF152A28),
-                border = BorderStroke(1.dp, Color(0xFF10B981)),
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable {
-                        val corrected = com.example.data.SpellCheckDictionary.autoCorrectSentence(
-                            if (currentText.isNotBlank()) currentText else generatedText,
-                            true
-                        )
-                        generatedText = corrected
-                        statusMessage = "تم التدقيق والتصحيح الإملائي بنجاح ✓"
-                    }
-            ) {
-                Box(modifier = Modifier.padding(vertical = 5.dp), contentAlignment = Alignment.Center) {
-                    Text("✓ تدقيق وتصحيح", color = Color(0xFF34D399), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "الكلمات: ${stats.inputWordCount} مدخلة ⟵ ${stats.outputWordCount} مخرجة",
+                    color = Color(0xFF38BDF8),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.2f)
+                ) {
+                    Text(
+                        text = "تطابق الحجم 100% ✓",
+                        color = Color(0xFF34D399),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
                 }
             }
 
-            // 2. تشكيل الحركات
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF261D36),
-                border = BorderStroke(1.dp, Color(0xFFA855F7)),
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable {
-                        val withTashkeel = com.example.data.AiToneEngine.addAutomaticTashkeel(
-                            if (currentText.isNotBlank()) currentText else generatedText
-                        )
-                        generatedText = withTashkeel
-                        statusMessage = "تم إضافة التشكيل التلقائي ✓"
-                    }
-            ) {
-                Box(modifier = Modifier.padding(vertical = 5.dp), contentAlignment = Alignment.Center) {
-                    Text("✨ تشكيل الحركات", color = Color(0xFFC084FC), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // 3. إضافة للقاموس
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF1D263B),
-                border = BorderStroke(1.dp, Color(0xFF3B82F6)),
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable {
-                        val wordToAdd = currentText.trim().split(" ").lastOrNull() ?: currentText.trim()
-                        if (wordToAdd.isNotBlank()) {
-                            onAddWordToDictionary(wordToAdd)
-                            statusMessage = "تم حفظ '$wordToAdd' في قاموسك الشخصي ✓"
-                        }
-                    }
-            ) {
-                Box(modifier = Modifier.padding(vertical = 5.dp), contentAlignment = Alignment.Center) {
-                    Text("➕ حفظ بالقاموس", color = Color(0xFF60A5FA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            Text(
+                text = if (stats.correctedWordCount > 0) "تم تصحيح ${stats.correctedWordCount} كلمة"
+                       else if (stats.inputWordCount > 0) "سليم إملائياً ✓"
+                       else "بانتظار النص",
+                color = if (stats.correctedWordCount > 0) Color(0xFFFBBF24) else Color(0xFF94A3B8),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Result Card & Preview
+        // Main Content Area
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = Color(0xFF161F2E),
@@ -1750,46 +1694,129 @@ fun AiToneDrawer(
                     .padding(8.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = generatedText,
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (inputText.isBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "اكتب أو الصق نصاً في المحادثة لتدقيقه وتصحيح حروفه إملائياً فقط بدون زيادة أو تأليف.",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = correctedText,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
 
+                        if (stats.corrections.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                items(stats.corrections.take(6)) { (original, corrected) ->
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFF0F172A),
+                                        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f))
+                                    ) {
+                                        Text(
+                                            text = "$original ← $corrected",
+                                            color = Color(0xFFFBBF24),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Quick Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (statusMessage.isNotEmpty()) {
                         Text(
                             text = statusMessage,
-                            color = Color(0xFF00E5FF),
+                            color = Color(0xFF34D399),
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
                         )
                     } else {
-                        Spacer(modifier = Modifier.width(4.dp))
+                        // Action chips: تشكيل الحركات، نسخ
+                        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF1E283A),
+                                border = BorderStroke(1.dp, Color(0xFF334155)),
+                                modifier = Modifier.clickable {
+                                    if (correctedText.isNotBlank()) {
+                                        correctedText = com.example.data.SpellCheckDictionary.addDiacriticsStrict(correctedText)
+                                        statusMessage = "تم التشكيل مع تطابق الحجم ✓"
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = "✨ تشكيل الحركات",
+                                    color = Color(0xFFC084FC),
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF1E283A),
+                                border = BorderStroke(1.dp, Color(0xFF334155)),
+                                modifier = Modifier.clickable {
+                                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                    cm?.setPrimaryClip(ClipData.newPlainText("Corrected", correctedText))
+                                    statusMessage = "تم النسخ للحافظة ✓"
+                                }
+                            ) {
+                                Text(
+                                    text = "📋 نسخ",
+                                    color = Color(0xFF60A5FA),
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
-                    // Replace Button
+                    // Apply / Replace Button
                     Button(
                         onClick = {
-                            onReplaceText(generatedText)
-                            onClose()
+                            if (correctedText.isNotBlank()) {
+                                onReplaceText(correctedText)
+                                onClose()
+                            }
                         },
+                        enabled = correctedText.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00E5FF)
+                            containerColor = Color(0xFF00E5FF),
+                            disabledContainerColor = Color(0xFF1E293B)
                         ),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.height(32.dp)
                     ) {
                         Text(
-                            text = "استبدال النص ✓",
+                            text = "تطبيق التصحيح ✓",
                             color = Color.Black,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold

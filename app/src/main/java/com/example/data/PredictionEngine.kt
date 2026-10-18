@@ -117,26 +117,28 @@ object PredictionEngine {
             }
         }
 
-        // Check if clean matches a preceding word for next-word prediction
-        val nextWords = nextWordMap[clean]
-        if (nextWords != null && nextWords.isNotEmpty()) {
-            return nextWords.take(3).map { PredictionResult(word = it) }
-        }
-
         val correction = SpellCheckDictionary.getCorrection(clean, isArabic)
-        val combined = (userWords + dictionary).distinct()
-
-        // Prefix matches
-        val matches = combined.filter {
-            it.startsWith(clean, ignoreCase = true)
-        }.sortedBy { it.length }
-
         val results = mutableListOf<PredictionResult>()
 
         if (correction != null && !correction.equals(clean, ignoreCase = true)) {
             // First priority: corrected spelling!
             results.add(PredictionResult(word = correction, isCorrection = true))
         }
+
+        // Check if clean matches a preceding word for next-word prediction only when no typo
+        if (results.isEmpty()) {
+            val nextWords = nextWordMap[clean]
+            if (nextWords != null && nextWords.isNotEmpty()) {
+                return nextWords.take(3).map { PredictionResult(word = it) }
+            }
+        }
+
+        val combined = (userWords + dictionary).distinct()
+
+        // Prefix matches
+        val matches = combined.filter {
+            it.startsWith(clean, ignoreCase = true)
+        }.sortedBy { it.length }
 
         for (m in matches) {
             if (results.size < 3 && results.none { it.word.equals(m, ignoreCase = true) }) {

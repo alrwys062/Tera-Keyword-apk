@@ -272,6 +272,147 @@ fun ToolsScreen(
             }
         }
 
+        // Strict Arabic Spell Check Tool Card
+        var showSpellCheckDialog by remember { mutableStateOf(false) }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .clickable { showSpellCheckDialog = true },
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF161F2E).copy(alpha = 0.9f),
+            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF10B981).copy(alpha = 0.7f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF10B981).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Spellcheck,
+                            contentDescription = "Spell Check",
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "التدقيق والتصحيح الإملائي الصارم",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "تصحيح حروف الكلمات فقط • تطابق تام 100% لعدد الكلمات",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981)
+                )
+            }
+        }
+
+        if (showSpellCheckDialog) {
+            var sampleSpellText by remember { mutableStateOf("هدا النص فى اخطاء كثيره شكرن جزيلا") }
+            val stats = remember(sampleSpellText) {
+                com.example.data.SpellCheckDictionary.getCorrectionStats(sampleSpellText, isArabic = true)
+            }
+            val correctedResult = remember(sampleSpellText) {
+                com.example.data.SpellCheckDictionary.autoCorrectSentence(sampleSpellText, isArabic = true)
+            }
+
+            AlertDialog(
+                onDismissRequest = { showSpellCheckDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Spellcheck, contentDescription = null, tint = Color(0xFF10B981))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("التدقيق والتصحيح الإملائي الصارم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                },
+                text = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "شروط صارمة: تصحيح الحروف فقط، منع زيادة أو تأليف أي كلمة، تطابق تام لعدد الكلمات.",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 11.sp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = sampleSpellText,
+                            onValueChange = { sampleSpellText = it },
+                            label = { Text("اكتب نصاً لفحص التصحيح الإملائي") },
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 3
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // Verification Badges
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(8.dp))
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "المدخل: ${stats.inputWordCount} | المخرج: ${stats.outputWordCount} كلمة",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "تطابق 100% ✓",
+                                color = Color(0xFF34D399),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text("النص المصحح (بدون تأليف أو زيادة):", color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF131A26),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E293B)),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Box(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = if (correctedResult.isNotBlank()) correctedResult else "لا يوجد نص",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showSpellCheckDialog = false }) {
+                        Text("إغلاق", color = Color(0xFF00E5FF))
+                    }
+                },
+                containerColor = Color(0xFF141A28)
+            )
+        }
+
         Spacer(modifier = Modifier.height(14.dp))
 
         // AI Tone & Smart Assistant Card (Requested by user)

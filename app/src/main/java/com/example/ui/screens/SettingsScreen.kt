@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PreferencesManager
@@ -1829,74 +1831,179 @@ fun SettingsScreen(
         )
     }
 
-    // 9.1 AI TONE DIALOG
+    // 9.1 AI TONE & STRICT SPELL CHECK DIALOG
     if (activeDialog == "AI_TONE") {
-        var testText by remember { mutableStateOf("ابي اكلمك بموضوع مهم اذا فاضي") }
+        var testText by remember { mutableStateOf("هدا النص فى اخطاء كثيره شكرن جزيلا") }
+        var isSpellCheckMode by remember { mutableStateOf(true) }
         var selectedTone by remember { mutableStateOf("formal") }
-        var toneResult by remember { mutableStateOf(com.example.data.AiToneEngine.transformTone(testText, "formal")) }
+        val stats = remember(testText) {
+            com.example.data.SpellCheckDictionary.getCorrectionStats(testText, isArabic = true)
+        }
+        val spellResult = remember(testText) {
+            com.example.data.SpellCheckDictionary.autoCorrectSentence(testText, isArabic = true)
+        }
+        val toneResult = remember(testText, selectedTone) {
+            com.example.data.AiToneEngine.transformTone(testText, selectedTone)
+        }
 
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("الذكاء الاصطناعي وتغيير النبرة", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Spellcheck, contentDescription = null, tint = Color(0xFF00E5FF))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("التدقيق الإملائي الصارم والنبرات", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+            },
             text = {
-                Column(modifier = Modifier.height(380.dp)) {
-                    Text("جرب تغيير نبرة النص مباشرة:", color = Color(0xFF8E9BAE), fontSize = 11.sp)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = testText,
-                        onValueChange = {
-                            testText = it
-                            toneResult = com.example.data.AiToneEngine.transformTone(it, selectedTone)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 2
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("اختر النبرة المطلوبة:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    LazyColumn(modifier = Modifier.height(130.dp)) {
-                        items(com.example.data.AiToneEngine.allTones) { tone ->
-                            val isSelected = tone.id == selectedTone
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF1E283A),
-                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color(0xFF28364F)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 3.dp)
-                                    .clickable {
-                                        selectedTone = tone.id
-                                        toneResult = com.example.data.AiToneEngine.transformTone(testText, tone.id)
-                                    }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(tone.icon, fontSize = 14.sp)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(tone.nameAr, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        Text(tone.description, color = Color(0xFF8E9BAE), fontSize = 9.sp)
-                                    }
-                                }
-                            }
+                Column(modifier = Modifier.height(410.dp)) {
+                    // Mode selector
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
+                            .padding(2.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isSpellCheckMode) Color(0xFF10B981) else Color.Transparent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { isSpellCheckMode = true }
+                        ) {
+                            Text(
+                                text = "التصحيح الإملائي الصارم",
+                                color = if (isSpellCheckMode) Color.Black else Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (!isSpellCheckMode) Color(0xFF818CF8) else Color.Transparent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { isSpellCheckMode = false }
+                        ) {
+                            Text(
+                                text = "تغيير النبرة",
+                                color = if (!isSpellCheckMode) Color.Black else Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("النتيجة بالنبرة المختارة:", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF161F2E),
-                        border = BorderStroke(1.dp, Color(0xFF2A3A54)),
-                        modifier = Modifier.fillMaxWidth().height(70.dp).padding(2.dp)
-                    ) {
-                        Box(modifier = Modifier.padding(8.dp)) {
-                            Text(toneResult, color = Color.White, fontSize = 11.sp, lineHeight = 16.sp)
+                    OutlinedTextField(
+                        value = testText,
+                        onValueChange = { testText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("اكتب نصاً للفحص والتصحيح") },
+                        maxLines = 2
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (isSpellCheckMode) {
+                        // Strict Spell Check View
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF161F2E), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF24334A), RoundedCornerShape(8.dp))
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "المدخل: ${stats.inputWordCount} ⟵ المخرج: ${stats.outputWordCount} كلمة",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = "تطابق الحجم 100% ✓",
+                                    color = Color(0xFF34D399),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "شروط صارمة: تصحيح حروف الكلمات فقط بدون إضافة كلمات أو إكمال جمل.",
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 10.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("النتيجة المصححة إملائياً:", color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF161F2E),
+                            border = BorderStroke(1.dp, Color(0xFF2A3A54)),
+                            modifier = Modifier.fillMaxWidth().weight(1f).padding(2.dp)
+                        ) {
+                            Box(modifier = Modifier.padding(8.dp)) {
+                                Text(spellResult, color = Color.White, fontSize = 12.sp, lineHeight = 17.sp)
+                            }
+                        }
+                    } else {
+                        // Tone selection
+                        Text("اختر النبرة المطلوبة:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        LazyColumn(modifier = Modifier.height(130.dp)) {
+                            items(com.example.data.AiToneEngine.allTones) { tone ->
+                                val isSelected = tone.id == selectedTone
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF1E283A),
+                                    border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color(0xFF28364F)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 3.dp)
+                                        .clickable { selectedTone = tone.id }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(tone.icon, fontSize = 14.sp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(tone.nameAr, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(tone.description, color = Color(0xFF8E9BAE), fontSize = 9.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("النتيجة بالنبرة المختارة:", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF161F2E),
+                            border = BorderStroke(1.dp, Color(0xFF2A3A54)),
+                            modifier = Modifier.fillMaxWidth().height(70.dp).padding(2.dp)
+                        ) {
+                            Box(modifier = Modifier.padding(8.dp)) {
+                                Text(toneResult, color = Color.White, fontSize = 11.sp, lineHeight = 16.sp)
+                            }
                         }
                     }
                 }

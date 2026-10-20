@@ -276,24 +276,10 @@ fun TurboKeyboardView(
     // Live text tracking for prediction and special 4-sec translate
     var currentComposingText by remember { mutableStateOf("") }
 
-    // 2-sec Enter hold to toggle Newline mode (السطر الثاني ↵)
-    var isEnterInNewlineMode by remember { mutableStateOf(false) }
-    var isEnterHolding by remember { mutableStateOf(false) }
-    var enterHoldProgress by remember { mutableFloatStateOf(0f) }
-    var enterHoldMessage by remember { mutableStateOf("") }
-    var newlineSwitchNotification by remember { mutableStateOf<String?>(null) }
-
     // 3-sec Translate button hold state
     var isTranslateButtonHolding by remember { mutableStateOf(false) }
     var translateHoldProgress by remember { mutableFloatStateOf(0f) }
     var translateHoldMessage by remember { mutableStateOf("") }
-
-    LaunchedEffect(newlineSwitchNotification) {
-        if (newlineSwitchNotification != null) {
-            delay(2200)
-            newlineSwitchNotification = null
-        }
-    }
 
     val userDict = remember { com.example.data.UserDictionaryManager(context) }
     var userWords by remember { mutableStateOf(userDict.getUserWords()) }
@@ -817,14 +803,14 @@ fun TurboKeyboardView(
         coroutineScope.launch {
             val textToTranslate = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText
             if (textToTranslate.isNotBlank()) {
-                enterHoldMessage = "جاري الترجمة الفورية..."
+                translateHoldMessage = "جاري الترجمة الفورية..."
                 val source = if (isArabic) "ar" else "en"
                 val target = if (isArabic) "en" else "ar"
                 val result = TranslationEngine.translate(textToTranslate, source, target)
                 replaceAllText(result)
-                enterHoldMessage = "تمت الترجمة بنجاح ✓"
+                translateHoldMessage = "تمت الترجمة بنجاح ✓"
                 delay(1200)
-                enterHoldMessage = ""
+                translateHoldMessage = ""
             }
         }
     }
@@ -858,18 +844,12 @@ fun TurboKeyboardView(
                 .then(if (theme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
                 .navigationBarsPadding()
         ) {
-        // Top status/alert banner when Enter 2-sec newline switch or Translate 3-sec hold is active
-        AnimatedVisibility(visible = newlineSwitchNotification != null || enterHoldProgress > 0.05f || enterHoldMessage.isNotEmpty() || translateHoldProgress > 0.03f || translateHoldMessage.isNotEmpty()) {
+        // Top status/alert banner when Translate 3-sec hold is active
+        AnimatedVisibility(visible = translateHoldProgress > 0.03f || translateHoldMessage.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        when {
-                            translateHoldProgress > 0.03f || translateHoldMessage.isNotEmpty() -> Color(0xFF00E5FF).copy(alpha = 0.25f)
-                            isEnterInNewlineMode -> Color(0xFF00E5FF).copy(alpha = 0.25f)
-                            else -> Color(theme.accentColor).copy(alpha = 0.2f)
-                        }
-                    )
+                    .background(Color(0xFF00E5FF).copy(alpha = 0.25f))
                     .padding(vertical = 4.dp, horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -893,36 +873,6 @@ fun TurboKeyboardView(
                         Text(
                             text = translateHoldMessage,
                             color = Color(0xFF00E5FF),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else if (enterHoldProgress in 0.05f..0.99f) {
-                        CircularProgressIndicator(
-                            progress = { enterHoldProgress },
-                            modifier = Modifier.size(16.dp),
-                            color = if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(theme.accentColor),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        val target = if (isEnterInNewlineMode) "زر الإدخال / الإرسال" else "زر السطر الثاني (↵ انتقال للسطر الثاني)"
-                        val formattedSec = String.format(java.util.Locale.US, "%.1f", (enterHoldProgress * 2f).coerceAtMost(2f))
-                        Text(
-                            text = "استمر بالضغط 2 ثوانٍ للتبديل إلى $target... (${formattedSec}ث/2ث)",
-                            color = if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(theme.accentColor),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else if (newlineSwitchNotification != null) {
-                        Text(
-                            text = newlineSwitchNotification ?: "",
-                            color = if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(theme.accentColor),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else if (enterHoldMessage.isNotEmpty()) {
-                        Text(
-                            text = enterHoldMessage,
-                            color = Color(theme.accentColor),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1725,9 +1675,7 @@ fun TurboKeyboardView(
                             }
                         }
 
-                        // Row 4: Exact bottom row from Samsung layout with Emoji key at bottom:
-                        // [ 123!#() ] [ 🌐 Language ] [ 😊 Emoji ] [   Spacebar   ] [ . ] [ 📋 Clipboard ] [ ✓ Enter ]
-                        var enterJob: Job? by remember { mutableStateOf(null) }
+
                         val bottomKeyBg = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
                         val bottomKeyPressedBg = ThemePresets.resolveKeyColor(activeTheme.keyPressedColor, activeTheme.keyOpacity)
 
@@ -2122,7 +2070,7 @@ fun TurboKeyboardView(
                                 }
                             }
 
-                            // 7. Enter key on the FAR RIGHT with 4-sec translate!
+                            // 7. Enter key with automatic detection (Search, Send, Newline)
                             var isEnterPressed by remember { mutableStateOf(false) }
                             val enterScale by animateFloatAsState(
                                 targetValue = if (isEnterPressed) 0.95f else 1.0f,
@@ -2136,119 +2084,42 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = enterScale; scaleY = enterScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(
-                                        if (isEnterInNewlineMode) {
-                                            Brush.verticalGradient(
-                                                listOf(
-                                                    Color(0xFF00E5FF),
-                                                    Color(0xFF0284C7).copy(alpha = if (isEnterPressed) 0.75f else 0.9f)
-                                                )
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color(activeTheme.enterButtonColor),
+                                                Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
                                             )
-                                        } else {
-                                            Brush.verticalGradient(
-                                                listOf(
-                                                    Color(activeTheme.enterButtonColor),
-                                                    Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
-                                                )
-                                            )
-                                        }
+                                        )
                                     )
                                     .border(
-                                        if (isEnterInNewlineMode) 1.5.dp else 1.dp,
-                                        if (isEnterInNewlineMode) Color(0xFF00E5FF) else Color(activeTheme.accentColor).copy(alpha = 0.7f),
+                                        1.dp,
+                                        Color(activeTheme.accentColor).copy(alpha = 0.7f),
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
-                                    .pointerInput(isEnterInNewlineMode) {
+                                    .pointerInput(Unit) {
                                         detectTapGestures(
                                             onPress = {
                                                 isEnterPressed = true
-                                                performFeedback(isSpecial = true)
-                                                enterJob = coroutineScope.launch {
-                                                    isEnterHolding = true
-                                                    enterHoldProgress = 0f
-                                                    val totalTime = 2000L // الضغط المطول لمدة 2 ثوان بالضبط للتبديل
-                                                    val step = 40L
-                                                    var elapsed = 0L
-                                                    while (elapsed < totalTime) {
-                                                        delay(step)
-                                                        elapsed += step
-                                                        enterHoldProgress = (elapsed.toFloat() / totalTime).coerceIn(0f, 1f)
-                                                    }
-                                                    // تم اكتمال ثانيتين كاملتين -> تبديل وضع زر انتر / السطر الثاني
-                                                    performFeedback(durationMs = 60, isSpecial = true)
-                                                    isEnterInNewlineMode = !isEnterInNewlineMode
-                                                    newlineSwitchNotification = if (isEnterInNewlineMode) {
-                                                        "↵ تم التبديل لزر السطر الثاني (New Line)"
-                                                    } else {
-                                                        "✓ تمت العودة لزر الإدخال / الإرسال الافتراضي"
-                                                    }
-                                                    isEnterHolding = false
-                                                    enterHoldProgress = 0f
-                                                }
                                                 try {
                                                     tryAwaitRelease()
                                                 } finally {
-                                                    enterJob?.cancel()
-                                                    isEnterHolding = false
-                                                    enterHoldProgress = 0f
                                                     isEnterPressed = false
                                                 }
                                             },
                                             onTap = {
-                                                if (isEnterInNewlineMode && !isTranslationBarOpen) {
-                                                    performFeedback(isSpecial = true)
-                                                    if (onServiceNewline != null) {
-                                                        onServiceNewline.invoke()
-                                                    } else {
-                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-                                                        if (ic != null) {
-                                                            ic.commitText("\n", 1)
-                                                        } else {
-                                                            onDirectInsertText?.invoke("\n")
-                                                        }
-                                                    }
-                                                } else {
-                                                    sendEnter()
-                                                }
+                                                performFeedback(isSpecial = true)
+                                                sendEnter()
                                             }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (isEnterInNewlineMode) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-                                            contentDescription = "انتقال للسطر الثاني",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Text(
-                                            text = "سطر ↵",
-                                            color = Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                } else {
-                                    Icon(
-                                        imageVector = currentImeAction.icon,
-                                        contentDescription = currentImeAction.contentDescription,
-                                        tint = ThemePresets.getEnterIconTint(activeTheme),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-
-                                if (isEnterHolding && enterHoldProgress in 0.05f..0.99f) {
-                                    CircularProgressIndicator(
-                                        progress = { enterHoldProgress },
-                                        modifier = Modifier.size(34.dp),
-                                        color = if (isEnterInNewlineMode) Color.White else Color(activeTheme.accentColor),
-                                        strokeWidth = 2.5.dp
-                                    )
-                                }
+                                Icon(
+                                    imageVector = currentImeAction.icon,
+                                    contentDescription = currentImeAction.contentDescription,
+                                    tint = ThemePresets.getEnterIconTint(activeTheme),
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
                         }
                     }

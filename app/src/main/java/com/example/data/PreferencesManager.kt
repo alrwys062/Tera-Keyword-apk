@@ -28,7 +28,7 @@ class PreferencesManager(private val context: Context) {
             "vibrationEnabled", "soundEnabled", "autoReturnToLettersOnSend", "autoReturnToLettersOnShortcut",
             "autoReturnAfterEmojiInsert", "keyPopupEnabled", "autoCapitalization", "doubleSpacePeriod",
             "suggestionsEnabled", "autoCorrection", "numberRowEnabled", "topQuickEmojiRowEnabled",
-            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled", "enterLongPressNewlineEnabled",
+            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled",
             "showDualHints", "clipboardCloseOnPaste", "clipboardSaveForever", "swapClipboardAndEmoji",
             "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy"
         )
@@ -220,7 +220,6 @@ class PreferencesManager(private val context: Context) {
                 defaultLanguage = getStringSafe("defaultLanguage", "ar"),
                 swipeSpaceSwitchLanguage = getBooleanSafe("swipeSpaceSwitchLanguage", true),
                 enterLongPressTranslateEnabled = getBooleanSafe("enterLongPressTranslateEnabled", true),
-                enterLongPressNewlineEnabled = getBooleanSafe("enterLongPressNewlineEnabled", true),
                 emojiSizeScale = getFloatSafe("emojiSizeScale", 1.0f),
                 showDualHints = getBooleanSafe("showDualHints", true),
                 clipboardCloseOnPaste = getBooleanSafe("clipboardCloseOnPaste", true),
@@ -290,7 +289,6 @@ class PreferencesManager(private val context: Context) {
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
             .putBoolean("enterLongPressTranslateEnabled", settings.enterLongPressTranslateEnabled)
-            .putBoolean("enterLongPressNewlineEnabled", settings.enterLongPressNewlineEnabled)
             .putFloat("emojiSizeScale", settings.emojiSizeScale)
             .putBoolean("showDualHints", settings.showDualHints)
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)

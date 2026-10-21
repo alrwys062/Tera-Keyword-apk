@@ -132,8 +132,24 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
     val action = imeOptions and EditorInfo.IME_MASK_ACTION
     val noEnterKey = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
     val isMultiLine = (editorInfo.inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+    val isSearchType = (editorInfo.inputType and InputType.TYPE_MASK_VARIATION) == InputType.TYPE_TEXT_VARIATION_FILTER
 
-    // Explicit Action takes precedence unless isMultiLine is set AND action is unspecified/none
+    // إذا كان حقل بحث: يظهر زر البحث دائماً
+    if (action == EditorInfo.IME_ACTION_SEARCH || editorInfo.actionId == EditorInfo.IME_ACTION_SEARCH || isSearchType) {
+        return ImeActionInfo(EditorInfo.IME_ACTION_SEARCH, Icons.Default.Search, "بحث", false)
+    }
+
+    // إذا كان حقل نصوص متعدد الأسطر بدون أمر صريح: يظهر سهم السطر الجديد
+    if (isMultiLine && (action == EditorInfo.IME_ACTION_UNSPECIFIED || action == EditorInfo.IME_ACTION_NONE)) {
+        return ImeActionInfo(
+            actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
+            icon = Icons.AutoMirrored.Filled.KeyboardReturn,
+            contentDescription = "سطر جديد",
+            isNewline = true
+        )
+    }
+
+    // Explicit Action takes precedence
     if (action != EditorInfo.IME_ACTION_UNSPECIFIED && action != EditorInfo.IME_ACTION_NONE) {
         return when (action) {
             EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(action, Icons.Default.Search, "بحث", false)
@@ -445,16 +461,33 @@ fun TurboKeyboardView(
         }
     }
 
+    // السحب في الأحرف العائمة: السحب لليمين يحدد الحرف التالي لليمين
     val onDragVariantHandler: (Float) -> Unit = { deltaX ->
         if (longPressVariants.isNotEmpty()) {
-            val stepPx = 35f
+            val stepPx = 30f
             val step = (deltaX / stepPx).toInt()
-            val targetIdx = (if (isArabic) -step else step).coerceIn(0, longPressVariants.lastIndex)
+            val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
             if (targetIdx != selectedVariantIndex) {
                 selectedVariantIndex = targetIdx
                 performFeedback(12L)
             }
         }
+    }
+
+    // الانتقال للسطر الثاني مباشرة
+    fun insertNewlineDirectly() {
+        dismissLongPressPopup()
+        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+        if (ic != null) {
+            val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+            if (!down || !up) {
+                ic.commitText("\n", 1)
+            }
+        } else {
+            onDirectInsertText?.invoke("\n")
+        }
+        currentComposingText = ""
     }
 
     val onReleaseVariantHandler: () -> Unit = {
@@ -1465,8 +1498,19 @@ fun TurboKeyboardView(
                             }
                             row.forEach { key ->
                                 val char = (key.type as KeyType.Character).primary
-                                val hint = if (isArabic) LongPressVariantsManager.arabicRow1Hints[char]
-                                           else LongPressVariantsManager.englishRow1Hints[char.lowercase()]
+                                val hint = if (isArabic) {
+                                    if (char == "ج" || char == "ك") null
+                                    else {
+                                        val raw = LongPressVariantsManager.arabicRow1Hints[char]
+                                        if (raw != null && !currentSettings.forceEnglishNumbers) {
+                                            when (raw) {
+                                                "1" -> "١"; "2" -> "٢"; "3" -> "٣"; "4" -> "٤"; "5" -> "٥"
+                                                "6" -> "٦"; "7" -> "٧"; "8" -> "٨"; "9" -> "٩"; "0" -> "٠"
+                                                else -> raw
+                                            }
+                                        } else raw
+                                    }
+                                } else LongPressVariantsManager.englishRow1Hints[char.lowercase()]
                                 key("${currentWorldLang.code}_r1_$char") {
                                     KeyButton(
                                         key = key,
@@ -2097,20 +2141,27 @@ fun TurboKeyboardView(
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
                                     .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                isEnterPressed = true
-                                                try {
-                                                    tryAwaitRelease()
-                                                } finally {
-                                                    isEnterPressed = false
-                                                }
-                                            },
-                                            onTap = {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            isEnterPressed = true
+                                            var triggeredHold = false
+                                            val job = coroutineScope.launch {
+                                                delay(1000L) // بعد الضغط لثانية واحدة على زر انتر للانتقال للسطر الثاني
+                                                triggeredHold = true
                                                 performFeedback(isSpecial = true)
-                                                sendEnter()
+                                                insertNewlineDirectly()
                                             }
-                                        )
+                                            try {
+                                                val up = waitForUpOrCancellation()
+                                                if (up != null && !triggeredHold) {
+                                                    performFeedback(isSpecial = true)
+                                                    sendEnter()
+                                                }
+                                            } finally {
+                                                job.cancel()
+                                                isEnterPressed = false
+                                            }
+                                        }
                                     },
                                 contentAlignment = Alignment.Center
                             ) {

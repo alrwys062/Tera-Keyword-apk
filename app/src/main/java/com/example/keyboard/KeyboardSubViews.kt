@@ -1108,19 +1108,13 @@ fun EmojiPickerView(
         Spacer(modifier = Modifier.height(4.dp))
 
         // Grid of emojis (يتكيف مع حجم الفيسات المختار)
+        // Grid of emojis (بكل صف 8 أو 9 فيسات حسب طلب المستخدم)
         val gridColumns = when {
-            emojiSizeScale >= 1.45f -> 5
-            emojiSizeScale >= 1.25f -> 6
-            emojiSizeScale <= 0.85f -> 9
+            emojiSizeScale <= 0.95f -> 9
             else -> 8
         }
-        val emojiFontSize = (21 * emojiSizeScale).coerceIn(16f, 32f).sp
-        val itemBoxSize = when {
-            emojiSizeScale >= 1.45f -> 48.dp
-            emojiSizeScale >= 1.25f -> 42.dp
-            emojiSizeScale <= 0.85f -> 32.dp
-            else -> 36.dp
-        }
+        val emojiFontSize = (20 * emojiSizeScale).coerceIn(16f, 25f).sp
+        val itemBoxSize = if (gridColumns == 9) 34.dp else 38.dp
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(gridColumns),

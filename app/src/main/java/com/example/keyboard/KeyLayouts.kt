@@ -21,7 +21,7 @@ data class KeyModel(
 object KeyLayouts {
 
     // Quick shortcuts row matching iOS / Transboard layout
-    val arabicQuickShortcutsRow = listOf("👑", "💋", "ة", "ؤ", "ء", "ئ", "ى", "لأ", "😂", "خاص").map {
+    val arabicQuickShortcutsRow = listOf("👑", "ﷺ", "ﷻ", "ة", "ؤ", "ء", "ئ", "ى", "لأ", "😂").map {
         KeyModel(KeyType.Character(it))
     }
 
@@ -116,6 +116,8 @@ object KeyLayouts {
         "ه" to listOf("ة", "6"),
         "لا" to listOf("لأ", "لإ", "لآ"),
         "ل" to listOf("لا", "لأ", "لإ"),
+        "ض" to listOf("ﷺ", "ﷻ", "﷽", "ﷲ", "ﷴ", "۝"),
+        "ص" to listOf("ﷺ", "ﷻ", "﷽", "ﷲ"),
         "ب" to listOf("پ", "2"),
         "ج" to listOf("چ"),
         "ف" to listOf("ڤ"),

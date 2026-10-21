@@ -425,6 +425,9 @@ object SpellCheckDictionary {
         if (trimmed.isBlank()) return null
 
         if (isArabic) {
+            if (trimmed == "انشاء الله" || trimmed == "إنشاء الله") {
+                return "إن شاء الله"
+            }
             // 1. فحص المطابقة المباشرة بالقاموس
             arabicTypoMap[trimmed]?.let { return it }
 
@@ -493,10 +496,9 @@ object SpellCheckDictionary {
     fun autoCorrectSentence(sentence: String, isArabic: Boolean = true): String {
         if (sentence.isEmpty()) return ""
 
-        // تقسيم النص مع الحفاظ التام على المسافات والفواصل بين الكلمات
-        // Regex (\\S+) يستهدف كل كلمة بمفردها ويستبدلها بتصحيحها الإملائي الدقيق
+        val preprocessed = if (isArabic) sentence.replace("انشاء الله", "إن شاء الله") else sentence
         val tokenRegex = Regex("(\\S+)")
-        return tokenRegex.replace(sentence) { matchResult ->
+        return tokenRegex.replace(preprocessed) { matchResult ->
             val originalToken = matchResult.value
             correctSingleToken(originalToken, isArabic)
         }

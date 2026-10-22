@@ -94,6 +94,9 @@ object LongPressVariantsManager {
     )
 
     fun getVariants(char: String): List<String> {
+        if (char == "." || char == "٫") {
+            return listOf("@gmail.com", "@hotmail.com", "@yahoo.com", "www.", ".com", ".org", ".net", ".edu", "http://", "https://")
+        }
         if (char == "-" || char == "–" || char == "—") {
             return listOf("ـ", "-", "—", "–", "•")
         }

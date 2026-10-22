@@ -776,6 +776,36 @@ fun SettingsScreen(
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
+
+                    // Emoji Bar Height Factor
+                    Text(
+                        "ارتفاع شريط الابتسامات العلوي: ${(settings.emojiBarHeightFactor * 100).toInt()}%",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Slider(
+                        value = settings.emojiBarHeightFactor,
+                        onValueChange = { updateSettings(settings.copy(emojiBarHeightFactor = it)) },
+                        valueRange = 0.70f..1.80f
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Emoji Button Size Factor
+                    Text(
+                        "حجم أزرار الابتسامات: ${(settings.emojiButtonSizeFactor * 100).toInt()}%",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Slider(
+                        value = settings.emojiButtonSizeFactor,
+                        onValueChange = { updateSettings(settings.copy(emojiButtonSizeFactor = it)) },
+                        valueRange = 0.70f..1.80f
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

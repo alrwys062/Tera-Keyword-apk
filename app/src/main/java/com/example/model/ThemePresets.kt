@@ -1333,6 +1333,27 @@ object ThemePresets {
         category = "pro_styles"
     )
 
+    val LIQUID_GLASS_BLUR = KeyboardTheme(
+        id = "liquid_glass_blur",
+        nameAr = "زجاج سائل شفاف (Liquid Glass Blur)",
+        nameEn = "Liquid Glass Blur",
+        backgroundColor = 0xAA0C1017,
+        keyBackgroundColor = 0xCC1F2633,
+        keyPressedColor = 0xEE334155,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xAA0A0E14,
+        borderColor = 0xFF38BDF8,
+        borderAlpha = 0.7f,
+        cornerRadius = 14f,
+        keyStyle = "neon",
+        category = "glass",
+        isGlass = true
+    )
+
+
     val allPresets = listOf(
         // Pro Smartphone Keyboard Styles (20 Themes Grid)
         CYBER_BLUE,
@@ -1394,6 +1415,7 @@ object ThemePresets {
         CANDY_COLORFUL,
 
         // Glass & Transparent
+        LIQUID_GLASS_BLUR,
         GLASSMORPHISM,
         POLAR_ICE,
         WATER_AND_ICE,

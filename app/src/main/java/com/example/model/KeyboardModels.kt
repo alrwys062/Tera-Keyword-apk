@@ -69,6 +69,8 @@ data class KeyboardSettings(
     val defaultLanguage: String = "ar",
     val swipeSpaceSwitchLanguage: Boolean = true,
     val enterLongPressTranslateEnabled: Boolean = true,
+    val emojiBarHeightFactor: Float = 1.0f, // التحكم في ارتفاع شريط الابتسامات
+    val emojiButtonSizeFactor: Float = 1.0f, // التحكم في حجم أزرار شريط الابتسامات
     val emojiSizeScale: Float = 1.0f, // التحكم في حجم الفيسات (0.8f صغير، 1.0f متوسط، 1.25f كبير، 1.5f ضخم)
     val showDualHints: Boolean = true,
     val clipboardCloseOnPaste: Boolean = true,

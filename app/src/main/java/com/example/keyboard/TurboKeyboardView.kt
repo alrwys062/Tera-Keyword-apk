@@ -217,6 +217,7 @@ fun TurboKeyboardView(
     val isArabic = currentWorldLang.code == "ar"
 
     var isShifted by remember { mutableStateOf(false) }
+    var isCapsLockActive by remember { mutableStateOf(false) }
     var isSymbolsMode by remember { mutableStateOf(false) }
     var isMoreSymbolsMode by remember { mutableStateOf(false) }
     var isNumberPadMode by remember { mutableStateOf(false) }
@@ -402,6 +403,17 @@ fun TurboKeyboardView(
         } else {
             currentComposingText = (currentComposingText + textToInsert).takeLast(30)
         }
+
+        // التحويل التلقائي للأحرف الصغيرة في اللغة الإنجليزية بعد كتابة أول حرف كبير
+        if (!isArabic && isShifted && !isCapsLockActive && textToInsert.length == 1 && textToInsert[0].isUpperCase()) {
+            isShifted = false
+        }
+        if (textToInsert in listOf(".", "!", "?", "\n", "\r")) {
+            if (!isArabic && !isCapsLockActive && currentSettings.autoCapitalization) {
+                isShifted = true
+            }
+        }
+
 
         var handled = false
         if (onServiceCommitText != null) {

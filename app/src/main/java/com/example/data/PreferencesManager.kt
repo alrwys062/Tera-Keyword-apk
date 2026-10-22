@@ -18,7 +18,7 @@ class PreferencesManager(private val context: Context) {
     companion object {
         val FLOAT_KEYS = setOf(
             "soundVolume", "typingSpeedMultiplier", "keyHeightFactor", "keyFontSizeFactor",
-            "keyButtonScale", "backspaceKeyScale", "emojiSizeScale"
+            "keyButtonScale", "backspaceKeyScale", "emojiSizeScale", "emojiBarHeightFactor", "emojiButtonSizeFactor"
         )
         val INT_KEYS = setOf(
             "vibrationDurationMs", "keyRepeatSpeedMs", "longPressDelayMs", "arabicColumnsCount",
@@ -220,6 +220,8 @@ class PreferencesManager(private val context: Context) {
                 defaultLanguage = getStringSafe("defaultLanguage", "ar"),
                 swipeSpaceSwitchLanguage = getBooleanSafe("swipeSpaceSwitchLanguage", true),
                 enterLongPressTranslateEnabled = getBooleanSafe("enterLongPressTranslateEnabled", true),
+                emojiBarHeightFactor = getFloatSafe("emojiBarHeightFactor", 1.0f),
+                emojiButtonSizeFactor = getFloatSafe("emojiButtonSizeFactor", 1.0f),
                 emojiSizeScale = getFloatSafe("emojiSizeScale", 1.0f),
                 showDualHints = getBooleanSafe("showDualHints", true),
                 clipboardCloseOnPaste = getBooleanSafe("clipboardCloseOnPaste", true),
@@ -289,6 +291,8 @@ class PreferencesManager(private val context: Context) {
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
             .putBoolean("enterLongPressTranslateEnabled", settings.enterLongPressTranslateEnabled)
+            .putFloat("emojiBarHeightFactor", settings.emojiBarHeightFactor)
+            .putFloat("emojiButtonSizeFactor", settings.emojiButtonSizeFactor)
             .putFloat("emojiSizeScale", settings.emojiSizeScale)
             .putBoolean("showDualHints", settings.showDualHints)
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)

@@ -147,58 +147,22 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
         return ImeActionInfo(EditorInfo.IME_ACTION_SEARCH, Icons.Default.Search, "بحث", false)
     }
 
-    // إذا كان حقل نصوص متعدد الأسطر بدون أمر صريح: يظهر سهم السطر الجديد
-    if (isMultiLine && (action == EditorInfo.IME_ACTION_UNSPECIFIED || action == EditorInfo.IME_ACTION_NONE)) {
-        return ImeActionInfo(
-            actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
-            icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-            contentDescription = "سطر جديد",
-            isNewline = true
-        )
-    }
-
-    // Explicit Action takes precedence
-    if (action != EditorInfo.IME_ACTION_UNSPECIFIED && action != EditorInfo.IME_ACTION_NONE) {
-        return when (action) {
-            EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(action, Icons.Default.Search, "بحث", false)
-            EditorInfo.IME_ACTION_SEND -> ImeActionInfo(action, Icons.AutoMirrored.Filled.Send, "إرسال", false)
-            EditorInfo.IME_ACTION_GO -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "انتقال", false)
-            EditorInfo.IME_ACTION_DONE -> ImeActionInfo(action, Icons.Default.Check, "تم", false)
-            EditorInfo.IME_ACTION_NEXT -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
-            EditorInfo.IME_ACTION_PREVIOUS -> ImeActionInfo(action, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
-            else -> ImeActionInfo(action, Icons.AutoMirrored.Filled.KeyboardReturn, "إدخال", false)
+    // إذا كان حقل نصوص أحادي السطر لنموذج (التالي / السابق)
+    if (!isMultiLine) {
+        if (action == EditorInfo.IME_ACTION_NEXT || editorInfo.actionId == EditorInfo.IME_ACTION_NEXT) {
+            return ImeActionInfo(EditorInfo.IME_ACTION_NEXT, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
+        }
+        if (action == EditorInfo.IME_ACTION_PREVIOUS || editorInfo.actionId == EditorInfo.IME_ACTION_PREVIOUS) {
+            return ImeActionInfo(EditorInfo.IME_ACTION_PREVIOUS, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
         }
     }
 
-    // Single-line fields with actionId in actionId field
-    if (editorInfo.actionId != 0 && editorInfo.actionId != EditorInfo.IME_ACTION_UNSPECIFIED && editorInfo.actionId != EditorInfo.IME_ACTION_NONE) {
-        return when (editorInfo.actionId) {
-            EditorInfo.IME_ACTION_SEARCH -> ImeActionInfo(editorInfo.actionId, Icons.Default.Search, "بحث", false)
-            EditorInfo.IME_ACTION_SEND -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.Send, "إرسال", false)
-            EditorInfo.IME_ACTION_GO -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.ArrowForward, "انتقال", false)
-            EditorInfo.IME_ACTION_DONE -> ImeActionInfo(editorInfo.actionId, Icons.Default.Check, "تم", false)
-            EditorInfo.IME_ACTION_NEXT -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
-            EditorInfo.IME_ACTION_PREVIOUS -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
-            else -> ImeActionInfo(editorInfo.actionId, Icons.AutoMirrored.Filled.KeyboardReturn, "إدخال", false)
-        }
-    }
-
-    // Multiline fields without explicit action
-    if (isMultiLine && !noEnterKey) {
-        return ImeActionInfo(
-            actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
-            icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-            contentDescription = "سطر جديد",
-            isNewline = true
-        )
-    }
-
-    // Default return
+    // في جميع أماكن النصوص والمحادثات والرسائل: يظهر سهم السطر الجديد والانتقال المباشر للسطر الثاني بضغطة واحدة
     return ImeActionInfo(
         actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
         icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-        contentDescription = if (isMultiLine) "سطر جديد" else "إدخال",
-        isNewline = isMultiLine
+        contentDescription = "سطر جديد",
+        isNewline = true
     )
 }
 
@@ -554,44 +518,40 @@ fun TurboKeyboardView(
         val info = getCurrentEditorInfo?.invoke() ?: editorInfo
         val actionInfo = resolveImeAction(info)
 
-        // إذا كان الحقل للسطر الجديد (أماكن كتابة النصوص والمذكرات): انتقال للسطر الثاني بضغطة زر واحدة
-        if (actionInfo.isNewline) {
-            insertNewlineDirectly()
+        // إذا كان حقل بحث: تنفيذ البحث بضغطة زر واحدة
+        if (actionInfo.actionId == EditorInfo.IME_ACTION_SEARCH) {
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            if (ic != null) {
+                val handled = ic.performEditorAction(EditorInfo.IME_ACTION_SEARCH)
+                if (!handled) {
+                    val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                    val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                    if (!down || !up) {
+                        ic.commitText("\n", 1)
+                    }
+                }
+            } else if (onServiceEnter != null) {
+                onServiceEnter.invoke()
+            }
+            currentComposingText = ""
             return
         }
 
-        if (onServiceEnter != null) {
-            onServiceEnter.invoke()
-        } else {
+        // إذا كان حقل تنقل أحادي السطر (التالي أو السابق): تنفيذ أمر التنقل
+        if (!actionInfo.isNewline && (actionInfo.actionId == EditorInfo.IME_ACTION_NEXT || actionInfo.actionId == EditorInfo.IME_ACTION_PREVIOUS)) {
             val ic = getCurrentInputConnection?.invoke() ?: inputConnection
             if (ic != null) {
-                try {
-                    val imeOptions = info?.imeOptions ?: 0
-                    val action = actionInfo.actionId
-
-                    if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
-                        val handled = ic.performEditorAction(action)
-                        if (!handled) {
-                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                        }
-                    } else {
-                        val fallbackAction = imeOptions and EditorInfo.IME_MASK_ACTION
-                        var handled = false
-                        if (fallbackAction != EditorInfo.IME_ACTION_NONE && fallbackAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
-                            handled = ic.performEditorAction(fallbackAction)
-                        }
-                        if (!handled) {
-                            insertNewlineDirectly()
-                        }
-                    }
-                } catch (e: Exception) {
-                    insertNewlineDirectly()
-                }
+                ic.performEditorAction(actionInfo.actionId)
             } else {
-                onDirectInsertText?.invoke("\n")
+                onServiceEnter?.invoke()
             }
+            currentComposingText = ""
+            return
         }
+
+        // في جميع أماكن النصوص والمحادثات: انتقال مباشر للسطر الثاني بضغطة زر واحدة بسرعة وبدون أي انتظار
+        insertNewlineDirectly()
+
         currentComposingText = ""
         // Crucial fix: Automatically return to letters keyboard on Send / Enter
         if (currentSettings.autoReturnToLettersOnSend) {
@@ -2146,27 +2106,17 @@ fun TurboKeyboardView(
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
                                     .pointerInput(Unit) {
-                                        awaitEachGesture {
-                                            val down = awaitFirstDown(requireUnconsumed = false)
-                                            isEnterPressed = true
-                                            var triggeredHold = false
-                                            val job = coroutineScope.launch {
-                                                delay(1000L) // بعد الضغط لثانية واحدة على زر انتر للانتقال للسطر الثاني
-                                                triggeredHold = true
+                                        detectTapGestures(
+                                            onPress = {
+                                                isEnterPressed = true
                                                 performFeedback(isSpecial = true)
-                                                insertNewlineDirectly()
-                                            }
-                                            try {
-                                                val up = waitForUpOrCancellation()
-                                                if (up != null && !triggeredHold) {
-                                                    performFeedback(isSpecial = true)
-                                                    sendEnter()
-                                                }
-                                            } finally {
-                                                job.cancel()
+                                                tryAwaitRelease()
                                                 isEnterPressed = false
+                                            },
+                                            onTap = {
+                                                sendEnter()
                                             }
-                                        }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {

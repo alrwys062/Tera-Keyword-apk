@@ -316,15 +316,7 @@ fun ChatSimulatorScreen(
             theme = currentTheme,
             settings = prefs.getSettings(),
             onDirectInsertText = { text ->
-                if (text == "\n") {
-                    if (currentDraftText.isNotBlank()) {
-                        messages = messages + ChatMessage(text = currentDraftText, isFromMe = true)
-                        prefs.addClipboardItem(currentDraftText)
-                        currentDraftText = ""
-                    }
-                } else {
-                    currentDraftText += text
-                }
+                currentDraftText += text
             },
             onDirectDeleteLastChar = {
                 if (currentDraftText.isNotEmpty()) {

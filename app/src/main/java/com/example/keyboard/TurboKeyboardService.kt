@@ -370,17 +370,26 @@ class TurboKeyboardService : InputMethodService(),
         val ic = currentInputConnection
         try {
             if (ic != null) {
+                try { ic.finishComposingText() } catch (_: Exception) {}
                 val committed = ic.commitText("\n", 1)
                 if (!committed) {
-                    sendKeyChar('\n')
+                    val down = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
+                    val up = ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+                    if (!down || !up) {
+                        sendKeyChar('\n')
+                    }
                 }
             } else {
-                sendKeyChar('\n')
+                sendDownUpKeyEvents(android.view.KeyEvent.KEYCODE_ENTER)
             }
         } catch (e: Exception) {
             try {
                 sendKeyChar('\n')
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                try {
+                    currentInputConnection?.commitText("\n", 1)
+                } catch (_: Exception) {}
+            }
         }
     }
 

@@ -7,8 +7,14 @@ import org.json.JSONArray
 class UserDictionaryManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("turbo_user_dictionary", Context.MODE_PRIVATE)
 
+    @Volatile
+    private var cachedWords: List<String>? = null
+
     fun getUserWords(): List<String> {
-        return try {
+        val cached = cachedWords
+        if (cached != null) return cached
+
+        val words = try {
             val set = prefs.getStringSet("custom_words", emptySet()) ?: emptySet()
             set.toList().sorted()
         } catch (_: Exception) {
@@ -35,6 +41,8 @@ class UserDictionaryManager(context: Context) {
                 emptyList()
             }
         }
+        cachedWords = words
+        return words
     }
 
     fun addWord(word: String): Boolean {
@@ -43,6 +51,8 @@ class UserDictionaryManager(context: Context) {
         return try {
             val current = getUserWords().toMutableSet()
             current.add(trimmed)
+            val updated = current.toList().sorted()
+            cachedWords = updated
             prefs.edit().putStringSet("custom_words", current).apply()
             true
         } catch (_: Exception) {
@@ -55,6 +65,8 @@ class UserDictionaryManager(context: Context) {
             val current = getUserWords().toMutableSet()
             val removed = current.remove(word.trim())
             if (removed) {
+                val updated = current.toList().sorted()
+                cachedWords = updated
                 prefs.edit().putStringSet("custom_words", current).apply()
             }
             removed
@@ -64,6 +76,7 @@ class UserDictionaryManager(context: Context) {
     }
 
     fun clearDictionary() {
+        cachedWords = emptyList()
         try {
             prefs.edit().remove("custom_words").apply()
         } catch (_: Exception) {}

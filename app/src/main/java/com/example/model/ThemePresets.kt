@@ -952,7 +952,409 @@ object ThemePresets {
         category = "colorful"
     )
 
+    // --- Pro Smartphone Keyboard Styles (20 Unique Themes from Image) ---
+    val CYBER_BLUE = KeyboardTheme(
+        id = "cyber_blue",
+        nameAr = "1. سايبر أزرق (Cyber Blue)",
+        nameEn = "Cyber Blue",
+        backgroundColor = 0xFF050B18,
+        keyBackgroundColor = 0xFF0B1933,
+        keyPressedColor = 0xFF142E5C,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF38BDF8,
+        accentColor = 0xFF00E5FF,
+        enterButtonColor = 0xFF00B4D8,
+        toolbarColor = 0xFF030710,
+        borderColor = 0xFF00E5FF,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val NEON_PURPLE = KeyboardTheme(
+        id = "neon_purple",
+        nameAr = "2. نيون بنفسجي (Neon Purple)",
+        nameEn = "Neon Purple",
+        backgroundColor = 0xFF0F021B,
+        keyBackgroundColor = 0xFF1E0A36,
+        keyPressedColor = 0xFF35125E,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFFE879F9,
+        accentColor = 0xFFD946EF,
+        enterButtonColor = 0xFFA855F7,
+        toolbarColor = 0xFF0A0112,
+        borderColor = 0xFFD946EF,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val VOLCANO_RED = KeyboardTheme(
+        id = "volcano_red",
+        nameAr = "3. بركان أحمر (Volcano Red)",
+        nameEn = "Volcano Red",
+        backgroundColor = 0xFF140303,
+        keyBackgroundColor = 0xFF260909,
+        keyPressedColor = 0xFF421212,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFFFCA5A5,
+        accentColor = 0xFFFF3B30,
+        enterButtonColor = 0xFFDC2626,
+        toolbarColor = 0xFF0D0202,
+        borderColor = 0xFFFF3B30,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val TOXIC_GREEN = KeyboardTheme(
+        id = "toxic_green",
+        nameAr = "4. أخضر سام (Toxic Green)",
+        nameEn = "Toxic Green",
+        backgroundColor = 0xFF041407,
+        keyBackgroundColor = 0xFF09260E,
+        keyPressedColor = 0xFF13451B,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF86EFAC,
+        accentColor = 0xFF22C55E,
+        enterButtonColor = 0xFF16A34A,
+        toolbarColor = 0xFF020E05,
+        borderColor = 0xFF22C55E,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val SUNSET_GLOW = KeyboardTheme(
+        id = "sunset_glow",
+        nameAr = "5. توهج الغروب (Sunset Glow)",
+        nameEn = "Sunset Glow",
+        backgroundColor = 0xFF1A0A17,
+        keyBackgroundColor = 0xFF351226,
+        keyPressedColor = 0xFF541E3D,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFFFDBA74,
+        accentColor = 0xFFFF7E40,
+        enterButtonColor = 0xFFF43F5E,
+        toolbarColor = 0xFF120610,
+        borderColor = 0xFFFF7E40,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val GOLDEN_LUXURY_PRO = KeyboardTheme(
+        id = "golden_luxury",
+        nameAr = "6. ذهبي فاخر (Golden Luxury)",
+        nameEn = "Golden Luxury",
+        backgroundColor = 0xFF0D0D09,
+        keyBackgroundColor = 0xFF1C1A12,
+        keyPressedColor = 0xFF302D1E,
+        keyTextColor = 0xFFFEF08A,
+        subtextColor = 0xFFD4AF37,
+        accentColor = 0xFFEAB308,
+        enterButtonColor = 0xFFCA8A04,
+        toolbarColor = 0xFF080805,
+        borderColor = 0xFFEAB308,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val ROSE_GOLD_PRO = KeyboardTheme(
+        id = "rose_gold_pro",
+        nameAr = "7. ذهب وردي (Rose Gold)",
+        nameEn = "Rose Gold",
+        backgroundColor = 0xFF1F1216,
+        keyBackgroundColor = 0xFF362026,
+        keyPressedColor = 0xFF4F3039,
+        keyTextColor = 0xFFFDE8ED,
+        subtextColor = 0xFFF472B6,
+        accentColor = 0xFFFB7185,
+        enterButtonColor = 0xFFE11D48,
+        toolbarColor = 0xFF140A0D,
+        borderColor = 0xFFFB7185,
+        borderAlpha = 0.85f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val CYBERPUNK_CYBER = KeyboardTheme(
+        id = "cyberpunk_cyber",
+        nameAr = "8. سايبر بانك (Cyberpunk)",
+        nameEn = "Cyberpunk",
+        backgroundColor = 0xFF12041A,
+        keyBackgroundColor = 0xFF270A37,
+        keyPressedColor = 0xFF43135C,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF00F0FF,
+        accentColor = 0xFFFF007F,
+        enterButtonColor = 0xFFEC4899,
+        toolbarColor = 0xFF0C0212,
+        borderColor = 0xFFFF007F,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val GALACTIC_VOID = KeyboardTheme(
+        id = "galactic_void",
+        nameAr = "9. فضاء مجري (Galactic Void)",
+        nameEn = "Galactic Void",
+        backgroundColor = 0xFF09061C,
+        keyBackgroundColor = 0xFF160F3D,
+        keyPressedColor = 0xFF261C61,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFFA78BFA,
+        accentColor = 0xFF8B5CF6,
+        enterButtonColor = 0xFF7C3AED,
+        toolbarColor = 0xFF050312,
+        borderColor = 0xFF8B5CF6,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val ACID_YELLOW = KeyboardTheme(
+        id = "acid_yellow",
+        nameAr = "10. أصفر فسفوري (Acid Yellow)",
+        nameEn = "Acid Yellow",
+        backgroundColor = 0xFF0D0D07,
+        keyBackgroundColor = 0xFF1F1E0E,
+        keyPressedColor = 0xFF353317,
+        keyTextColor = 0xFFFEF08A,
+        subtextColor = 0xFFEAB308,
+        accentColor = 0xFFFACC15,
+        enterButtonColor = 0xFFCA8A04,
+        toolbarColor = 0xFF080803,
+        borderColor = 0xFFFACC15,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val HOLOGRAPHIC_PRO = KeyboardTheme(
+        id = "holographic_pro",
+        nameAr = "11. هولوجرافيك (Holographic)",
+        nameEn = "Holographic",
+        backgroundColor = 0xFF11142B,
+        keyBackgroundColor = 0xFF1D2245,
+        keyPressedColor = 0xFF2D3569,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF93C5FD,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF6366F1,
+        toolbarColor = 0xFF0B0D1F,
+        borderColor = 0xFF818CF8,
+        borderAlpha = 0.85f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val STEALTH_DARK_PRO = KeyboardTheme(
+        id = "stealth_dark",
+        nameAr = "12. ستيلث داكن (Stealth Dark)",
+        nameEn = "Stealth Dark",
+        backgroundColor = 0xFF0B0C0E,
+        keyBackgroundColor = 0xFF16181D,
+        keyPressedColor = 0xFF242730,
+        keyTextColor = 0xFFE2E8F0,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFF64748B,
+        enterButtonColor = 0xFF334155,
+        toolbarColor = 0xFF07080A,
+        borderColor = 0xFF334155,
+        borderAlpha = 0.75f,
+        cornerRadius = 8f,
+        keyStyle = "rounded",
+        category = "pro_styles"
+    )
+
+    val CAMOUFLAGE_MILITARY = KeyboardTheme(
+        id = "camouflage_military",
+        nameAr = "13. تمويه عسكري (Camouflage Military)",
+        nameEn = "Camouflage Military",
+        backgroundColor = 0xFF111711,
+        keyBackgroundColor = 0xFF1E271D,
+        keyPressedColor = 0xFF2F3D2E,
+        keyTextColor = 0xFFECFDF5,
+        subtextColor = 0xFFA7F3D0,
+        accentColor = 0xFF84A98C,
+        enterButtonColor = 0xFF4F6D48,
+        toolbarColor = 0xFF0A0E0A,
+        borderColor = 0xFF84A98C,
+        borderAlpha = 0.8f,
+        cornerRadius = 8f,
+        keyStyle = "rounded",
+        category = "pro_styles"
+    )
+
+    val CARBON_FIBER_PRO = KeyboardTheme(
+        id = "carbon_fiber_pro",
+        nameAr = "14. ألياف الكربون (Carbon Fiber)",
+        nameEn = "Carbon Fiber",
+        backgroundColor = 0xFF101114,
+        keyBackgroundColor = 0xFF1B1D22,
+        keyPressedColor = 0xFF2A2D35,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFFFDBA74,
+        accentColor = 0xFFF97316,
+        enterButtonColor = 0xFFEA580C,
+        toolbarColor = 0xFF090A0C,
+        borderColor = 0xFFF97316,
+        borderAlpha = 0.85f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val RETRO_ARCADE = KeyboardTheme(
+        id = "retro_arcade",
+        nameAr = "15. ريترو أركيد (Retro Arcade)",
+        nameEn = "Retro Arcade",
+        backgroundColor = 0xFF0E1120,
+        keyBackgroundColor = 0xFF1A213B,
+        keyPressedColor = 0xFF283259,
+        keyTextColor = 0xFFFACC15,
+        subtextColor = 0xFF60A5FA,
+        accentColor = 0xFFEF4444,
+        enterButtonColor = 0xFFEF4444,
+        toolbarColor = 0xFF080A14,
+        borderColor = 0xFFFACC15,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val ICE_AND_SNOW = KeyboardTheme(
+        id = "ice_and_snow",
+        nameAr = "16. جليد وثلج (Ice & Snow)",
+        nameEn = "Ice & Snow",
+        backgroundColor = 0xFF091626,
+        keyBackgroundColor = 0xFF132842,
+        keyPressedColor = 0xFF1E3C61,
+        keyTextColor = 0xFFF0F9FF,
+        subtextColor = 0xFF7DD3FC,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xFF050F1A,
+        borderColor = 0xFF38BDF8,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val SYNTHWAVE_80S = KeyboardTheme(
+        id = "synthwave_80s",
+        nameAr = "17. سينث ويف 80 (Synthwave 80s)",
+        nameEn = "Synthwave 80s",
+        backgroundColor = 0xFF110722,
+        keyBackgroundColor = 0xFF220F3E,
+        keyPressedColor = 0xFF381A66,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF22D3EE,
+        accentColor = 0xFFF43F5E,
+        enterButtonColor = 0xFFEC4899,
+        toolbarColor = 0xFF090313,
+        borderColor = 0xFFF43F5E,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val MATRIX_DIGITAL = KeyboardTheme(
+        id = "matrix_digital",
+        nameAr = "18. ماتريكس رقمي (Matrix Digital)",
+        nameEn = "Matrix Digital",
+        backgroundColor = 0xFF010A03,
+        keyBackgroundColor = 0xFF051809,
+        keyPressedColor = 0xFF092910,
+        keyTextColor = 0xFF86EFAC,
+        subtextColor = 0xFF4ADE80,
+        accentColor = 0xFF22C55E,
+        enterButtonColor = 0xFF16A34A,
+        toolbarColor = 0xFF010602,
+        borderColor = 0xFF22C55E,
+        borderAlpha = 0.95f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val COPPER_RUST = KeyboardTheme(
+        id = "copper_rust",
+        nameAr = "19. نحاس مؤكسد (Copper Rust)",
+        nameEn = "Copper Rust",
+        backgroundColor = 0xFF160D07,
+        keyBackgroundColor = 0xFF27180F,
+        keyPressedColor = 0xFF3D2719,
+        keyTextColor = 0xFFFED7AA,
+        subtextColor = 0xFFFB923C,
+        accentColor = 0xFFD97706,
+        enterButtonColor = 0xFFB45309,
+        toolbarColor = 0xFF0E0804,
+        borderColor = 0xFFD97706,
+        borderAlpha = 0.85f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
+    val AURORA_BOREALIS = KeyboardTheme(
+        id = "aurora_borealis",
+        nameAr = "20. الشفق القطبي (Aurora Borealis)",
+        nameEn = "Aurora Borealis",
+        backgroundColor = 0xFF031218,
+        keyBackgroundColor = 0xFF08222B,
+        keyPressedColor = 0xFF0F3644,
+        keyTextColor = 0xFFE0F2FE,
+        subtextColor = 0xFF5EEAD4,
+        accentColor = 0xFF14B8A6,
+        enterButtonColor = 0xFF0D9488,
+        toolbarColor = 0xFF020A0E,
+        borderColor = 0xFF14B8A6,
+        borderAlpha = 0.9f,
+        cornerRadius = 8f,
+        keyStyle = "neon",
+        category = "pro_styles"
+    )
+
     val allPresets = listOf(
+        // Pro Smartphone Keyboard Styles (20 Themes Grid)
+        CYBER_BLUE,
+        NEON_PURPLE,
+        VOLCANO_RED,
+        TOXIC_GREEN,
+        SUNSET_GLOW,
+        GOLDEN_LUXURY_PRO,
+        ROSE_GOLD_PRO,
+        CYBERPUNK_CYBER,
+        GALACTIC_VOID,
+        ACID_YELLOW,
+        HOLOGRAPHIC_PRO,
+        STEALTH_DARK_PRO,
+        CAMOUFLAGE_MILITARY,
+        CARBON_FIBER_PRO,
+        RETRO_ARCADE,
+        ICE_AND_SNOW,
+        SYNTHWAVE_80S,
+        MATRIX_DIGITAL,
+        COPPER_RUST,
+        AURORA_BOREALIS,
         // Modern Systems & Flagship OS
         IOS_27_GLASS,
         IOS_27_TITANIUM,

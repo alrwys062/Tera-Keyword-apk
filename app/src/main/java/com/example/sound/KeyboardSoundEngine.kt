@@ -66,47 +66,54 @@ object KeyboardSoundEngine {
     private object StreamingAudioPlayer {
         private var streamingTrack: AudioTrack? = null
         private val lock = Any()
+        private val audioExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "AudioClickWorker").apply {
+                priority = Thread.MAX_PRIORITY
+            }
+        }
 
         fun playPcm(pcm: ShortArray, volume: Float) {
-            synchronized(lock) {
-                try {
-                    var track = streamingTrack
-                    if (track == null || track.state != AudioTrack.STATE_INITIALIZED) {
-                        val minBuf = AudioTrack.getMinBufferSize(
-                            SAMPLE_RATE,
-                            AudioFormat.CHANNEL_OUT_MONO,
-                            AudioFormat.ENCODING_PCM_16BIT
-                        )
-                        val bufferSize = maxOf(minBuf * 2, 8192)
-                        val audioAttributes = AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build()
-                        val audioFormat = AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(SAMPLE_RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                            .build()
-                        track = AudioTrack.Builder()
-                            .setAudioAttributes(audioAttributes)
-                            .setAudioFormat(audioFormat)
-                            .setBufferSizeInBytes(bufferSize)
-                            .setTransferMode(AudioTrack.MODE_STREAM)
-                            .build()
-                        if (track.state == AudioTrack.STATE_INITIALIZED) {
-                            track.play()
-                            streamingTrack = track
+            audioExecutor.execute {
+                synchronized(lock) {
+                    try {
+                        var track = streamingTrack
+                        if (track == null || track.state != AudioTrack.STATE_INITIALIZED) {
+                            val minBuf = AudioTrack.getMinBufferSize(
+                                SAMPLE_RATE,
+                                AudioFormat.CHANNEL_OUT_MONO,
+                                AudioFormat.ENCODING_PCM_16BIT
+                            )
+                            val bufferSize = maxOf(minBuf * 2, 8192)
+                            val audioAttributes = AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                            val audioFormat = AudioFormat.Builder()
+                                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                                .setSampleRate(SAMPLE_RATE)
+                                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                                .build()
+                            track = AudioTrack.Builder()
+                                .setAudioAttributes(audioAttributes)
+                                .setAudioFormat(audioFormat)
+                                .setBufferSizeInBytes(bufferSize)
+                                .setTransferMode(AudioTrack.MODE_STREAM)
+                                .build()
+                            if (track.state == AudioTrack.STATE_INITIALIZED) {
+                                track.play()
+                                streamingTrack = track
+                            }
                         }
+                        val targetTrack = streamingTrack
+                        if (targetTrack != null && targetTrack.state == AudioTrack.STATE_INITIALIZED) {
+                            try {
+                                targetTrack.setVolume(volume.coerceIn(0.1f, 1.0f))
+                            } catch (_: Throwable) {}
+                            targetTrack.write(pcm, 0, pcm.size, AudioTrack.WRITE_NON_BLOCKING)
+                        }
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Streaming audio playback error", e)
                     }
-                    val targetTrack = streamingTrack
-                    if (targetTrack != null && targetTrack.state == AudioTrack.STATE_INITIALIZED) {
-                        try {
-                            targetTrack.setVolume(volume.coerceIn(0.1f, 1.0f))
-                        } catch (_: Throwable) {}
-                        targetTrack.write(pcm, 0, pcm.size, AudioTrack.WRITE_NON_BLOCKING)
-                    }
-                } catch (e: Throwable) {
-                    Log.e(TAG, "Streaming audio playback error", e)
                 }
             }
         }

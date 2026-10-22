@@ -46,6 +46,7 @@ fun ThemesScreen(
 
     val categories = listOf(
         "الكل",
+        "Pro ستايلات الهواتف",
         "أنظمة وهواتف",
         "داكن وفاتح",
         "نيون وسايبر",
@@ -71,6 +72,7 @@ fun ThemesScreen(
 
             val matchCategory = when (selectedCategory) {
                 "الكل" -> true
+                "Pro ستايلات الهواتف" -> theme.category == "pro_styles"
                 "أنظمة وهواتف" -> theme.category == "systems"
                 "داكن وفاتح" -> theme.category == "dark_light"
                 "نيون وسايبر" -> theme.category == "neon"

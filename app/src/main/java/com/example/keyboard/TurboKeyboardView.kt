@@ -1188,6 +1188,12 @@ fun TurboKeyboardView(
                             onClose = { activeSubView = KeyboardSubView.NONE }
                         )
                     }
+                    KeyboardSubView.TELEGRAM_CHANNELS -> {
+                        TelegramChannelsSubView(
+                            theme = theme,
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
                     else -> {}
                 }
             }
@@ -2158,8 +2164,10 @@ fun TurboKeyboardView(
                                         modifier = Modifier
                                             .horizontalScroll(popupScrollState)
                                             .pointerInput(longPressVariants) {
+                                                var dragAccumulatedX = 0f
                                                 detectDragGestures(
                                                     onDragStart = { offset ->
+                                                        dragAccumulatedX = 0f
                                                         val itemWidthPx = 49.dp.toPx()
                                                         val idx = ((offset.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
                                                         if (idx != selectedVariantIndex) {
@@ -2167,14 +2175,19 @@ fun TurboKeyboardView(
                                                             performFeedback(12L)
                                                         }
                                                     },
-                                                    onDrag = { change, dragAmount ->
-                                                        // السحب مسموح لليمين فقط (dragAmount.x >= 0)
-                                                        if (dragAmount.x >= 0) {
-                                                            val itemWidthPx = 49.dp.toPx()
-                                                            val idx = ((change.position.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
-                                                            if (idx >= selectedVariantIndex && idx != selectedVariantIndex) {
-                                                                selectedVariantIndex = idx
-                                                                performFeedback(12L)
+                                                    onDrag = { _, dragAmount ->
+                                                        // السحب مسموح لليمين فقط وممنوع لليسار نهائياً
+                                                        if (dragAmount.x > 0f) {
+                                                            dragAccumulatedX += dragAmount.x
+                                                            val stepPx = 34.dp.toPx()
+                                                            if (dragAccumulatedX >= stepPx) {
+                                                                val steps = (dragAccumulatedX / stepPx).toInt()
+                                                                val targetIdx = (selectedVariantIndex + steps).coerceIn(0, longPressVariants.lastIndex)
+                                                                if (targetIdx != selectedVariantIndex) {
+                                                                    selectedVariantIndex = targetIdx
+                                                                    performFeedback(12L)
+                                                                }
+                                                                dragAccumulatedX %= stepPx
                                                             }
                                                         }
                                                     },

@@ -134,8 +134,16 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
     val isMultiLine = (editorInfo.inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
     val isSearchType = (editorInfo.inputType and InputType.TYPE_MASK_VARIATION) == InputType.TYPE_TEXT_VARIATION_FILTER
 
+    // الكشف الذكي عن حقول البحث بالكلمات المفتاحية والمعرفات
+    val hintStr = editorInfo.hintText?.toString()?.lowercase() ?: ""
+    val fieldNameStr = editorInfo.fieldName?.lowercase() ?: ""
+    val labelStr = editorInfo.label?.toString()?.lowercase() ?: ""
+    val isSearchKeyword = listOf("بحث", "ابحث", "search", "find", "query", "searchbox").any {
+        hintStr.contains(it) || fieldNameStr.contains(it) || labelStr.contains(it)
+    }
+
     // إذا كان حقل بحث: يظهر زر البحث دائماً
-    if (action == EditorInfo.IME_ACTION_SEARCH || editorInfo.actionId == EditorInfo.IME_ACTION_SEARCH || isSearchType) {
+    if (action == EditorInfo.IME_ACTION_SEARCH || editorInfo.actionId == EditorInfo.IME_ACTION_SEARCH || isSearchType || isSearchKeyword) {
         return ImeActionInfo(EditorInfo.IME_ACTION_SEARCH, Icons.Default.Search, "بحث", false)
     }
 
@@ -461,15 +469,21 @@ fun TurboKeyboardView(
         }
     }
 
-    // السحب في الأحرف العائمة: السحب لليمين يحدد الحرف التالي لليمين
+    // السحب في الأحرف العائمة: مسموح باتجاه اليمين فقط وممنوع لليسار نهائياً
     val onDragVariantHandler: (Float) -> Unit = { deltaX ->
         if (longPressVariants.isNotEmpty()) {
-            val stepPx = 30f
-            val step = (deltaX / stepPx).toInt()
-            val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
-            if (targetIdx != selectedVariantIndex) {
-                selectedVariantIndex = targetIdx
-                performFeedback(12L)
+            if (deltaX > 0f) {
+                val stepPx = 28f
+                val step = (deltaX / stepPx).toInt()
+                val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
+                if (targetIdx != selectedVariantIndex) {
+                    selectedVariantIndex = targetIdx
+                    performFeedback(12L)
+                }
+            } else {
+                if (selectedVariantIndex != 0) {
+                    selectedVariantIndex = 0
+                }
             }
         }
     }
@@ -477,15 +491,19 @@ fun TurboKeyboardView(
     // الانتقال للسطر الثاني مباشرة
     fun insertNewlineDirectly() {
         dismissLongPressPopup()
-        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-        if (ic != null) {
-            val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-            val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-            if (!down || !up) {
-                ic.commitText("\n", 1)
-            }
+        if (onServiceNewline != null) {
+            onServiceNewline.invoke()
         } else {
-            onDirectInsertText?.invoke("\n")
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            if (ic != null) {
+                val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                if (!down || !up) {
+                    ic.commitText("\n", 1)
+                }
+            } else {
+                onDirectInsertText?.invoke("\n")
+            }
         }
         currentComposingText = ""
     }
@@ -533,27 +551,25 @@ fun TurboKeyboardView(
     }
 
     fun executeNormalEnter() {
+        val info = getCurrentEditorInfo?.invoke() ?: editorInfo
+        val actionInfo = resolveImeAction(info)
+
+        // إذا كان الحقل للسطر الجديد (أماكن كتابة النصوص والمذكرات): انتقال للسطر الثاني بضغطة زر واحدة
+        if (actionInfo.isNewline) {
+            insertNewlineDirectly()
+            return
+        }
+
         if (onServiceEnter != null) {
             onServiceEnter.invoke()
         } else {
             val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-            val info = getCurrentEditorInfo?.invoke() ?: editorInfo
-            val actionInfo = resolveImeAction(info)
-
             if (ic != null) {
                 try {
                     val imeOptions = info?.imeOptions ?: 0
-                    val inputType = info?.inputType ?: 0
-                    val isMultiLine = (inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
                     val action = actionInfo.actionId
 
-                    if (actionInfo.isNewline || (isMultiLine && (action == EditorInfo.IME_ACTION_NONE || action == EditorInfo.IME_ACTION_UNSPECIFIED))) {
-                        val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                        val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                        if (!down || !up) {
-                            ic.commitText("\n", 1)
-                        }
-                    } else if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
+                    if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
                         val handled = ic.performEditorAction(action)
                         if (!handled) {
                             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
@@ -566,22 +582,11 @@ fun TurboKeyboardView(
                             handled = ic.performEditorAction(fallbackAction)
                         }
                         if (!handled) {
-                            val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                            val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                            if (!down || !up) {
-                                ic.commitText("\n", 1)
-                            }
+                            insertNewlineDirectly()
                         }
                     }
                 } catch (e: Exception) {
-                    try {
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-                    } catch (_: Exception) {
-                        try {
-                            ic.commitText("\n", 1)
-                        } catch (_: Exception) {}
-                    }
+                    insertNewlineDirectly()
                 }
             } else {
                 onDirectInsertText?.invoke("\n")
@@ -2198,40 +2203,44 @@ fun TurboKeyboardView(
                                 border = BorderStroke(1.5.dp, Color(activeTheme.accentColor)),
                                 shadowElevation = 14.dp
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .horizontalScroll(popupScrollState)
-                                        .pointerInput(longPressVariants) {
-                                            detectDragGestures(
-                                                onDragStart = { offset ->
-                                                    val itemWidthPx = 49.dp.toPx()
-                                                    val idx = ((offset.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
-                                                    if (idx != selectedVariantIndex) {
-                                                        selectedVariantIndex = idx
-                                                        performFeedback(12L)
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    Row(
+                                        modifier = Modifier
+                                            .horizontalScroll(popupScrollState)
+                                            .pointerInput(longPressVariants) {
+                                                detectDragGestures(
+                                                    onDragStart = { offset ->
+                                                        val itemWidthPx = 49.dp.toPx()
+                                                        val idx = ((offset.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
+                                                        if (idx != selectedVariantIndex) {
+                                                            selectedVariantIndex = idx
+                                                            performFeedback(12L)
+                                                        }
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        // السحب مسموح لليمين فقط (dragAmount.x >= 0)
+                                                        if (dragAmount.x >= 0) {
+                                                            val itemWidthPx = 49.dp.toPx()
+                                                            val idx = ((change.position.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
+                                                            if (idx >= selectedVariantIndex && idx != selectedVariantIndex) {
+                                                                selectedVariantIndex = idx
+                                                                performFeedback(12L)
+                                                            }
+                                                        }
+                                                    },
+                                                    onDragEnd = {
+                                                        if (selectedVariantIndex in longPressVariants.indices) {
+                                                            val chosen = longPressVariants[selectedVariantIndex]
+                                                            dismissLongPressPopup()
+                                                            sendText(chosen)
+                                                        }
                                                     }
-                                                },
-                                                onDrag = { change, _ ->
-                                                    val itemWidthPx = 49.dp.toPx()
-                                                    val idx = ((change.position.x + popupScrollState.value) / itemWidthPx).toInt().coerceIn(0, longPressVariants.lastIndex)
-                                                    if (idx != selectedVariantIndex) {
-                                                        selectedVariantIndex = idx
-                                                        performFeedback(12L)
-                                                    }
-                                                },
-                                                onDragEnd = {
-                                                    if (selectedVariantIndex in longPressVariants.indices) {
-                                                        val chosen = longPressVariants[selectedVariantIndex]
-                                                        dismissLongPressPopup()
-                                                        sendText(chosen)
-                                                    }
-                                                }
-                                            )
-                                        }
-                                        .padding(horizontal = 6.dp, vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                                )
+                                            }
+                                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                     longPressVariants.forEachIndexed { index, variant ->
                                         val isCurrent = index == selectedVariantIndex
                                         Box(
@@ -2286,6 +2295,7 @@ fun TurboKeyboardView(
                                     }
                                 }
                             }
+                        }
                         }
                     }
                 }
@@ -2435,10 +2445,13 @@ fun KeyButton(
                                     }
                                     if (isLongPressed) {
                                         val deltaX = change.position.x - startX
-                                        if (kotlin.math.abs(deltaX) > 5.dp.toPx()) {
+                                        // السحب مسموح باتجاه اليمين فقط وممنوع لليسار نهائياً
+                                        if (deltaX > 6.dp.toPx()) {
                                             hasDragged = true
+                                            currentOnDragVariant?.invoke(deltaX)
+                                        } else {
+                                            currentOnDragVariant?.invoke(0f)
                                         }
-                                        currentOnDragVariant?.invoke(deltaX)
                                         change.consume()
                                     }
                                 }

@@ -1107,36 +1107,38 @@ fun EmojiPickerView(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Grid of emojis (يتكيف مع حجم الفيسات المختار)
-        // Grid of emojis (بكل صف 8 أو 9 فيسات حسب طلب المستخدم)
-        val gridColumns = when {
-            emojiSizeScale <= 0.95f -> 9
-            else -> 8
-        }
-        val emojiFontSize = (20 * emojiSizeScale).coerceIn(16f, 25f).sp
-        val itemBoxSize = if (gridColumns == 9) 34.dp else 38.dp
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(gridColumns),
+        // Grid of emojis (8 أشكال بالضبط في كل صف ومتجاوبة مع كافة الشاشات بدون overflow)
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+                .weight(1f)
         ) {
-            items(currentEmojis) { emoji ->
-                Box(
-                    modifier = Modifier
-                        .size(itemBoxSize)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            recentEmojiManager.addEmoji(emoji)
-                            recentEmojisList = recentEmojiManager.getRecentEmojis()
-                            onEmojiSelected(emoji)
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = emoji, fontSize = emojiFontSize)
+            val availableWidth = maxWidth
+            val gridColumns = 8
+            val itemWidth = (availableWidth - (3.dp * (gridColumns - 1))) / gridColumns
+            val emojiFontSize = (itemWidth.value * 0.55f * emojiSizeScale).coerceIn(16f, 26f).sp
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items(currentEmojis) { emoji ->
+                    Box(
+                        modifier = Modifier
+                            .height(itemWidth.coerceIn(34.dp, 44.dp))
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                recentEmojiManager.addEmoji(emoji)
+                                recentEmojisList = recentEmojiManager.getRecentEmojis()
+                                onEmojiSelected(emoji)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = emoji, fontSize = emojiFontSize)
+                    }
                 }
             }
         }

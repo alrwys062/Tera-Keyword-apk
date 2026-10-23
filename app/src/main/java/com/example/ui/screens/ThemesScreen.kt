@@ -77,7 +77,7 @@ fun ThemesScreen(
                 "داكن وفاتح" -> theme.category == "dark_light"
                 "نيون وسايبر" -> theme.category == "neon"
                 "تدرجات لونية" -> theme.category == "gradient"
-                "زجاجي شفاف" -> theme.category == "glass"
+                "زجاجي شفاف" -> theme.category == "glass" || theme.isGlass
                 "ألعاب وجيمينج" -> theme.category == "gaming"
                 "فخم وراقي" -> theme.category == "elegant"
                 "ألوان ومرح" -> theme.category == "colorful"

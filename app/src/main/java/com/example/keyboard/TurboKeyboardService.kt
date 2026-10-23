@@ -48,6 +48,8 @@ class TurboKeyboardService : InputMethodService(),
     private var composeView: ComposeView? = null
     private var clipboardListener: android.content.ClipboardManager.OnPrimaryClipChangedListener? = null
 
+    private var preferenceChangeListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
+
     override fun onCreate() {
         super.onCreate()
         try {
@@ -66,6 +68,16 @@ class TurboKeyboardService : InputMethodService(),
                 } catch (_: Exception) {}
             }
             clipManager?.addPrimaryClipChangedListener(clipboardListener)
+
+            val customPrefs = getSharedPreferences("turbo_keyboard_prefs", MODE_PRIVATE)
+            preferenceChangeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+                try {
+                    val p = PreferencesManager(this@TurboKeyboardService)
+                    keyboardSettingsState.value = p.getSettings()
+                    keyboardThemeState.value = p.getActiveTheme()
+                } catch (_: Exception) {}
+            }
+            customPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
         } catch (e: Exception) {
             // Ignore
         }
@@ -79,6 +91,10 @@ class TurboKeyboardService : InputMethodService(),
         try {
             window?.window?.let { win ->
                 win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                win.setDimAmount(0f)
+                win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             window?.window?.decorView?.let { decorView ->
                 decorView.setViewTreeLifecycleOwner(this)
@@ -480,6 +496,12 @@ class TurboKeyboardService : InputMethodService(),
     override fun onDestroy() {
         super.onDestroy()
         composeView = null
+        try {
+            val customPrefs = getSharedPreferences("turbo_keyboard_prefs", MODE_PRIVATE)
+            if (preferenceChangeListener != null) {
+                customPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+            }
+        } catch (_: Exception) {}
         try {
             clipboardListener?.let {
                 val clipManager = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager

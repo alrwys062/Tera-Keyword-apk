@@ -46,6 +46,7 @@ class TurboKeyboardService : InputMethodService(),
     private val keyboardLanguageState = mutableStateOf("ar")
     private val inputSessionSignal = mutableStateOf(0L)
     private var composeView: ComposeView? = null
+    private var clipboardListener: android.content.ClipboardManager.OnPrimaryClipChangedListener? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -58,9 +59,13 @@ class TurboKeyboardService : InputMethodService(),
             val prefs = PreferencesManager(this@TurboKeyboardService)
             prefs.syncWithSystemClipboard(this@TurboKeyboardService)
             val clipManager = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-            clipManager?.addPrimaryClipChangedListener {
-                prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+            clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+                try {
+                    val p = PreferencesManager(this@TurboKeyboardService)
+                    p.syncWithSystemClipboard(this@TurboKeyboardService)
+                } catch (_: Exception) {}
             }
+            clipManager?.addPrimaryClipChangedListener(clipboardListener)
         } catch (e: Exception) {
             // Ignore
         }
@@ -72,6 +77,17 @@ class TurboKeyboardService : InputMethodService(),
 
     private fun setupWindowDecorOwners() {
         try {
+            window?.window?.let { win ->
+                win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    try {
+                        win.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                        win.attributes = win.attributes.apply {
+                            blurBehindRadius = 45
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
             window?.window?.decorView?.let { decorView ->
                 decorView.setViewTreeLifecycleOwner(this)
                 decorView.setViewTreeViewModelStoreOwner(this)
@@ -87,6 +103,7 @@ class TurboKeyboardService : InputMethodService(),
         activeInputConnectionState.value = currentInputConnection
 
         val view = ComposeView(this).apply {
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
             setViewCompositionStrategy(
                 ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this@TurboKeyboardService.lifecycle)
             )
@@ -196,6 +213,16 @@ class TurboKeyboardService : InputMethodService(),
             keyboardThemeState.value = prefs.getActiveTheme()
             keyboardLanguageState.value = com.example.data.InputLanguagesManager.getCurrentLanguageCode(this@TurboKeyboardService)
             prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+            window?.window?.decorView?.post {
+                try {
+                    prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+                } catch (_: Exception) {}
+            }
+            window?.window?.decorView?.postDelayed({
+                try {
+                    prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+                } catch (_: Exception) {}
+            }, 150L)
         } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
     }
@@ -210,6 +237,16 @@ class TurboKeyboardService : InputMethodService(),
             keyboardThemeState.value = prefs.getActiveTheme()
             keyboardLanguageState.value = com.example.data.InputLanguagesManager.getCurrentLanguageCode(this@TurboKeyboardService)
             prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+            window?.window?.decorView?.post {
+                try {
+                    prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+                } catch (_: Exception) {}
+            }
+            window?.window?.decorView?.postDelayed({
+                try {
+                    prefs.syncWithSystemClipboard(this@TurboKeyboardService)
+                } catch (_: Exception) {}
+            }, 150L)
         } catch (_: Exception) {}
         ensureLifecycleStartedAndResumed()
     }
@@ -451,6 +488,12 @@ class TurboKeyboardService : InputMethodService(),
     override fun onDestroy() {
         super.onDestroy()
         composeView = null
+        try {
+            clipboardListener?.let {
+                val clipManager = getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                clipManager?.removePrimaryClipChangedListener(it)
+            }
+        } catch (_: Exception) {}
         if (lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.CREATED)) {
             if (lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                 lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)

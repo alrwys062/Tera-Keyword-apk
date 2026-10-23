@@ -17,6 +17,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -43,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
 import com.example.data.EmojiData
 import com.example.data.PreferencesManager
 import com.example.data.TextDecorator
@@ -70,90 +73,18 @@ fun InlineTranslationBar(
     sourceLang: String,
     targetLang: String,
     onSwapLanguages: () -> Unit,
-    onSelectSourceLang: (String) -> Unit,
-    onSelectTargetLang: (String) -> Unit,
+    onOpenSourcePicker: () -> Unit,
+    onOpenTargetPicker: () -> Unit,
     onClose: () -> Unit,
     onTranslateNow: (() -> Unit)? = null,
     isTranslating: Boolean = false
 ) {
-    var showSourcePickerModal by remember { mutableStateOf(false) }
-    var showTargetPickerModal by remember { mutableStateOf(false) }
-
     val allLangs = com.example.data.TranslationEngine.supportedLanguages
     val sourceItem = allLangs.find { it.code == sourceLang } ?: allLangs[0]
     val targetItem = allLangs.find { it.code == targetLang } ?: allLangs[1]
 
     val sourceLabel = "${sourceItem.flag} ${sourceItem.nameAr}"
     val targetLabel = "${targetItem.flag} ${targetItem.nameAr}"
-
-    if (showSourcePickerModal || showTargetPickerModal) {
-        var query by remember { mutableStateOf("") }
-        val filtered = allLangs.filter {
-            it.nameAr.contains(query, ignoreCase = true) ||
-            it.nameEn.contains(query, ignoreCase = true)
-        }
-
-        AlertDialog(
-            onDismissRequest = {
-                showSourcePickerModal = false
-                showTargetPickerModal = false
-            },
-            title = {
-                Text(
-                    text = if (showSourcePickerModal) "لغة النص الأصلي (من)" else "لغة الترجمة الفورية (إلى)",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(modifier = Modifier.height(280.dp)) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        placeholder = { Text("ابحث في جميع لغات العالم...", fontSize = 11.sp) },
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(filtered) { langItem ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (showSourcePickerModal) {
-                                            onSelectSourceLang(langItem.code)
-                                            showSourcePickerModal = false
-                                        } else {
-                                            onSelectTargetLang(langItem.code)
-                                            showTargetPickerModal = false
-                                        }
-                                    }
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(langItem.flag, fontSize = 18.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(langItem.nameAr, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("(${langItem.nameEn})", color = Color(0xFF8E9BAE), fontSize = 11.sp)
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showSourcePickerModal = false
-                    showTargetPickerModal = false
-                }) {
-                    Text("إلغاء", color = Color(0xFF00E5FF))
-                }
-            },
-            containerColor = Color(0xFF141A28)
-        )
-    }
 
     Row(
         modifier = Modifier
@@ -181,7 +112,7 @@ fun InlineTranslationBar(
             )
         }
 
-        // Language selectors and Swap (Screenshot 20: [Target ▼] ⇄ [Source ▼])
+        // Language selectors and Swap: [Source ▼] ⇄ [Target ▼]
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -191,7 +122,7 @@ fun InlineTranslationBar(
                 shape = RoundedCornerShape(6.dp),
                 color = Color(theme.keyBackgroundColor),
                 border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
-                modifier = Modifier.clickable { showSourcePickerModal = true }
+                modifier = Modifier.clickable { onOpenSourcePicker() }
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -225,7 +156,7 @@ fun InlineTranslationBar(
                 shape = RoundedCornerShape(6.dp),
                 color = Color(theme.keyBackgroundColor),
                 border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
-                modifier = Modifier.clickable { showTargetPickerModal = true }
+                modifier = Modifier.clickable { onOpenTargetPicker() }
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -276,6 +207,278 @@ fun InlineTranslationBar(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 1b. LANGUAGE PICKER DRAWER (All 100+ World Languages)
+// -------------------------------------------------------------
+@Composable
+fun LanguagePickerDrawer(
+    theme: KeyboardTheme,
+    isSource: Boolean,
+    selectedCode: String,
+    keyboardHeight: Dp = 260.dp,
+    onSelectLanguage: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    val allLangs = com.example.data.TranslationEngine.supportedLanguages
+    var query by remember { mutableStateOf("") }
+
+    val filteredLangs = remember(query) {
+        if (query.isBlank()) {
+            allLangs
+        } else {
+            val q = query.trim().lowercase()
+            allLangs.filter {
+                it.nameAr.contains(q, ignoreCase = true) ||
+                it.nameEn.contains(q, ignoreCase = true) ||
+                it.code.contains(q, ignoreCase = true)
+            }
+        }
+    }
+
+    val popularCodes = listOf("ar", "en", "fr", "es", "tr", "de", "ru", "fa", "ur", "it", "zh-CN", "ja", "ko", "hi", "id")
+    val popularLangs = remember {
+        popularCodes.mapNotNull { code -> allLangs.find { it.code == code } }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(keyboardHeight)
+            .background(Color(theme.backgroundColor))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            // Header: Title & Close
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(theme.keyBackgroundColor))
+                            .clickable(onClick = onClose),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close Language Picker",
+                            tint = Color(theme.keyTextColor),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isSource) "لغة النص الأصلي (من)" else "لغة الترجمة الفورية (إلى)",
+                        color = Color(theme.keyTextColor),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(theme.accentColor).copy(alpha = 0.2f),
+                    border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.6f))
+                ) {
+                    Text(
+                        text = "${allLangs.size} لغة عالمية",
+                        color = Color(theme.accentColor),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Search Bar
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = Color(theme.subtextColor),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    BasicTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = Color(theme.keyTextColor),
+                            fontSize = 12.sp
+                        ),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { innerTextField ->
+                            if (query.isEmpty()) {
+                                Text(
+                                    text = "ابحث بالاسم أو الرمز (مثل fr, تركي, إسباني)...",
+                                    color = Color(theme.subtextColor).copy(alpha = 0.7f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                    if (query.isNotEmpty()) {
+                        IconButton(
+                            onClick = { query = "" },
+                            modifier = Modifier.size(22.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color(theme.subtextColor),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Popular Language Chips Row
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(popularLangs) { lang ->
+                    val isSelected = lang.code == selectedCode
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) Color(theme.accentColor).copy(alpha = 0.35f) else Color(theme.keyBackgroundColor),
+                        border = BorderStroke(
+                            width = if (isSelected) 1.2.dp else 0.8.dp,
+                            color = if (isSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.4f)
+                        ),
+                        modifier = Modifier.clickable {
+                            onSelectLanguage(lang.code)
+                            onClose()
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(lang.flag, fontSize = 12.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = lang.nameAr,
+                                color = if (isSelected) Color.White else Color(theme.keyTextColor),
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 100+ All Languages List
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items(filteredLangs, key = { it.code }) { lang ->
+                    val isSelected = lang.code == selectedCode
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor).copy(alpha = 0.7f),
+                        border = BorderStroke(
+                            width = if (isSelected) 1.2.dp else 0.6.dp,
+                            color = if (isSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.3f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelectLanguage(lang.code)
+                                onClose()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(lang.flag, fontSize = 17.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = lang.nameAr,
+                                        color = Color(theme.keyTextColor),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = lang.nameEn,
+                                        color = Color(theme.subtextColor),
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(theme.backgroundColor).copy(alpha = 0.8f),
+                                    border = BorderStroke(0.5.dp, Color(theme.borderColor).copy(alpha = 0.3f))
+                                ) {
+                                    Text(
+                                        text = lang.code.uppercase(),
+                                        color = Color(theme.subtextColor),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                                if (isSelected) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color(theme.accentColor),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -427,6 +630,7 @@ fun InlineDecorationBar(
 fun ClipboardDrawer(
     theme: KeyboardTheme,
     prefs: PreferencesManager,
+    keyboardHeight: Dp = 260.dp,
     onItemInserted: (String) -> Unit,
     onClose: () -> Unit
 ) {
@@ -437,8 +641,19 @@ fun ClipboardDrawer(
     var showClearConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        prefs.syncWithSystemClipboard(context)
-        items = prefs.getClipboardItems(forceRefresh = true)
+        if (prefs.syncWithSystemClipboard(context)) {
+            items = prefs.getClipboardItems(forceRefresh = true)
+        } else {
+            items = prefs.getClipboardItems(forceRefresh = true)
+        }
+        kotlinx.coroutines.delay(120)
+        if (prefs.syncWithSystemClipboard(context)) {
+            items = prefs.getClipboardItems(forceRefresh = true)
+        }
+        kotlinx.coroutines.delay(280)
+        if (prefs.syncWithSystemClipboard(context)) {
+            items = prefs.getClipboardItems(forceRefresh = true)
+        }
     }
 
     val filteredItems = remember(items, searchQuery) {
@@ -465,7 +680,7 @@ fun ClipboardDrawer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
     ) {
         Column(
@@ -530,6 +745,21 @@ fun ClipboardDrawer(
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // 🔄 Refresh / Sync with Telegram & WhatsApp
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(theme.accentColor).copy(alpha = 0.25f))
+                                .clickable {
+                                    prefs.syncWithSystemClipboard(context)
+                                    items = prefs.getClipboardItems(forceRefresh = true)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.Refresh, contentDescription = "تحديث الحافظة", tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
+                        }
+
                         // Settings
                         Box(
                             modifier = Modifier
@@ -849,6 +1079,7 @@ fun ClipboardDrawer(
 @Composable
 fun EmojiPickerView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 265.dp,
     onEmojiSelected: (String) -> Unit,
     onSpacePressed: () -> Unit = {},
     onDeletePressed: () -> Unit = {},
@@ -882,7 +1113,7 @@ fun EmojiPickerView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(265.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 6.dp, vertical = 4.dp)
     ) {

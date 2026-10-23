@@ -40,6 +40,13 @@ class PreferencesManager(private val context: Context) {
             "custom_stickers_list", "custom_themes_list", "clipboard_history",
             "text_shortcuts_list", "recent_emojis", "custom_top_emojis_list"
         )
+
+        @Volatile
+        var globalCachedClipboardItems: List<ClipboardItem>? = null
+        @Volatile
+        var lastSyncedText: String? = null
+        @Volatile
+        var lastSyncedTime: Long = 0L
     }
 
     init {
@@ -479,14 +486,11 @@ class PreferencesManager(private val context: Context) {
         setCurrentTheme(theme.id)
     }
 
-    @Volatile
-    private var cachedClipboardItems: List<ClipboardItem>? = null
-
     // Permanent Clipboard storage ("حفظ النصوص للأبد") with reliable multi-process synchronization
     @Synchronized
     fun getClipboardItems(forceRefresh: Boolean = false): List<ClipboardItem> {
         if (!forceRefresh) {
-            val cached = cachedClipboardItems
+            val cached = globalCachedClipboardItems
             if (cached != null) return cached
         }
 
@@ -500,7 +504,7 @@ class PreferencesManager(private val context: Context) {
                 ClipboardItem(text = "أنا بخير، شكراً لك! 😊", isPinned = false),
                 ClipboardItem(text = "https://google.com", isPinned = false)
             )
-            cachedClipboardItems = initial
+            globalCachedClipboardItems = initial
             saveClipboardItems(initial)
             return initial
         }
@@ -525,13 +529,13 @@ class PreferencesManager(private val context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        cachedClipboardItems = list
+        globalCachedClipboardItems = list
         return list
     }
 
     @Synchronized
     fun saveClipboardItems(items: List<ClipboardItem>) {
-        cachedClipboardItems = items
+        globalCachedClipboardItems = items
         val arr = JSONArray()
         for (item in items) {
             val obj = JSONObject().apply {
@@ -630,22 +634,79 @@ class PreferencesManager(private val context: Context) {
     }
 
     @Synchronized
-    fun syncWithSystemClipboard(context: Context) {
+    fun syncWithSystemClipboard(context: Context): Boolean {
+        var addedNewItem = false
         try {
-            val clipManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
-            if (!clipManager.hasPrimaryClip()) return
-            val clip = clipManager.primaryClip ?: return
-            for (i in 0 until clip.itemCount) {
-                val item = clip.getItemAt(i)
-                val text = item?.text?.toString() ?: item?.coerceToText(context)?.toString()
-                if (!text.isNullOrBlank()) {
-                    val trimmed = text.trim()
-                    if (!isDeletedSystemClip(trimmed)) {
-                        addClipboardItem(trimmed)
+            val appContext = context.applicationContext ?: context
+            val clipManager = appContext.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                ?: context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                ?: return false
+
+            val clip = try {
+                clipManager.primaryClip
+            } catch (_: Exception) {
+                null
+            } ?: return false
+
+            val count = clip.itemCount
+            for (i in 0 until count) {
+                val item = clip.getItemAt(i) ?: continue
+                var extractedText: String? = null
+
+                // 1. Text from Telegram or WhatsApp (CharSequence / Spanned)
+                try {
+                    val cs = item.text
+                    if (!cs.isNullOrBlank()) {
+                        extractedText = cs.toString()
+                    }
+                } catch (_: Exception) {}
+
+                // 2. Coerce to text safely with application context
+                if (extractedText.isNullOrBlank()) {
+                    try {
+                        val coerced = item.coerceToText(appContext)
+                        if (!coerced.isNullOrBlank()) {
+                            extractedText = coerced.toString()
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                // 3. HTML text from rich copy
+                if (extractedText.isNullOrBlank()) {
+                    try {
+                        val html = item.htmlText
+                        if (!html.isNullOrBlank()) {
+                            extractedText = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                // 4. URI fallback
+                if (extractedText.isNullOrBlank()) {
+                    try {
+                        val uri = item.uri
+                        if (uri != null) {
+                            extractedText = uri.toString()
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                if (!extractedText.isNullOrBlank()) {
+                    val trimmed = extractedText.trim()
+                    if (trimmed.isNotEmpty() && !isDeletedSystemClip(trimmed)) {
+                        val now = System.currentTimeMillis()
+                        // Ensure newly copied text from Telegram/WhatsApp is immediately captured
+                        if (lastSyncedText != trimmed || (now - lastSyncedTime > 400L)) {
+                            lastSyncedText = trimmed
+                            lastSyncedTime = now
+                            addClipboardItem(trimmed)
+                            addedNewItem = true
+                        }
                     }
                 }
             }
         } catch (_: Exception) {}
+        return addedNewItem
     }
 
     @Synchronized
@@ -909,7 +970,7 @@ class PreferencesManager(private val context: Context) {
             }
             editor.commit()
             sanitizePrefs()
-            cachedClipboardItems = null
+            globalCachedClipboardItems = null
 
             // Restore user dictionary
             if (root.has("user_dictionary")) {

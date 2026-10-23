@@ -222,6 +222,7 @@ fun TurboKeyboardView(
     var isMoreSymbolsMode by remember { mutableStateOf(false) }
     var isNumberPadMode by remember { mutableStateOf(false) }
     var activeSubView by remember { mutableStateOf(KeyboardSubView.NONE) }
+    var activeTranslationPickerForSource by remember { mutableStateOf<Boolean?>(null) }
 
     val currentImeAction = remember(editorInfo, getCurrentEditorInfo) {
         resolveImeAction(getCurrentEditorInfo?.invoke() ?: editorInfo)
@@ -243,6 +244,54 @@ fun TurboKeyboardView(
         if (isArabic) {
             isShifted = false
         }
+    }
+
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isPortrait = configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val screenHeightDp = configuration.screenHeightDp
+
+    val baseKeyHeight = remember(isPortrait, screenHeightDp) {
+        if (isPortrait) {
+            when {
+                screenHeightDp < 640 -> 39.dp
+                screenHeightDp < 760 -> 42.dp
+                screenHeightDp < 900 -> 44.dp
+                else -> 46.dp
+            }
+        } else {
+            when {
+                screenHeightDp < 360 -> 28.dp
+                screenHeightDp < 480 -> 32.dp
+                else -> 35.dp
+            }
+        }
+    }
+
+    val calculatedKeyHeight = remember(baseKeyHeight, currentSettings.keyHeightFactor, currentSettings.keyButtonScale, isPortrait) {
+        (baseKeyHeight * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
+            .coerceIn(
+                minimumValue = if (isPortrait) 24.dp else 18.dp,
+                maximumValue = if (isPortrait) 85.dp else 56.dp
+            )
+    }
+
+    val calculatedNumberKeyHeight = remember(calculatedKeyHeight) {
+        (calculatedKeyHeight * 0.84f).coerceAtLeast(24.dp)
+    }
+
+    val calculatedKeyboardHeight = remember(
+        calculatedKeyHeight,
+        currentSettings.numberRowEnabled,
+        currentSettings.suggestionsEnabled,
+        currentSettings.topQuickEmojiRowEnabled,
+        currentSettings.emojiBarHeightFactor,
+        isPortrait
+    ) {
+        val numRowH = if (currentSettings.numberRowEnabled) (calculatedKeyHeight * 0.88f + 4.dp) else 0.dp
+        val emojiRowH = if (currentSettings.topQuickEmojiRowEnabled) (36.dp * currentSettings.emojiBarHeightFactor + 4.dp) else 0.dp
+        val suggH = if (currentSettings.suggestionsEnabled) 36.dp else 0.dp
+        val rowsH = (calculatedKeyHeight + 4.dp) * 5
+        (numRowH + emojiRowH + suggH + rowsH).coerceAtLeast(if (isPortrait) 220.dp else 160.dp)
     }
 
     var customTopEmojis by remember { mutableStateOf(prefs.getCustomTopEmojis()) }
@@ -825,6 +874,10 @@ fun TurboKeyboardView(
         }
     }
 
+    val isGlassTheme = theme.isGlass || theme.id == "liquid_glass_blur"
+    val containerShape = if (isGlassTheme) RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp) else RoundedCornerShape(0.dp)
+    val containerBorder = if (isGlassTheme) BorderStroke(1.dp, Color(0x33FFFFFF)) else null
+
     val bgModifier = remember(theme) {
         if (!theme.backgroundGradient.isNullOrEmpty()) {
             Modifier.background(Brush.verticalGradient(theme.backgroundGradient.map { Color(it) }))
@@ -851,6 +904,8 @@ fun TurboKeyboardView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (containerBorder != null) Modifier.border(containerBorder, containerShape) else Modifier)
+                .clip(containerShape)
                 .then(if (theme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
                 .navigationBarsPadding()
         ) {
@@ -907,6 +962,11 @@ fun TurboKeyboardView(
                 performFeedback(isSpecial = true)
             },
             onSubViewSelected = { sub ->
+                if (sub == KeyboardSubView.CLIPBOARD) {
+                    try {
+                        prefs.syncWithSystemClipboard(context)
+                    } catch (_: Exception) {}
+                }
                 if (activeSubView == sub) {
                     activeSubView = KeyboardSubView.NONE
                 } else {
@@ -949,19 +1009,18 @@ fun TurboKeyboardView(
                     currentSettings = updated
                     prefs.saveSettings(updated)
                 },
-                onSelectSourceLang = {
-                    translationSource = it
-                    val updated = currentSettings.copy(translationSource = it)
-                    currentSettings = updated
-                    prefs.saveSettings(updated)
+                onOpenSourcePicker = {
+                    activeTranslationPickerForSource = true
+                    activeSubView = KeyboardSubView.NONE
                 },
-                onSelectTargetLang = {
-                    translationTarget = it
-                    val updated = currentSettings.copy(translationTarget = it)
-                    currentSettings = updated
-                    prefs.saveSettings(updated)
+                onOpenTargetPicker = {
+                    activeTranslationPickerForSource = false
+                    activeSubView = KeyboardSubView.NONE
                 },
-                onClose = { isTranslationBarOpen = false },
+                onClose = {
+                    isTranslationBarOpen = false
+                    activeTranslationPickerForSource = null
+                },
                 onTranslateNow = { executeTranslateInPlace() },
                 isTranslating = isTranslatingLive
             )
@@ -984,9 +1043,33 @@ fun TurboKeyboardView(
             )
         }
 
-        // Sub-views drawers (Stickers, Clipboard, Emoji, GIF, AI Assistant, Photos, Customize Toolbar)
+        // Sub-views drawers (Language Picker, Stickers, Clipboard, Emoji, GIF, AI Assistant, Photos, Customize Toolbar)
         // Instant 0ms display: completely solves lag when opening clipboard or translation
-        if (activeSubView != KeyboardSubView.NONE) {
+        if (activeTranslationPickerForSource != null) {
+            LanguagePickerDrawer(
+                theme = activeTheme,
+                isSource = activeTranslationPickerForSource == true,
+                selectedCode = if (activeTranslationPickerForSource == true) translationSource else translationTarget,
+                keyboardHeight = calculatedKeyboardHeight,
+                onSelectLanguage = { selectedCode ->
+                    if (activeTranslationPickerForSource == true) {
+                        translationSource = selectedCode
+                        val updated = currentSettings.copy(translationSource = selectedCode)
+                        currentSettings = updated
+                        prefs.saveSettings(updated)
+                    } else {
+                        translationTarget = selectedCode
+                        val updated = currentSettings.copy(translationTarget = selectedCode)
+                        currentSettings = updated
+                        prefs.saveSettings(updated)
+                    }
+                    activeTranslationPickerForSource = null
+                },
+                onClose = {
+                    activeTranslationPickerForSource = null
+                }
+            )
+        } else if (activeSubView != KeyboardSubView.NONE) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 when (activeSubView) {
                     KeyboardSubView.STICKERS -> {
@@ -1011,6 +1094,7 @@ fun TurboKeyboardView(
                     KeyboardSubView.EMOJI -> {
                         EmojiPickerView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
                             onEmojiSelected = {
                                 prefs.addRecentEmoji(it)
                                 sendText(it)
@@ -1073,10 +1157,11 @@ fun TurboKeyboardView(
                     }
                     KeyboardSubView.CLIPBOARD -> {
                         // Clipboard matching Screenshot 21:
-                        // 2-column grid, closes on paste, maintains scroll position, saves forever
+                        // 2-column grid, closes on paste, maintains scroll position, saves forever, maintains exact keyboard height
                         ClipboardDrawer(
                             theme = theme,
                             prefs = prefs,
+                            keyboardHeight = calculatedKeyboardHeight,
                             onItemInserted = { text ->
                                 sendText(text)
                                 if (currentSettings.autoReturnToLettersOnShortcut || currentSettings.clipboardCloseOnPaste) {
@@ -1212,7 +1297,7 @@ fun TurboKeyboardView(
         }
 
         // Suggestions Bar with spell correction & dictionary addition
-        if (activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.suggestionsEnabled) {
+        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.suggestionsEnabled) {
             KeyboardSuggestionsBar(
                 theme = theme,
                 suggestions = suggestions,
@@ -1244,7 +1329,7 @@ fun TurboKeyboardView(
         }
 
         // Quick Shortcuts / Emojis Row (Customizable for user - إضافة وحذف الابتسامات)
-        if (activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.topQuickEmojiRowEnabled) {
+        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.topQuickEmojiRowEnabled) {
             val config = androidx.compose.ui.platform.LocalConfiguration.current
             val isPort = config.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
             Row(
@@ -1317,9 +1402,17 @@ fun TurboKeyboardView(
             CustomizeTopEmojisDialog(
                 theme = activeTheme,
                 currentEmojis = customTopEmojis,
-                onSave = { updatedList ->
+                currentHeightFactor = currentSettings.emojiBarHeightFactor,
+                currentButtonSizeFactor = currentSettings.emojiButtonSizeFactor,
+                onSave = { updatedList, newHeightFactor, newButtonSizeFactor ->
                     customTopEmojis = updatedList
                     prefs.saveCustomTopEmojis(updatedList)
+                    val updatedSettings = currentSettings.copy(
+                        emojiBarHeightFactor = newHeightFactor,
+                        emojiButtonSizeFactor = newButtonSizeFactor
+                    )
+                    currentSettings = updatedSettings
+                    prefs.saveSettings(updatedSettings)
                     isCustomizeTopEmojisOpen = false
                 },
                 onDismiss = { isCustomizeTopEmojisOpen = false }
@@ -1327,7 +1420,7 @@ fun TurboKeyboardView(
         }
 
         // Main Keyboard Keys Section
-        if (activeSubView == KeyboardSubView.NONE) {
+        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE) {
             val (worldR1, worldR2, worldR3) = remember(
                 currentWorldLang,
                 isShifted,
@@ -1347,39 +1440,6 @@ fun TurboKeyboardView(
                     customRow2 = currentSettings.customArabicRow2,
                     customRow3 = currentSettings.customArabicRow3
                 )
-            }
-
-            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-            val isPortrait = configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
-            val screenHeightDp = configuration.screenHeightDp
-
-            val baseKeyHeight = remember(isPortrait, screenHeightDp) {
-                if (isPortrait) {
-                    when {
-                        screenHeightDp < 640 -> 39.dp
-                        screenHeightDp < 760 -> 42.dp
-                        screenHeightDp < 900 -> 44.dp
-                        else -> 46.dp
-                    }
-                } else {
-                    when {
-                        screenHeightDp < 360 -> 28.dp
-                        screenHeightDp < 480 -> 32.dp
-                        else -> 35.dp
-                    }
-                }
-            }
-
-            val calculatedKeyHeight = remember(baseKeyHeight, currentSettings.keyHeightFactor, currentSettings.keyButtonScale, isPortrait) {
-                (baseKeyHeight * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
-                    .coerceIn(
-                        minimumValue = if (isPortrait) 24.dp else 18.dp,
-                        maximumValue = if (isPortrait) 85.dp else 56.dp
-                    )
-            }
-
-            val calculatedNumberKeyHeight = remember(calculatedKeyHeight) {
-                (calculatedKeyHeight * 0.84f).coerceAtLeast(24.dp)
             }
 
             if (isNumberPadMode) {
@@ -1596,15 +1656,26 @@ fun TurboKeyboardView(
                                     when (key.type) {
                                         is KeyType.Shift -> {
                                             SpecialKeyButton(
-                                                icon = Icons.Default.ArrowUpward,
+                                                icon = if (isCapsLockActive) Icons.Default.Lock else Icons.Default.ArrowUpward,
                                                 theme = activeTheme,
-                                                isActive = isShifted,
+                                                isActive = isShifted || isCapsLockActive,
                                                 keyHeight = calculatedKeyHeight,
                                                 modifier = Modifier.weight(key.weight),
+                                                onLongClick = {
+                                                    dismissLongPressPopup()
+                                                    performFeedback(isSpecial = true)
+                                                    isCapsLockActive = !isCapsLockActive
+                                                    isShifted = isCapsLockActive
+                                                },
                                                 onClick = {
                                                     dismissLongPressPopup()
                                                     performFeedback(isSpecial = true)
-                                                    isShifted = !isShifted
+                                                    if (isCapsLockActive) {
+                                                        isCapsLockActive = false
+                                                        isShifted = false
+                                                    } else {
+                                                        isShifted = !isShifted
+                                                    }
                                                 }
                                             )
                                         }
@@ -2111,16 +2182,25 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = enterScale; scaleY = enterScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color(activeTheme.enterButtonColor),
-                                                Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
+                                        if (activeTheme.id == "liquid_glass_blur") {
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color(0xFF3B82F6),
+                                                    Color(0xFF2563EB)
+                                                )
                                             )
-                                        )
+                                        } else {
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color(activeTheme.enterButtonColor),
+                                                    Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
+                                                )
+                                            )
+                                        }
                                     )
                                     .border(
                                         1.dp,
-                                        Color(activeTheme.accentColor).copy(alpha = 0.7f),
+                                        if (activeTheme.id == "liquid_glass_blur") Color(0xFF60A5FA).copy(alpha = 0.85f) else Color(activeTheme.accentColor).copy(alpha = 0.7f),
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
                                     .pointerInput(Unit) {
@@ -2388,8 +2468,9 @@ fun KeyButton(
                 .clip(RoundedCornerShape(theme.cornerRadius.dp))
                 .background(animatedKeyColor)
                 .border(
-                    width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
+                    width = if (theme.keyStyle == "neon") 1.2.dp else if (theme.keyStyle == "glass") 0.8.dp else 1.dp,
                     color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
+                    else if (theme.keyStyle == "glass") Color(0x35FFFFFF)
                     else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                     shape = RoundedCornerShape(theme.cornerRadius.dp)
                 )
@@ -2552,9 +2633,11 @@ fun SpecialKeyButton(
     customIconColor: Color? = null,
     keyHeight: Dp = 52.dp,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     val normalColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
     val pressedColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
     val targetBg = if (isActive) Color(theme.accentColor).copy(alpha = 0.35f) else if (isPressed) pressedColor else normalColor
@@ -2582,20 +2665,39 @@ fun SpecialKeyButton(
             .background(animatedBg)
             .border(
                 1.dp,
-                if (isActive) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
+                if (isActive) Color(theme.accentColor) else if (theme.keyStyle == "glass") Color(0x35FFFFFF) else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
                 RoundedCornerShape(theme.cornerRadius.dp)
             )
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
+            .pointerInput(onLongClick, onClick) {
+                if (onLongClick != null) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
                         isPressed = true
-                        tryAwaitRelease()
+                        var isLongPressHandled = false
+                        val holdJob = coroutineScope.launch {
+                            kotlinx.coroutines.delay(1000L) // Exactly 1-second hold for Shift CapsLock
+                            isLongPressHandled = true
+                            onLongClick()
+                        }
+                        val up = waitForUpOrCancellation()
+                        holdJob.cancel()
                         isPressed = false
-                    },
-                    onTap = {
-                        onClick()
+                        if (up != null && !isLongPressHandled) {
+                            onClick()
+                        }
                     }
-                )
+                } else {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        },
+                        onTap = {
+                            onClick()
+                        }
+                    )
+                }
             },
         contentAlignment = Alignment.Center
     ) {
@@ -2699,10 +2801,14 @@ fun BackspaceKeyButton(
 fun CustomizeTopEmojisDialog(
     theme: KeyboardTheme,
     currentEmojis: List<String>,
-    onSave: (List<String>) -> Unit,
+    currentHeightFactor: Float = 1.0f,
+    currentButtonSizeFactor: Float = 1.0f,
+    onSave: (List<String>, Float, Float) -> Unit,
     onDismiss: () -> Unit
 ) {
     var workingList by remember { mutableStateOf(currentEmojis.toMutableList()) }
+    var heightFactor by remember { mutableFloatStateOf(currentHeightFactor) }
+    var buttonSizeFactor by remember { mutableFloatStateOf(currentButtonSizeFactor) }
     var newEmojiText by remember { mutableStateOf("") }
     val popularSuggestions = listOf(
         "😂", "❤️", "🥺", "🔥", "👏", "🤍", "😍", "✨", "🤲", "🌹", "🌸", "👍",
@@ -2938,7 +3044,85 @@ fun CustomizeTopEmojisDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Real-time Live Preview of Top Emoji Row
+                Text(
+                    text = "معاينة الشريط المباشرة:",
+                    color = Color(theme.keyTextColor),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp * heightFactor)
+                        .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    workingList.take(7).forEach { item ->
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp * buttonSizeFactor)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(theme.keyBackgroundColor)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = item,
+                                fontSize = (14 * buttonSizeFactor).sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Height Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "ارتفاع الشريط", color = Color(theme.keyTextColor), fontSize = 11.sp)
+                    Text(text = "${(heightFactor * 100).toInt()}%", color = Color(theme.accentColor), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = heightFactor,
+                    onValueChange = { heightFactor = it },
+                    valueRange = 0.7f..1.6f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(theme.accentColor),
+                        activeTrackColor = Color(theme.accentColor)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(28.dp)
+                )
+
+                // Button Size Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "حجم أيقونات الابتسامات", color = Color(theme.keyTextColor), fontSize = 11.sp)
+                    Text(text = "${(buttonSizeFactor * 100).toInt()}%", color = Color(theme.accentColor), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = buttonSizeFactor,
+                    onValueChange = { buttonSizeFactor = it },
+                    valueRange = 0.7f..1.6f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(theme.accentColor),
+                        activeTrackColor = Color(theme.accentColor)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(28.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Action buttons: Reset & Save
                 Row(
@@ -2949,6 +3133,8 @@ fun CustomizeTopEmojisDialog(
                     TextButton(
                         onClick = {
                             workingList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+                            heightFactor = 1.0f
+                            buttonSizeFactor = 1.0f
                         }
                     ) {
                         Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
@@ -2961,7 +3147,7 @@ fun CustomizeTopEmojisDialog(
                             if (workingList.isEmpty()) {
                                 workingList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
                             }
-                            onSave(workingList)
+                            onSave(workingList, heightFactor, buttonSizeFactor)
                         }
                     ) {
                         Text(

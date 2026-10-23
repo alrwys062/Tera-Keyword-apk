@@ -79,14 +79,6 @@ class TurboKeyboardService : InputMethodService(),
         try {
             window?.window?.let { win ->
                 win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                    try {
-                        win.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                        win.attributes = win.attributes.apply {
-                            blurBehindRadius = 45
-                        }
-                    } catch (_: Exception) {}
-                }
             }
             window?.window?.decorView?.let { decorView ->
                 decorView.setViewTreeLifecycleOwner(this)

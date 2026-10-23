@@ -1332,10 +1332,11 @@ fun TurboKeyboardView(
         if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.topQuickEmojiRowEnabled) {
             val config = androidx.compose.ui.platform.LocalConfiguration.current
             val isPort = config.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
+            val dynamicRowHeight = (if (isPort) 30.dp else 26.dp) * currentSettings.emojiBarHeightFactor
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isPort) 30.dp else 26.dp)
+                    .height(dynamicRowHeight)
                     .padding(horizontal = 4.dp, vertical = 1.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1366,7 +1367,7 @@ fun TurboKeyboardView(
                             Text(
                                 text = char,
                                 color = Color(theme.keyTextColor),
-                                fontSize = if (char.length > 1 && !char.startsWith("\uD83D")) 9.sp else (13 * currentSettings.emojiSizeScale).sp,
+                                fontSize = (13 * currentSettings.emojiButtonSizeFactor).sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -2901,82 +2902,17 @@ fun CustomizeTopEmojisDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // Add Custom Text / Emoji Field + Backspace & Add
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    BasicTextField(
-                        value = newEmojiText,
-                        onValueChange = { newEmojiText = it },
-                        singleLine = true,
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            color = Color(theme.keyTextColor),
-                            fontSize = 13.sp
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(36.dp)
-                            .background(Color(theme.keyBackgroundColor), RoundedCornerShape(8.dp))
-                            .border(1.dp, Color(theme.borderColor).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        decorationBox = { innerTextField ->
-                            if (newEmojiText.isEmpty()) {
-                                Text(
-                                    "اكتب أو اختر من الرموز أدناه...",
-                                    color = Color(theme.subtextColor).copy(alpha = 0.6f),
-                                    fontSize = 11.sp
-                                )
-                            }
-                            innerTextField()
-                        }
-                    )
+                Text(
+                    text = "💡 انقر مباشرة على أي رمز أو إيموجي من الأقسام أدناه لإضافته فوراً:",
+                    color = Color(theme.accentColor),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                )
 
-                    // Backspace button for deleting character
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(theme.keyBackgroundColor),
-                        border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
-                        modifier = Modifier.clickable {
-                            if (newEmojiText.isNotEmpty()) {
-                                newEmojiText = newEmojiText.dropLast(1)
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Backspace,
-                            contentDescription = "Backspace",
-                            tint = Color(theme.subtextColor),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp).size(18.dp)
-                        )
-                    }
-
-                    // Add button
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(theme.accentColor),
-                        modifier = Modifier.clickable {
-                            val trimmed = newEmojiText.trim()
-                            if (trimmed.isNotEmpty() && !workingList.contains(trimmed)) {
-                                workingList = workingList.toMutableList().apply { add(trimmed) }
-                                newEmojiText = ""
-                            }
-                        }
-                    ) {
-                        Text(
-                            text = "إضافة",
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Built-in Keyboard Tabs & Emoji Grid (إظهار الكيبورد والابتسامات المدمجة)
                 var activeEmojiCat by remember { mutableStateOf(0) }

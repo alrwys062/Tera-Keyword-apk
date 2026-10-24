@@ -288,7 +288,7 @@ fun TurboKeyboardView(
         isPortrait
     ) {
         val numRowH = if (currentSettings.numberRowEnabled) (calculatedKeyHeight * 0.88f + 4.dp) else 0.dp
-        val emojiRowH = if (currentSettings.topQuickEmojiRowEnabled) (36.dp * currentSettings.emojiBarHeightFactor + 4.dp) else 0.dp
+        val emojiRowH = if (currentSettings.topQuickEmojiRowEnabled) ((if (isPortrait) 30.dp else 26.dp) * currentSettings.emojiBarHeightFactor + 4.dp) else 0.dp
         val suggH = if (currentSettings.suggestionsEnabled) 36.dp else 0.dp
         val rowsH = (calculatedKeyHeight + 4.dp) * 5
         (numRowH + emojiRowH + suggH + rowsH).coerceAtLeast(if (isPortrait) 220.dp else 160.dp)
@@ -533,11 +533,30 @@ fun TurboKeyboardView(
         currentComposingText = ""
     }
 
+    fun insertVariantText(chosen: String) {
+        dismissLongPressPopup()
+        if (chosen.startsWith("@") || chosen.startsWith(".")) {
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            if (ic != null) {
+                try {
+                    val before = ic.getTextBeforeCursor(2, 0)?.toString() ?: ""
+                    if (before.endsWith(".") && chosen.startsWith("@")) {
+                        ic.deleteSurroundingText(1, 0)
+                    } else if (before.endsWith(".") && chosen.startsWith(".")) {
+                        ic.deleteSurroundingText(1, 0)
+                    }
+                    ic.commitText(chosen, 1)
+                    return
+                } catch (_: Exception) {}
+            }
+        }
+        sendText(chosen)
+    }
+
     val onReleaseVariantHandler: () -> Unit = {
         if (longPressVariants.isNotEmpty() && selectedVariantIndex in longPressVariants.indices) {
             val chosen = longPressVariants[selectedVariantIndex]
-            dismissLongPressPopup()
-            sendText(chosen)
+            insertVariantText(chosen)
         }
     }
 
@@ -1329,7 +1348,7 @@ fun TurboKeyboardView(
         }
 
         // Quick Shortcuts / Emojis Row (Customizable for user - إضافة وحذف الابتسامات)
-        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.topQuickEmojiRowEnabled) {
+        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && currentSettings.topQuickEmojiRowEnabled) {
             val config = androidx.compose.ui.platform.LocalConfiguration.current
             val isPort = config.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
             val dynamicRowHeight = (if (isPort) 30.dp else 26.dp) * currentSettings.emojiBarHeightFactor
@@ -1342,7 +1361,7 @@ fun TurboKeyboardView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 customTopEmojis.forEach { char ->
-                    val quickKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+                    val quickKeyBg = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -1359,14 +1378,14 @@ fun TurboKeyboardView(
                                     }
                                 )
                             },
-                        shape = RoundedCornerShape(theme.cornerRadius.dp),
+                        shape = RoundedCornerShape(activeTheme.cornerRadius.dp),
                         color = quickKeyBg,
-                        border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)))
+                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = char,
-                                color = Color(theme.keyTextColor),
+                                color = Color(activeTheme.keyTextColor),
                                 fontSize = (13 * currentSettings.emojiButtonSizeFactor).sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -1382,15 +1401,15 @@ fun TurboKeyboardView(
                             performFeedback(isSpecial = true)
                             isCustomizeTopEmojisOpen = true
                         },
-                    shape = RoundedCornerShape(theme.cornerRadius.dp),
-                    color = Color(theme.accentColor).copy(alpha = 0.2f),
-                    border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.6f))
+                    shape = RoundedCornerShape(activeTheme.cornerRadius.dp),
+                    color = Color(activeTheme.accentColor).copy(alpha = 0.2f),
+                    border = BorderStroke(0.8.dp, Color(activeTheme.accentColor).copy(alpha = 0.6f))
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "تخصيص الابتسامات",
-                            tint = Color(theme.accentColor),
+                            tint = Color(activeTheme.accentColor),
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -2077,7 +2096,7 @@ fun TurboKeyboardView(
                                 }
                             }
 
-                            // 5. Dot . key
+                            // 5. Dot . key with Email Domain Suggestions on Long-Press
                             var isDotPressed by remember { mutableStateOf(false) }
                             val dotBg by animateColorAsState(
                                 targetValue = if (isDotPressed) bottomKeyPressedBg else bottomKeyBg,
@@ -2105,7 +2124,17 @@ fun TurboKeyboardView(
                                                 tryAwaitRelease()
                                                 isDotPressed = false
                                             },
+                                            onLongPress = {
+                                                performFeedback(22L)
+                                                val variants = LongPressVariantsManager.getVariants(".")
+                                                if (variants.isNotEmpty()) {
+                                                    longPressChar = "."
+                                                    longPressVariants = variants
+                                                    selectedVariantIndex = 0
+                                                }
+                                            },
                                             onTap = {
+                                                dismissLongPressPopup()
                                                 sendText(".")
                                             }
                                         )
@@ -2287,8 +2316,7 @@ fun TurboKeyboardView(
                                                     onDragEnd = {
                                                         if (selectedVariantIndex in longPressVariants.indices) {
                                                             val chosen = longPressVariants[selectedVariantIndex]
-                                                            dismissLongPressPopup()
-                                                            sendText(chosen)
+                                                            insertVariantText(chosen)
                                                         }
                                                     }
                                                 )
@@ -2301,7 +2329,8 @@ fun TurboKeyboardView(
                                         val isCurrent = index == selectedVariantIndex
                                         Box(
                                             modifier = Modifier
-                                                .size(width = 44.dp, height = 48.dp)
+                                                .height(48.dp)
+                                                .defaultMinSize(minWidth = 44.dp)
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .background(
                                                     if (isCurrent) Color(activeTheme.keyPressedColor)
@@ -2314,16 +2343,15 @@ fun TurboKeyboardView(
                                                 )
                                                 .clickable {
                                                     performFeedback()
-                                                    val chosen = variant
-                                                    dismissLongPressPopup()
-                                                    sendText(chosen)
-                                                },
+                                                    insertVariantText(variant)
+                                                }
+                                                .padding(horizontal = if (variant.length > 2) 8.dp else 4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = variant,
                                                 color = if (isCurrent) Color(activeTheme.accentColor) else popupTextCol,
-                                                fontSize = if (isCurrent) 20.sp else 17.sp,
+                                                fontSize = if (variant.length > 7) 13.5.sp else if (variant.length > 3) 15.sp else if (isCurrent) 20.sp else 17.sp,
                                                 fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold
                                             )
                                         }

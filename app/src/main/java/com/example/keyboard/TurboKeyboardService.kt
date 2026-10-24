@@ -87,6 +87,25 @@ class TurboKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
     }
 
+    override fun onConfigureWindow(win: android.view.Window, isFullscreen: Boolean, isCandidatesOnly: Boolean) {
+        super.onConfigureWindow(win, isFullscreen, isCandidatesOnly)
+        try {
+            win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            win.setDimAmount(0f)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                try {
+                    val lp = win.attributes
+                    val field = lp.javaClass.getField("blurBehindRadius")
+                    field.setInt(lp, 0)
+                    win.attributes = lp
+                } catch (_: Exception) {}
+            }
+            win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        } catch (_: Exception) {}
+    }
+
     private fun setupWindowDecorOwners() {
         try {
             window?.window?.let { win ->
@@ -94,6 +113,14 @@ class TurboKeyboardService : InputMethodService(),
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                 win.setDimAmount(0f)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    try {
+                        val lp = win.attributes
+                        val field = lp.javaClass.getField("blurBehindRadius")
+                        field.setInt(lp, 0)
+                        win.attributes = lp
+                    } catch (_: Exception) {}
+                }
                 win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             window?.window?.decorView?.let { decorView ->
@@ -277,6 +304,13 @@ class TurboKeyboardService : InputMethodService(),
 
     override fun onWindowHidden() {
         super.onWindowHidden()
+        try {
+            window?.window?.let { win ->
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                win.setDimAmount(0f)
+            }
+        } catch (_: Exception) {}
         ensureLifecyclePausedAndStopped()
         resetToLettersSignal.value = System.currentTimeMillis()
     }

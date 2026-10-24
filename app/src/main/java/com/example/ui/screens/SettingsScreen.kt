@@ -1381,6 +1381,111 @@ fun SettingsScreen(
                                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF8E9BAE), modifier = Modifier.size(16.dp))
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // التحكم بحجم شريط الابتسامات (Emoji Bar Size)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFF1E293B).copy(alpha = 0.7f))
+                                .border(1.dp, Color(0xFF28364F), RoundedCornerShape(10.dp))
+                                .padding(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("حجم شريط الابتسامات", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("${(settings.emojiBarHeightFactor * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // خيارات جاهزة: صغير / متوسط / كبير
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    "صغير" to 0.80f,
+                                    "متوسط" to 1.0f,
+                                    "كبير" to 1.30f
+                                ).forEach { (label, factor) ->
+                                    val isSelected = kotlin.math.abs(settings.emojiBarHeightFactor - factor) < 0.10f
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.25f) else Color(0xFF0F172A),
+                                        border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color(0xFF28364F)),
+                                        modifier = Modifier.weight(1f).clickable {
+                                            updateSettings(
+                                                settings.copy(
+                                                    emojiBarHeightFactor = factor,
+                                                    emojiButtonSizeFactor = factor
+                                                )
+                                            )
+                                        }
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            color = if (isSelected) Color(0xFF00E5FF) else Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // سحب دقيق بالحجم (Slider)
+                            Slider(
+                                value = settings.emojiBarHeightFactor,
+                                onValueChange = { newFactor ->
+                                    val clamped = newFactor.coerceIn(0.70f, 1.60f)
+                                    updateSettings(
+                                        settings.copy(
+                                            emojiBarHeightFactor = clamped,
+                                            emojiButtonSizeFactor = clamped
+                                        )
+                                    )
+                                },
+                                valueRange = 0.70f..1.60f
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // معاينة مباشرة لشريط الابتسامات
+                            Text("معاينة مباشرة لشريط الابتسامات:", color = Color(0xFF8E9BAE), fontSize = 10.5.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height((30.dp * settings.emojiBarHeightFactor).coerceIn(22.dp, 48.dp))
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF0B101B))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp),
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                listOf("😊", "❤️", "😂", "🔥", "👍", "✨", "🎉", "🤲").forEach { em ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(Color(0xFF1E293B)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = em, fontSize = (13 * settings.emojiButtonSizeFactor).coerceIn(9f, 22f).sp)
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Divider(color = Color(0xFF28364F), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 6.dp))

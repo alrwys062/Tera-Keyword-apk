@@ -267,16 +267,26 @@ fun TurboKeyboardView(
         }
     }
 
-    val calculatedKeyHeight = remember(baseKeyHeight, currentSettings.keyHeightFactor, currentSettings.keyButtonScale, isPortrait) {
-        (baseKeyHeight * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
-            .coerceIn(
-                minimumValue = if (isPortrait) 24.dp else 18.dp,
-                maximumValue = if (isPortrait) 85.dp else 56.dp
-            )
+    val calculatedKeyHeight = remember(
+        baseKeyHeight,
+        currentSettings.keyHeightFactor,
+        currentSettings.keyButtonScale,
+        currentSettings.keyHeightDp,
+        isPortrait
+    ) {
+        val configuredHeight = (currentSettings.keyHeightDp.dp) * (currentSettings.keyHeightFactor / 1.0f) * currentSettings.keyButtonScale
+        configuredHeight.coerceIn(
+            minimumValue = if (isPortrait) 26.dp else 18.dp,
+            maximumValue = if (isPortrait) 100.dp else 65.dp
+        )
     }
 
     val calculatedNumberKeyHeight = remember(calculatedKeyHeight) {
         (calculatedKeyHeight * 0.84f).coerceAtLeast(24.dp)
+    }
+
+    val effectiveFontSizeFactor = remember(currentSettings.keyFontSizeFactor, currentSettings.keyFontSizeSp) {
+        currentSettings.keyFontSizeFactor * (currentSettings.keyFontSizeSp.toFloat() / 20.0f)
     }
 
     val calculatedKeyboardHeight = remember(
@@ -313,6 +323,7 @@ fun TurboKeyboardView(
 
     // Live text tracking for prediction and special 4-sec translate
     var currentComposingText by remember { mutableStateOf("") }
+    var lastCommittedWord by remember { mutableStateOf("") }
 
     // 3-sec Translate button hold state
     var isTranslateButtonHolding by remember { mutableStateOf(false) }
@@ -349,28 +360,43 @@ fun TurboKeyboardView(
         }
     }
 
-    // Prediction suggestions + auto-correction + contextual next-word predictions
-    val suggestions = remember(currentComposingText, currentWorldLang, userWords, shortcuts) {
+    // Context-Aware Prediction suggestions + auto-correction + n-gram next-word predictions
+    val suggestions = remember(currentComposingText, currentWorldLang, userWords, shortcuts, lastCommittedWord) {
         if (currentSettings.suggestionsEnabled) {
             val lastWord = currentComposingText.trim().split(" ").lastOrNull() ?: ""
             if (lastWord.isNotBlank()) {
                 val shortcutMatch = shortcuts.find { it.trigger.equals(lastWord, ignoreCase = true) }
-                val baseList = PredictionEngine.getPredictionsWithCorrection(lastWord, isArabic, userWords)
+                val baseList = PredictionEngine.getPredictionsWithCorrection(
+                    prefix = lastWord,
+                    isArabic = isArabic,
+                    userWords = userWords,
+                    prevWord = lastCommittedWord,
+                    userDict = userDict
+                )
                 if (shortcutMatch != null) {
-                    listOf(PredictionEngine.PredictionResult(shortcutMatch.expansion)) + baseList.take(2)
+                    (listOf(PredictionEngine.PredictionResult(shortcutMatch.expansion)) + baseList)
+                        .distinctBy { it.word }
+                        .take(3)
                 } else {
-                    baseList
+                    baseList.take(3)
                 }
             } else {
-                // When currentComposingText is blank, inspect preceding text before cursor for next-word prediction
+                // When currentComposingText is blank, inspect preceding text before cursor or lastCommittedWord
                 val ic = getCurrentInputConnection?.invoke() ?: inputConnection
                 val textBefore = try {
                     ic?.getTextBeforeCursor(40, 0)?.toString() ?: ""
                 } catch (_: Exception) {
                     ""
                 }
-                val prevWord = textBefore.trim().split(Regex("\\s+")).lastOrNull() ?: ""
-                PredictionEngine.getNextWordPredictions(prevWord, isArabic)
+                val prevWord = textBefore.trim().split(Regex("\\s+")).lastOrNull()?.ifBlank { null } ?: lastCommittedWord
+                val baseList = PredictionEngine.getPredictionsWithCorrection(
+                    prefix = "",
+                    isArabic = isArabic,
+                    userWords = userWords,
+                    prevWord = prevWord,
+                    userDict = userDict
+                )
+                baseList.take(3)
             }
         } else {
             emptyList()
@@ -431,23 +457,18 @@ fun TurboKeyboardView(
 
     fun sendText(text: String) {
         dismissLongPressPopup()
-        val resolvedText = if (text == "-" || text == "_") {
-            val prevChar = currentComposingText.lastOrNull()
-            val isAfterArabic = prevChar != null && (prevChar in '\u0600'..'\u06FF' || prevChar == 'ـ')
-            if (isAfterArabic || isArabic) {
-                "ـ" // وصل الحروف مع بعض ومدها (Tatweel / Kashida)
-            } else {
-                text
-            }
+        val textToInsert = if (activeDecorationStyle != "none" && text.length == 1) {
+            TextDecorator.decorateChar(text, activeDecorationStyle)
         } else {
             text
         }
-        val textToInsert = if (activeDecorationStyle != "none" && resolvedText.length == 1) {
-            TextDecorator.decorateChar(resolvedText, activeDecorationStyle)
-        } else {
-            resolvedText
-        }
         if (textToInsert == " " || textToInsert.contains(" ") || textToInsert in listOf("\n", "\r", ".", "!", "?", "،", "؛", "؟", ",", ";", ":")) {
+            val typedWord = currentComposingText.trim().split(Regex("\\s+")).lastOrNull() ?: ""
+            if (typedWord.isNotBlank() && typedWord.length >= 2) {
+                userDict.recordWord(typedWord, lastCommittedWord)
+                userWords = userDict.getUserWords()
+                lastCommittedWord = typedWord
+            }
             currentComposingText = ""
         } else {
             currentComposingText = (currentComposingText + textToInsert).takeLast(30)
@@ -494,21 +515,17 @@ fun TurboKeyboardView(
         }
     }
 
-    // السحب في الأحرف العائمة: مسموح باتجاه اليمين فقط وممنوع لليسار نهائياً
+    // التنقل في الأحرف العائمة بالسحب يميناً ويساراً مع سرعة قابلة للضبط
     val onDragVariantHandler: (Float) -> Unit = { deltaX ->
         if (longPressVariants.isNotEmpty()) {
-            if (deltaX > 0f) {
-                val stepPx = 28f
-                val step = (deltaX / stepPx).toInt()
-                val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
-                if (targetIdx != selectedVariantIndex) {
-                    selectedVariantIndex = targetIdx
-                    performFeedback(12L)
-                }
-            } else {
-                if (selectedVariantIndex != 0) {
-                    selectedVariantIndex = 0
-                }
+            val speed = currentSettings.floatingNavSpeed.coerceIn(1, 10)
+            val density = context.resources.displayMetrics.density
+            val stepPx = (65f - (speed - 1) * 5.0f) * density
+            val step = (deltaX / stepPx).toInt()
+            val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
+            if (targetIdx != selectedVariantIndex) {
+                selectedVariantIndex = targetIdx
+                performFeedback(12L)
             }
         }
     }
@@ -972,6 +989,7 @@ fun TurboKeyboardView(
             isDecorationActive = isDecorationBarOpen || activeDecorationStyle != "none",
             isTranslationActive = isTranslationBarOpen,
             isNightMode = true,
+            toolbarHeight = currentSettings.toolbarHeightDp.dp,
             visibleTools = currentSettings.visibleToolbarTools,
             isForceEnglishNumbers = currentSettings.forceEnglishNumbers,
             onToggleForceEnglishNumbers = {
@@ -1337,6 +1355,9 @@ fun TurboKeyboardView(
                     } else {
                         sendText("$word ")
                     }
+                    userDict.recordWord(word, lastCommittedWord)
+                    userWords = userDict.getUserWords()
+                    lastCommittedWord = word
                     currentComposingText = ""
                 },
                 onAddWordToDictionary = { word ->
@@ -1393,13 +1414,23 @@ fun TurboKeyboardView(
                     }
                 }
 
-                // Add / Customize button for the top emoji row (+)
+                // Add / Customize button for the top emoji row (+) with long-press symbols
                 Surface(
                     modifier = Modifier
                         .size(28.dp)
-                        .clickable {
-                            performFeedback(isSpecial = true)
-                            isCustomizeTopEmojisOpen = true
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    performFeedback(isSpecial = true)
+                                    longPressChar = "+"
+                                    longPressVariants = LongPressVariantsManager.getVariants("+")
+                                    selectedVariantIndex = 0
+                                },
+                                onTap = {
+                                    performFeedback(isSpecial = true)
+                                    isCustomizeTopEmojisOpen = true
+                                }
+                            )
                         },
                     shape = RoundedCornerShape(activeTheme.cornerRadius.dp),
                     color = Color(activeTheme.accentColor).copy(alpha = 0.2f),
@@ -1408,7 +1439,7 @@ fun TurboKeyboardView(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "تخصيص الابتسامات",
+                            contentDescription = "تخصيص الابتسامات أو رموز إضافية",
                             tint = Color(activeTheme.accentColor),
                             modifier = Modifier.size(15.dp)
                         )
@@ -1520,7 +1551,7 @@ fun TurboKeyboardView(
                                             isShifted = isShifted,
                                             showKeyPopup = currentSettings.keyPopupEnabled,
                                             keyHeight = calculatedNumberKeyHeight,
-                                            keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                            keyFontSizeFactor = effectiveFontSizeFactor,
                                             keyButtonScale = currentSettings.keyButtonScale,
                                             longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                             onPerformFeedback = {
@@ -1583,7 +1614,7 @@ fun TurboKeyboardView(
                                         isArabicLayout = isArabic,
                                         showKeyPopup = currentSettings.keyPopupEnabled,
                                         keyHeight = calculatedKeyHeight,
-                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        keyFontSizeFactor = effectiveFontSizeFactor,
                                         keyButtonScale = currentSettings.keyButtonScale,
                                         longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                         onPerformFeedback = {
@@ -1631,7 +1662,7 @@ fun TurboKeyboardView(
                                         isArabicLayout = isArabic,
                                         showKeyPopup = currentSettings.keyPopupEnabled,
                                         keyHeight = calculatedKeyHeight,
-                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        keyFontSizeFactor = effectiveFontSizeFactor,
                                         keyButtonScale = currentSettings.keyButtonScale,
                                         longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                         onPerformFeedback = {
@@ -1761,7 +1792,7 @@ fun TurboKeyboardView(
                                                     isArabicLayout = isArabic,
                                                     showKeyPopup = currentSettings.keyPopupEnabled,
                                                     keyHeight = calculatedKeyHeight,
-                                                    keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                                    keyFontSizeFactor = effectiveFontSizeFactor,
                                                     keyButtonScale = currentSettings.keyButtonScale,
                                                     longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                                     onPerformFeedback = {
@@ -2298,19 +2329,25 @@ fun TurboKeyboardView(
                                                         }
                                                     },
                                                     onDrag = { _, dragAmount ->
-                                                        // السحب مسموح لليمين فقط وممنوع لليسار نهائياً
-                                                        if (dragAmount.x > 0f) {
-                                                            dragAccumulatedX += dragAmount.x
-                                                            val stepPx = 34.dp.toPx()
-                                                            if (dragAccumulatedX >= stepPx) {
-                                                                val steps = (dragAccumulatedX / stepPx).toInt()
-                                                                val targetIdx = (selectedVariantIndex + steps).coerceIn(0, longPressVariants.lastIndex)
-                                                                if (targetIdx != selectedVariantIndex) {
-                                                                    selectedVariantIndex = targetIdx
-                                                                    performFeedback(12L)
-                                                                }
-                                                                dragAccumulatedX %= stepPx
+                                                        dragAccumulatedX += dragAmount.x
+                                                        val speed = currentSettings.floatingNavSpeed.coerceIn(1, 10)
+                                                        val stepPx = ((65f - (speed - 1) * 5.0f).dp).toPx()
+                                                        if (dragAccumulatedX >= stepPx) {
+                                                            val steps = (dragAccumulatedX / stepPx).toInt()
+                                                            val targetIdx = (selectedVariantIndex + steps).coerceIn(0, longPressVariants.lastIndex)
+                                                            if (targetIdx != selectedVariantIndex) {
+                                                                selectedVariantIndex = targetIdx
+                                                                performFeedback(12L)
                                                             }
+                                                            dragAccumulatedX %= stepPx
+                                                        } else if (dragAccumulatedX <= -stepPx) {
+                                                            val steps = (-dragAccumulatedX / stepPx).toInt()
+                                                            val targetIdx = (selectedVariantIndex - steps).coerceIn(0, longPressVariants.lastIndex)
+                                                            if (targetIdx != selectedVariantIndex) {
+                                                                selectedVariantIndex = targetIdx
+                                                                performFeedback(12L)
+                                                            }
+                                                            dragAccumulatedX = -(-dragAccumulatedX % stepPx)
                                                         }
                                                     },
                                                     onDragEnd = {
@@ -2530,8 +2567,7 @@ fun KeyButton(
                                     }
                                     if (isLongPressed) {
                                         val deltaX = change.position.x - startX
-                                        // السحب مسموح باتجاه اليمين فقط وممنوع لليسار نهائياً
-                                        if (deltaX > 6.dp.toPx()) {
+                                        if (kotlin.math.abs(deltaX) > 6.dp.toPx()) {
                                             hasDragged = true
                                             currentOnDragVariant?.invoke(deltaX)
                                         } else {
@@ -2544,9 +2580,7 @@ fun KeyButton(
                                 job.cancel()
                                 isTouching = false
                                 if (isLongPressed) {
-                                    if (hasDragged) {
-                                        currentOnReleaseVariant?.invoke()
-                                    }
+                                    currentOnReleaseVariant?.invoke()
                                 } else {
                                     currentOnClick()
                                 }

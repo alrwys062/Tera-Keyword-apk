@@ -106,11 +106,23 @@ object LongPressVariantsManager {
         if (char == "." || char == "٫" || char == "،") {
             return emailDomains + listOf(".com", ".net", ".org", "www.", "https://")
         }
+        if (char == "+") {
+            return listOf("♥", "♡", "§", "♣", "♦", "♧", "☆", "★", "✧", "♕", "♜", "♞", "♔", "♗", "❀")
+        }
+        if (char == "\"" || char == "”" || char == "“") {
+            return listOf(",", "٫", "؛", "،", "«", "»", "“", "”", "'")
+        }
+        if (char == "؟" || char == "?") {
+            return listOf("؟", "?", "!", "¡", "¿", "‽")
+        }
+        if (char == "؛" || char == ";") {
+            return listOf("؛", ";", ":", "،")
+        }
         if (char == "-" || char == "–" || char == "—") {
-            return listOf("ـ", "-", "—", "–", "•")
+            return listOf("-", "ـ", "—", "–", "•", "_")
         }
         if (char == "_") {
-            return listOf("ـ", "_", "–", "—")
+            return listOf("_", "-", "ـ", "–", "—")
         }
         val lower = char.lowercase()
         return arabicVariants[char]

@@ -322,6 +322,16 @@ fun SettingsScreen(
                 )
             }
 
+            // 12.1 قسم التخصيص والأبعاد المتقدمة
+            item {
+                TransboardSettingsRow(
+                    title = "التخصيص والأبعاد المتقدمة",
+                    subtitle = "شريط الأدوات (30-80 dp)، أزرار الكيبورد (40-90 dp)، حجم الخط (14-32 sp)، وسرعة الأحرف العائمة",
+                    icon = Icons.Outlined.Tune,
+                    onClick = { activeDialog = "CUSTOMIZATION" }
+                )
+            }
+
             // 13. النسخ الإحتياطي (Screenshot 2)
             item {
                 TransboardSettingsRow(
@@ -2820,46 +2830,72 @@ fun SettingsScreen(
         )
     }
 
-    // 12. HEIGHT & FONT DIALOG (Screenshot 13)
-    if (activeDialog == "HEIGHT_FONT") {
+    // 12. HEIGHT & FONT & CUSTOMIZATION DIALOG (Screenshot 13 & User Customization)
+    if (activeDialog == "HEIGHT_FONT" || activeDialog == "CUSTOMIZATION") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("ارتفاع الكيبورد وحجم الأحرف", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Tune, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("التخصيص والأبعاد المتقدمة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
             text = {
-                Column {
-                    Text("تكبير وتصغير أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp)
+                ) {
+                    // 1. ارتفاع شريط الأدوات (Toolbar Height: 30 - 80 dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("ارتفاع شريط الأدوات (📋🌐🧮✨):", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${settings.toolbarHeightDp} dp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
                     Slider(
-                        value = settings.keyButtonScale,
-                        onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
-                        valueRange = 0.75f..1.6f
+                        value = settings.toolbarHeightDp.toFloat(),
+                        onValueChange = { updateSettings(settings.copy(toolbarHeightDp = it.toInt())) },
+                        valueRange = 30f..80f,
+                        steps = 49
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text("حجم زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 2. ارتفاع أزرار الكيبورد (Key Height: 40 - 90 dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("ارتفاع أزرار الكيبورد:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${settings.keyHeightDp} dp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
                     Slider(
-                        value = settings.backspaceKeyScale,
-                        onValueChange = { updateSettings(settings.copy(backspaceKeyScale = it)) },
-                        valueRange = 0.75f..1.8f
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text("ارتفاع المفاتيح (عمودي): ${(settings.keyHeightFactor * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
-                    Slider(
-                        value = settings.keyHeightFactor,
-                        onValueChange = { updateSettings(settings.copy(keyHeightFactor = it)) },
-                        valueRange = 0.70f..1.60f
+                        value = settings.keyHeightDp.toFloat(),
+                        onValueChange = {
+                            val intVal = it.toInt()
+                            updateSettings(settings.copy(keyHeightDp = intVal, keyHeightFactor = (intVal.toFloat() / 45.0f).coerceIn(0.70f, 1.80f)))
+                        },
+                        valueRange = 40f..90f,
+                        steps = 49
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Pair("صغير 85%", 0.85f),
-                            Pair("طبيعي 100%", 1.0f),
-                            Pair("كبير 120%", 1.20f),
-                            Pair("عملاق 140%", 1.40f)
-                        ).forEach { (lbl, factor) ->
-                            val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.04f
+                            Pair("صغير 45dp", 45),
+                            Pair("طبيعي 54dp", 54),
+                            Pair("كبير 65dp", 65),
+                            Pair("عملاق 75dp", 75)
+                        ).forEach { (lbl, dpVal) ->
+                            val isSel = settings.keyHeightDp == dpVal
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = if (isSel) Color(0xFF00E5FF) else Color(0xFF1E2838),
                                 modifier = Modifier.weight(1f).clickable {
-                                    updateSettings(settings.copy(keyHeightFactor = factor))
+                                    updateSettings(settings.copy(keyHeightDp = dpVal, keyHeightFactor = (dpVal.toFloat() / 45.0f).coerceIn(0.70f, 1.80f)))
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
@@ -2868,26 +2904,100 @@ fun SettingsScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text("حجم الأحرف على المفاتيح: ${(settings.keyFontSizeFactor * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 3. حجم خط الأحرف (Key Font Size: 14 - 32 sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("حجم خط الأحرف على المفاتيح:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${settings.keyFontSizeSp} sp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
                     Slider(
-                        value = settings.keyFontSizeFactor,
-                        onValueChange = { updateSettings(settings.copy(keyFontSizeFactor = it)) },
-                        valueRange = 0.8f..1.3f
+                        value = settings.keyFontSizeSp.toFloat(),
+                        onValueChange = {
+                            val intVal = it.toInt()
+                            updateSettings(settings.copy(keyFontSizeSp = intVal, keyFontSizeFactor = (intVal.toFloat() / 20.0f).coerceIn(0.7f, 1.6f)))
+                        },
+                        valueRange = 14f..32f,
+                        steps = 17
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
+
+                    // 4. سرعة التنقل في الأحرف العائمة (Floating Navigation Speed: 1 - 10)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("سرعة التنقل في الأحرف العائمة:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${settings.floatingNavSpeed} ${if (settings.floatingNavSpeed <= 3) "(بطيء)" else if (settings.floatingNavSpeed >= 8) "(سريع)" else "(متوسط)"}",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        "اسحب يميناً ويساراً للتنقل بين الأحرف المنبثقة (1 = مسافة سحب أكبر، 10 = استجابة سريعة)",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 10.sp
+                    )
+                    Slider(
+                        value = settings.floatingNavSpeed.toFloat(),
+                        onValueChange = { updateSettings(settings.copy(floatingNavSpeed = it.toInt())) },
+                        valueRange = 1f..10f,
+                        steps = 8
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 5. حجم شريط الابتسامات السريعة
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("حجم شريط الابتسامات السريعة:", color = Color.White, fontSize = 12.5.sp)
+                        Text("${(settings.emojiBarHeightFactor * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Slider(
+                        value = settings.emojiBarHeightFactor,
+                        onValueChange = { updateSettings(settings.copy(emojiBarHeightFactor = it)) },
+                        valueRange = 0.6f..1.8f
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 6. تكبير وتصغير أزرار الكيبورد
+                    Text("تكبير وتصغير أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Slider(
+                        value = settings.keyButtonScale,
+                        onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
+                        valueRange = 0.75f..1.6f
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedButton(
                         onClick = {
                             updateSettings(
                                 settings.copy(
+                                    toolbarHeightDp = 42,
+                                    keyHeightDp = 54,
+                                    keyHeightFactor = 1.20f,
+                                    keyFontSizeSp = 20,
+                                    keyFontSizeFactor = 1.0f,
+                                    floatingNavSpeed = 6,
+                                    emojiBarHeightFactor = 1.0f,
                                     keyButtonScale = 1.0f,
-                                    backspaceKeyScale = 1.0f,
-                                    keyHeightFactor = 1.0f,
-                                    keyFontSizeFactor = 1.0f
+                                    backspaceKeyScale = 1.15f
                                 )
                             )
-                            Toast.makeText(context, "تمت استعادة الحجم الافتراضي للكيبورد (100%) ✓", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "تمت استعادة الإعدادات الافتراضية للكيبورد ✓", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -2896,7 +3006,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("↺ استعادة الحجم الافتراضي للكيبورد", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("↺ استعادة القيم الافتراضية للكيبورد", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             },
@@ -2910,10 +3020,14 @@ fun SettingsScreen(
                     onClick = {
                         updateSettings(
                             settings.copy(
-                                keyButtonScale = 1.0f,
-                                backspaceKeyScale = 1.0f,
-                                keyHeightFactor = 1.0f,
-                                keyFontSizeFactor = 1.0f
+                                toolbarHeightDp = 42,
+                                keyHeightDp = 54,
+                                keyHeightFactor = 1.20f,
+                                keyFontSizeSp = 20,
+                                keyFontSizeFactor = 1.0f,
+                                floatingNavSpeed = 6,
+                                emojiBarHeightFactor = 1.0f,
+                                keyButtonScale = 1.0f
                             )
                         )
                         Toast.makeText(context, "تمت استعادة الحجم الافتراضي ✓", Toast.LENGTH_SHORT).show()

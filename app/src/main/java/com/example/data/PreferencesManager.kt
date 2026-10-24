@@ -22,6 +22,7 @@ class PreferencesManager(private val context: Context) {
         )
         val INT_KEYS = setOf(
             "vibrationDurationMs", "keyRepeatSpeedMs", "longPressDelayMs", "arabicColumnsCount",
+            "toolbarHeightDp", "keyHeightDp", "keyFontSizeSp", "floatingNavSpeed",
             "last_clipboard_scroll_idx", "last_clipboard_scroll_offset"
         )
         val BOOLEAN_KEYS = setOf(
@@ -219,23 +220,27 @@ class PreferencesManager(private val context: Context) {
                 autoCorrection = getBooleanSafe("autoCorrection", false),
                 numberRowEnabled = getBooleanSafe("numberRowEnabled", false),
                 topQuickEmojiRowEnabled = getBooleanSafe("topQuickEmojiRowEnabled", true),
-                keyHeightFactor = getFloatSafe("keyHeightFactor", 1.0f),
+                keyHeightFactor = getFloatSafe("keyHeightFactor", 1.20f),
                 keyFontSizeFactor = getFloatSafe("keyFontSizeFactor", 1.0f),
                 keyButtonScale = getFloatSafe("keyButtonScale", 1.0f),
                 backspaceKeyScale = getFloatSafe("backspaceKeyScale", 1.15f),
-                currentThemeId = getStringSafe("currentThemeId", "cyber_pro"),
+                currentThemeId = getStringSafe("currentThemeId", "iphone_white"),
                 defaultLanguage = getStringSafe("defaultLanguage", "ar"),
                 swipeSpaceSwitchLanguage = getBooleanSafe("swipeSpaceSwitchLanguage", true),
                 enterLongPressTranslateEnabled = getBooleanSafe("enterLongPressTranslateEnabled", true),
                 emojiBarHeightFactor = getFloatSafe("emojiBarHeightFactor", 1.0f),
                 emojiButtonSizeFactor = getFloatSafe("emojiButtonSizeFactor", 1.0f),
                 emojiSizeScale = getFloatSafe("emojiSizeScale", 1.0f),
+                toolbarHeightDp = getIntSafe("toolbarHeightDp", 42),
+                keyHeightDp = getIntSafe("keyHeightDp", 54),
+                keyFontSizeSp = getIntSafe("keyFontSizeSp", 20),
+                floatingNavSpeed = getIntSafe("floatingNavSpeed", 6),
                 showDualHints = getBooleanSafe("showDualHints", true),
                 clipboardCloseOnPaste = getBooleanSafe("clipboardCloseOnPaste", true),
                 clipboardSaveForever = getBooleanSafe("clipboardSaveForever", true),
                 swapClipboardAndEmoji = getBooleanSafe("swapClipboardAndEmoji", true),
                 enterKeyOnLeft = getBooleanSafe("enterKeyOnLeft", false),
-                isNightModeEnabled = getBooleanSafe("isNightModeEnabled", true),
+                isNightModeEnabled = getBooleanSafe("isNightModeEnabled", false),
                 autoReturnAfterEmojiInsert = getBooleanSafe("autoReturnAfterEmojiInsert", false),
                 activeDecorationStyle = getStringSafe("activeDecorationStyle", "none"),
                 keyboardLayoutStyle = getStringSafe("keyboardLayoutStyle", "10_columns"),
@@ -301,6 +306,10 @@ class PreferencesManager(private val context: Context) {
             .putFloat("emojiBarHeightFactor", settings.emojiBarHeightFactor)
             .putFloat("emojiButtonSizeFactor", settings.emojiButtonSizeFactor)
             .putFloat("emojiSizeScale", settings.emojiSizeScale)
+            .putInt("toolbarHeightDp", settings.toolbarHeightDp)
+            .putInt("keyHeightDp", settings.keyHeightDp)
+            .putInt("keyFontSizeSp", settings.keyFontSizeSp)
+            .putInt("floatingNavSpeed", settings.floatingNavSpeed)
             .putBoolean("showDualHints", settings.showDualHints)
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
             .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
@@ -469,16 +478,16 @@ class PreferencesManager(private val context: Context) {
         }
         prefs.edit().putString("custom_themes_list", arr.toString()).apply()
         if (getStringSafe("currentThemeId", "") == themeId) {
-            setCurrentTheme("cyber_pro")
+            setCurrentTheme("iphone_white")
         }
     }
 
     fun getActiveTheme(): KeyboardTheme {
         return try {
-            val id = getStringSafe("currentThemeId", "cyber_pro")
+            val id = getStringSafe("currentThemeId", "iphone_white")
             getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
         } catch (_: Exception) {
-            ThemePresets.CYBER_PRO
+            ThemePresets.IPHONE_WHITE
         }
     }
 

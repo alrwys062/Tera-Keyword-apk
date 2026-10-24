@@ -53,6 +53,26 @@ object ThemePresets {
         )
     }
 
+    // 0. Default iPhone White Theme
+    val IPHONE_WHITE = KeyboardTheme(
+        id = "iphone_white",
+        nameAr = "آيفون الأبيض (iOS White)",
+        nameEn = "iPhone White iOS",
+        backgroundColor = 0xFFF2F2F7,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE5E5EA,
+        keyTextColor = 0xFF000000,
+        subtextColor = 0xFF8E8E93,
+        accentColor = 0xFF007AFF,
+        enterButtonColor = 0xFF007AFF,
+        toolbarColor = 0xFFF2F2F7,
+        borderColor = 0xFFD1D5DB,
+        borderAlpha = 0.5f,
+        cornerRadius = 6f,
+        keyStyle = "rounded",
+        category = "ios"
+    )
+
     // 1. Dark & Light Themes
     val MINIMAL_DARK = KeyboardTheme(
         id = "minimal_dark",
@@ -1355,6 +1375,8 @@ object ThemePresets {
 
 
     val allPresets = listOf(
+        // Default iPhone White Theme
+        IPHONE_WHITE,
         // Featured Liquid Glass & Pro Styles
         LIQUID_GLASS_BLUR,
         CYBER_BLUE,
@@ -1447,6 +1469,6 @@ object ThemePresets {
     )
 
     fun getById(id: String): KeyboardTheme {
-        return allPresets.find { it.id == id } ?: CYBER_PRO
+        return allPresets.find { it.id == id } ?: IPHONE_WHITE
     }
 }

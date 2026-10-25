@@ -528,9 +528,10 @@ fun TurboKeyboardView(
         if (longPressVariants.isNotEmpty()) {
             val speed = currentSettings.floatingNavSpeed.coerceIn(1, 10)
             val density = context.resources.displayMetrics.density
-            val stepPx = (65f - (speed - 1) * 5.0f) * density
-            val step = (deltaX / stepPx).toInt()
-            val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
+            val stepPx = (50f - (speed - 1) * 4.0f) * density
+            val directionMultiplier = if (isArabic) -1 else 1
+            val rawStep = (deltaX * directionMultiplier / stepPx).toInt()
+            val targetIdx = (selectedVariantIndex + rawStep).coerceIn(0, longPressVariants.lastIndex)
             if (targetIdx != selectedVariantIndex) {
                 selectedVariantIndex = targetIdx
                 performFeedback(12L)
@@ -2577,7 +2578,7 @@ fun KeyButton(
                                 job.cancel()
                                 isTouching = false
                                 if (isLongPressed) {
-                                    currentOnReleaseVariant?.invoke()
+                                    // Keep floating long-press popup open and stable for user control
                                 } else {
                                     currentOnClick()
                                 }

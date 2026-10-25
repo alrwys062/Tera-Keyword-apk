@@ -2865,44 +2865,64 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 2. ارتفاع أزرار الكيبورد (Key Height: 40 - 90 dp)
+                    // 2. ارتفاع أزرار الكيبورد (Keyboard Height: 5 Levels + Slider 30 - 80 dp)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("ارتفاع أزرار الكيبورد:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${settings.keyHeightDp} dp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("ارتفاع أزرار الكيبورد (الحجم الافتراضي 100%):", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${settings.keyHeightDp} dp (${(settings.keyHeightFactor * 100).toInt()}%)", color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = settings.keyHeightDp.toFloat(),
                         onValueChange = {
                             val intVal = it.toInt()
-                            updateSettings(settings.copy(keyHeightDp = intVal, keyHeightFactor = (intVal.toFloat() / 45.0f).coerceIn(0.70f, 1.80f)))
+                            updateSettings(settings.copy(keyHeightDp = intVal, keyHeightFactor = (intVal.toFloat() / 40.0f).coerceIn(0.70f, 1.60f)))
                         },
-                        valueRange = 40f..90f,
+                        valueRange = 30f..80f,
                         steps = 49
                     )
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // 5 مستويات ارتفاع واضحة وثابتة
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         listOf(
-                            Pair("صغير 45dp", 45),
-                            Pair("طبيعي 54dp", 54),
-                            Pair("كبير 65dp", 65),
-                            Pair("عملاق 75dp", 75)
-                        ).forEach { (lbl, dpVal) ->
-                            val isSel = settings.keyHeightDp == dpVal
+                            Triple("صغير جداً", 34, 0.82f),
+                            Triple("صغير", 37, 0.90f),
+                            Triple("متوسط 100%", 40, 1.00f),
+                            Triple("كبير", 46, 1.15f),
+                            Triple("كبير جداً", 52, 1.30f)
+                        ).forEach { (lbl, dpVal, factorVal) ->
+                            val isSel = settings.keyHeightDp == dpVal || kotlin.math.abs(settings.keyHeightFactor - factorVal) < 0.04f
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = if (isSel) Color(0xFF00E5FF) else Color(0xFF1E2838),
                                 modifier = Modifier.weight(1f).clickable {
-                                    updateSettings(settings.copy(keyHeightDp = dpVal, keyHeightFactor = (dpVal.toFloat() / 45.0f).coerceIn(0.70f, 1.80f)))
+                                    updateSettings(settings.copy(keyHeightDp = dpVal, keyHeightFactor = factorVal))
                                 }
                             ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(lbl, color = if (isSel) Color.Black else Color.White, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 5.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else Color.White, fontSize = 8.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center)
                                 }
                             }
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // تحريك المؤشر بسلاسة بالسحب على المسافة
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("تحريك المؤشر بالسحب على المسافة", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("اسحب يميناً ويساراً على المسافة للتحكم في مكان المؤشر بدقة وسلاسة", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                        }
+                        Switch(
+                            checked = settings.spacebarCursorControl,
+                            onCheckedChange = { updateSettings(settings.copy(spacebarCursorControl = it)) }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -2986,10 +3006,10 @@ fun SettingsScreen(
                         onClick = {
                             updateSettings(
                                 settings.copy(
-                                    toolbarHeightDp = 42,
-                                    keyHeightDp = 54,
-                                    keyHeightFactor = 1.20f,
-                                    keyFontSizeSp = 20,
+                                    toolbarHeightDp = 34,
+                                    keyHeightDp = 40,
+                                    keyHeightFactor = 1.0f,
+                                    keyFontSizeSp = 19,
                                     keyFontSizeFactor = 1.0f,
                                     floatingNavSpeed = 6,
                                     emojiBarHeightFactor = 1.0f,
@@ -3020,10 +3040,10 @@ fun SettingsScreen(
                     onClick = {
                         updateSettings(
                             settings.copy(
-                                toolbarHeightDp = 42,
-                                keyHeightDp = 54,
-                                keyHeightFactor = 1.20f,
-                                keyFontSizeSp = 20,
+                                toolbarHeightDp = 34,
+                                keyHeightDp = 40,
+                                keyHeightFactor = 1.0f,
+                                keyFontSizeSp = 19,
                                 keyFontSizeFactor = 1.0f,
                                 floatingNavSpeed = 6,
                                 emojiBarHeightFactor = 1.0f,

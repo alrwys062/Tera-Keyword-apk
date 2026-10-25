@@ -138,30 +138,44 @@ private fun SuggestionItem(
             }
         }
     } else {
-        val activeBg = if (isCenter) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor).copy(alpha = 0.45f)
-        val activeBorder = if (isCenter) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.4f)
+        val activeBg = if (isCenter) {
+            Color(theme.accentColor).copy(alpha = 0.22f)
+        } else {
+            Color(theme.keyBackgroundColor)
+        }
+        val activeBorder = if (isCenter) {
+            androidx.compose.foundation.BorderStroke(1.5.dp, Color(theme.accentColor))
+        } else {
+            androidx.compose.foundation.BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha))
+        }
 
-        Box(
+        androidx.compose.material3.Surface(
             modifier = modifier
                 .fillMaxHeight()
-                .padding(horizontal = 2.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(activeBg)
-                .border(1.dp, activeBorder, RoundedCornerShape(8.dp))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 4.dp),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 2.5.dp)
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(8.dp),
+            color = activeBg,
+            border = activeBorder,
+            shadowElevation = if (isCenter) 2.dp else 0.8.dp
         ) {
-            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-            val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-            Text(
-                text = result.word,
-                color = if (isCenter) Color(theme.accentColor) else inactiveTextColor,
-                fontSize = if (isCenter) (if (isLandscape) 11.5.sp else 13.5.sp) else (if (isLandscape) 10.sp else 12.sp),
-                fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+                Text(
+                    text = result.word,
+                    color = if (isCenter) Color(theme.accentColor) else inactiveTextColor,
+                    fontSize = if (isCenter) (if (isLandscape) 12.sp else 13.5.sp) else (if (isLandscape) 10.5.sp else 12.sp),
+                    fontWeight = if (isCenter) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

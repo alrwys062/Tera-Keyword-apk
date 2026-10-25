@@ -46,6 +46,7 @@ fun ThemesScreen(
 
     val categories = listOf(
         "الكل",
+        "✨ 20 ثيم فاخر (Facemoji 20)",
         "Pro ستايلات الهواتف",
         "أنظمة وهواتف",
         "داكن وفاتح",
@@ -72,6 +73,7 @@ fun ThemesScreen(
 
             val matchCategory = when (selectedCategory) {
                 "الكل" -> true
+                "✨ 20 ثيم فاخر (Facemoji 20)" -> theme.category == "facemoji_20"
                 "Pro ستايلات الهواتف" -> theme.category == "pro_styles"
                 "أنظمة وهواتف" -> theme.category == "systems"
                 "داكن وفاتح" -> theme.category == "dark_light"

@@ -184,16 +184,16 @@ object PredictionEngine {
             }
         }
 
-        // 6. Approximate Spell Check using Levenshtein distance (Levenshtein distance <= 2)
-        if (results.size < 3 && clean.length >= 3) {
-            val fuzzyMatches = combined.filter { candidate ->
-                kotlin.math.abs(candidate.length - clean.length) <= 2 &&
-                levenshteinDistance(candidate, clean) in 1..2
-            }.sortedBy { levenshteinDistance(it, clean) }
-
-            for (fm in fuzzyMatches) {
-                if (results.size < 3 && results.none { it.word.equals(fm, ignoreCase = true) }) {
-                    results.add(PredictionResult(word = fm, isCorrection = true))
+        // 6. Approximate Spell Check using fast bounded search (Levenshtein distance <= 2)
+        if (results.size < 3 && clean.length in 3..12) {
+            val candidateSlice = combined.take(80)
+            for (candidate in candidateSlice) {
+                if (results.size >= 3) break
+                if (kotlin.math.abs(candidate.length - clean.length) <= 1 &&
+                    levenshteinDistance(candidate, clean) in 1..2 &&
+                    results.none { it.word.equals(candidate, ignoreCase = true) }
+                ) {
+                    results.add(PredictionResult(word = candidate, isCorrection = true))
                 }
             }
         }

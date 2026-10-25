@@ -29,8 +29,9 @@ class PreferencesManager(private val context: Context) {
             "vibrationEnabled", "soundEnabled", "autoReturnToLettersOnSend", "autoReturnToLettersOnShortcut",
             "autoReturnAfterEmojiInsert", "keyPopupEnabled", "autoCapitalization", "doubleSpacePeriod",
             "suggestionsEnabled", "autoCorrection", "numberRowEnabled", "topQuickEmojiRowEnabled",
-            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled",
+            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled", "spacebarCursorControl",
             "showDualHints", "clipboardCloseOnPaste", "clipboardSaveForever", "swapClipboardAndEmoji",
+            "isFloatingKeyboard", "isSplitKeyboard",
             "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy"
         )
         val STRING_KEYS = setOf(
@@ -220,25 +221,28 @@ class PreferencesManager(private val context: Context) {
                 autoCorrection = getBooleanSafe("autoCorrection", false),
                 numberRowEnabled = getBooleanSafe("numberRowEnabled", false),
                 topQuickEmojiRowEnabled = getBooleanSafe("topQuickEmojiRowEnabled", true),
-                keyHeightFactor = getFloatSafe("keyHeightFactor", 1.20f),
+                keyHeightFactor = getFloatSafe("keyHeightFactor", 1.0f),
                 keyFontSizeFactor = getFloatSafe("keyFontSizeFactor", 1.0f),
                 keyButtonScale = getFloatSafe("keyButtonScale", 1.0f),
                 backspaceKeyScale = getFloatSafe("backspaceKeyScale", 1.15f),
-                currentThemeId = getStringSafe("currentThemeId", "iphone_white"),
+                currentThemeId = getStringSafe("currentThemeId", "dark_neon"),
                 defaultLanguage = getStringSafe("defaultLanguage", "ar"),
                 swipeSpaceSwitchLanguage = getBooleanSafe("swipeSpaceSwitchLanguage", true),
+                spacebarCursorControl = getBooleanSafe("spacebarCursorControl", true),
                 enterLongPressTranslateEnabled = getBooleanSafe("enterLongPressTranslateEnabled", true),
                 emojiBarHeightFactor = getFloatSafe("emojiBarHeightFactor", 1.0f),
                 emojiButtonSizeFactor = getFloatSafe("emojiButtonSizeFactor", 1.0f),
                 emojiSizeScale = getFloatSafe("emojiSizeScale", 1.0f),
-                toolbarHeightDp = getIntSafe("toolbarHeightDp", 42),
-                keyHeightDp = getIntSafe("keyHeightDp", 54),
+                toolbarHeightDp = getIntSafe("toolbarHeightDp", 34),
+                keyHeightDp = getIntSafe("keyHeightDp", 40),
                 keyFontSizeSp = getIntSafe("keyFontSizeSp", 20),
                 floatingNavSpeed = getIntSafe("floatingNavSpeed", 6),
                 showDualHints = getBooleanSafe("showDualHints", true),
                 clipboardCloseOnPaste = getBooleanSafe("clipboardCloseOnPaste", true),
                 clipboardSaveForever = getBooleanSafe("clipboardSaveForever", true),
                 swapClipboardAndEmoji = getBooleanSafe("swapClipboardAndEmoji", true),
+                isFloatingKeyboard = getBooleanSafe("isFloatingKeyboard", false),
+                isSplitKeyboard = getBooleanSafe("isSplitKeyboard", false),
                 enterKeyOnLeft = getBooleanSafe("enterKeyOnLeft", false),
                 isNightModeEnabled = getBooleanSafe("isNightModeEnabled", false),
                 autoReturnAfterEmojiInsert = getBooleanSafe("autoReturnAfterEmojiInsert", false),
@@ -302,6 +306,7 @@ class PreferencesManager(private val context: Context) {
             .putString("currentThemeId", settings.currentThemeId)
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
+            .putBoolean("spacebarCursorControl", settings.spacebarCursorControl)
             .putBoolean("enterLongPressTranslateEnabled", settings.enterLongPressTranslateEnabled)
             .putFloat("emojiBarHeightFactor", settings.emojiBarHeightFactor)
             .putFloat("emojiButtonSizeFactor", settings.emojiButtonSizeFactor)
@@ -314,6 +319,8 @@ class PreferencesManager(private val context: Context) {
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
             .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
             .putBoolean("swapClipboardAndEmoji", settings.swapClipboardAndEmoji)
+            .putBoolean("isFloatingKeyboard", settings.isFloatingKeyboard)
+            .putBoolean("isSplitKeyboard", settings.isSplitKeyboard)
             .putBoolean("enterKeyOnLeft", settings.enterKeyOnLeft)
             .putBoolean("isNightModeEnabled", settings.isNightModeEnabled)
             .putString("activeDecorationStyle", settings.activeDecorationStyle)
@@ -484,10 +491,10 @@ class PreferencesManager(private val context: Context) {
 
     fun getActiveTheme(): KeyboardTheme {
         return try {
-            val id = getStringSafe("currentThemeId", "iphone_white")
+            val id = getStringSafe("currentThemeId", "dark_neon")
             getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
         } catch (_: Exception) {
-            ThemePresets.IPHONE_WHITE
+            ThemePresets.DARK_NEON
         }
     }
 

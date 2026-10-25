@@ -4,8 +4,14 @@ import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
 class UserDictionaryManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("turbo_user_dictionary", Context.MODE_PRIVATE)
+    private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     @Volatile
     private var cachedWords: List<String>? = null
@@ -60,11 +66,11 @@ class UserDictionaryManager(context: Context) {
         // 1. Add to user custom words
         addWord(clean)
 
-        // 2. Increment frequency
+        // 2. Increment frequency in memory
         val freqs = loadFrequencies()
         freqs[clean] = (freqs[clean] ?: 0) + 1
 
-        // 3. Increment bigram if prevWord is available
+        // 3. Increment bigram in memory if prevWord is available
         val cleanPrev = prevWord?.trim()?.replace(Regex("[،؛؟?!.,:;]+$"), "")
         if (!cleanPrev.isNullOrBlank() && cleanPrev.length >= 2) {
             val bigrams = loadBigrams()
@@ -72,27 +78,29 @@ class UserDictionaryManager(context: Context) {
             sub[clean] = (sub[clean] ?: 0) + 1
         }
 
-        // Persist periodically / on background
-        try {
-            val freqObj = org.json.JSONObject()
-            freqs.entries.sortedByDescending { it.value }.take(500).forEach { (k, v) ->
-                freqObj.put(k, v)
-            }
-
-            val bigramObj = org.json.JSONObject()
-            loadBigrams().entries.take(300).forEach { (prev, subMap) ->
-                val inner = org.json.JSONObject()
-                subMap.entries.sortedByDescending { it.value }.take(10).forEach { (next, cnt) ->
-                    inner.put(next, cnt)
+        // Persist on background IO thread to prevent UI micro-stutters
+        ioScope.launch {
+            try {
+                val freqObj = org.json.JSONObject()
+                freqs.entries.sortedByDescending { it.value }.take(300).forEach { (k, v) ->
+                    freqObj.put(k, v)
                 }
-                bigramObj.put(prev, inner)
-            }
 
-            prefs.edit()
-                .putString("word_frequencies", freqObj.toString())
-                .putString("ngram_bigrams", bigramObj.toString())
-                .apply()
-        } catch (_: Exception) {}
+                val bigramObj = org.json.JSONObject()
+                loadBigrams().entries.take(150).forEach { (prev, subMap) ->
+                    val inner = org.json.JSONObject()
+                    subMap.entries.sortedByDescending { it.value }.take(8).forEach { (next, cnt) ->
+                        inner.put(next, cnt)
+                    }
+                    bigramObj.put(prev, inner)
+                }
+
+                prefs.edit()
+                    .putString("word_frequencies", freqObj.toString())
+                    .putString("ngram_bigrams", bigramObj.toString())
+                    .apply()
+            } catch (_: Exception) {}
+        }
     }
 
     fun getLearnedNextWords(prevWord: String): List<String> {

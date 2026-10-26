@@ -498,13 +498,14 @@ fun TurboKeyboardView(
         }
     }
 
-    // السحب في الأحرف العائمة: مسموح بجميع الاتجاهات (يمين، يسار، أعلى، أسفل) وبحركة بطيئة ومنضبطة
+    // السحب في الأحرف العائمة: مسموح بجميع الاتجاهات (يمين، يسار، أعلى، أسفل) مع التحكم بالسرعة من الإعدادات
     val onDragVariantHandler: (Float, Float) -> Unit = { deltaX, deltaY ->
         if (longPressVariants.isNotEmpty()) {
             val colCount = if (longPressVariants.size > 8) 4 else if (longPressVariants.size >= 6) 4 else 3
             val rowCount = (longPressVariants.size + colCount - 1) / colCount
 
-            val stepPx = 48f
+            val speed = currentSettings.floatingNavSpeed.coerceIn(1, 10)
+            val stepPx = (75f - (speed * 5f)).coerceAtLeast(20f)
             val colOffset = (deltaX / stepPx).toInt()
             val rowOffset = (deltaY / stepPx).toInt()
 
@@ -2065,17 +2066,53 @@ fun TurboKeyboardView(
                                     .background(dotBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                isDotPressed = true
-                                                performFeedback()
-                                                tryAwaitRelease()
-                                                isDotPressed = false
-                                            },
-                                            onTap = {
-                                                sendText(".")
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            isDotPressed = true
+                                            performFeedback()
+                                            var isLongPressed = false
+                                            var hasDragged = false
+                                            val dotVariants = listOf("www.", "@hotmail.com", "@gmail.com", "@yahoo.com", ".com")
+                                            val job = coroutineScope.launch {
+                                                delay(currentSettings.longPressDelayMs.toLong())
+                                                if (isActive && isDotPressed) {
+                                                    isLongPressed = true
+                                                    performFeedback(22L)
+                                                    longPressChar = "."
+                                                    longPressVariants = dotVariants
+                                                    selectedVariantIndex = 0
+                                                }
                                             }
-                                        )
+                                            try {
+                                                while (true) {
+                                                    val event = awaitPointerEvent()
+                                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                                    if (!change.pressed) {
+                                                        change.consume()
+                                                        break
+                                                    }
+                                                    if (isLongPressed) {
+                                                        val deltaX = change.position.x - down.position.x
+                                                        val deltaY = change.position.y - down.position.y
+                                                        if (kotlin.math.abs(deltaX) > 8.dp.toPx() || kotlin.math.abs(deltaY) > 8.dp.toPx()) {
+                                                            hasDragged = true
+                                                            onDragVariantHandler(deltaX, deltaY)
+                                                        }
+                                                        change.consume()
+                                                    }
+                                                }
+                                            } finally {
+                                                job.cancel()
+                                                isDotPressed = false
+                                                if (isLongPressed) {
+                                                    if (hasDragged) {
+                                                        onReleaseVariantHandler()
+                                                    }
+                                                } else {
+                                                    sendText(".")
+                                                }
+                                            }
+                                        }
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2216,9 +2253,9 @@ fun TurboKeyboardView(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = Color(activeTheme.backgroundColor),
-                                border = BorderStroke(1.5.dp, Color(activeTheme.accentColor)),
-                                shadowElevation = 16.dp
+                                color = Color.Transparent,
+                                border = null,
+                                shadowElevation = 0.dp
                             ) {
                                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                                     val isGrid = longPressVariants.size > 4
@@ -2793,7 +2830,7 @@ fun BackspaceKeyButton(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
             contentDescription = "Backspace",
-            tint = Color(theme.accentColor),
+            tint = Color(theme.keyTextColor),
             modifier = Modifier.size(iconSize)
         )
     }
@@ -2865,6 +2902,50 @@ fun CustomizeTopEmojisDialog(
                     fontSize = 11.sp,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Custom input field to add any emoji or character
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newEmojiText,
+                        onValueChange = { newEmojiText = it },
+                        placeholder = { Text("اكتب فيس أو حرف للإضافة...", color = Color(theme.subtextColor), fontSize = 11.sp) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(theme.keyBackgroundColor),
+                            unfocusedContainerColor = Color(theme.keyBackgroundColor),
+                            focusedBorderColor = Color(theme.accentColor),
+                            unfocusedBorderColor = Color(theme.borderColor),
+                            focusedTextColor = Color(theme.keyTextColor),
+                            unfocusedTextColor = Color(theme.keyTextColor)
+                        ),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = {
+                            if (newEmojiText.isNotBlank()) {
+                                val trimmed = newEmojiText.trim()
+                                if (!workingList.contains(trimmed)) {
+                                    workingList = workingList.toMutableList().apply { add(trimmed) }
+                                }
+                                newEmojiText = ""
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Text("إضافة", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 

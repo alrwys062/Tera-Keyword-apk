@@ -49,6 +49,12 @@ class PreferencesManager(private val context: Context) {
         var lastSyncedText: String? = null
         @Volatile
         var lastSyncedTime: Long = 0L
+        @Volatile
+        var cachedSettings: KeyboardSettings? = null
+        @Volatile
+        var cachedActiveTheme: KeyboardTheme? = null
+        @Volatile
+        var cachedCustomThemes: List<KeyboardTheme>? = null
     }
 
     init {
@@ -200,7 +206,8 @@ class PreferencesManager(private val context: Context) {
 
     // Settings
     fun getSettings(): KeyboardSettings {
-        return try {
+        cachedSettings?.let { return it }
+        val loaded = try {
             KeyboardSettings(
                 vibrationEnabled = getBooleanSafe("vibrationEnabled", true),
                 vibrationDurationMs = getIntSafe("vibrationDurationMs", 30),
@@ -261,6 +268,8 @@ class PreferencesManager(private val context: Context) {
         } catch (e: Exception) {
             KeyboardSettings()
         }
+        cachedSettings = loaded
+        return loaded
     }
 
     fun getVisibleToolbarTools(): List<String> {
@@ -277,6 +286,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun saveSettings(settings: KeyboardSettings) {
+        cachedSettings = settings
         saveVisibleToolbarTools(settings.visibleToolbarTools)
         prefs.edit()
             .putBoolean("vibrationEnabled", settings.vibrationEnabled)
@@ -361,6 +371,8 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun setCurrentTheme(themeId: String) {
+        cachedActiveTheme = null
+        cachedSettings = cachedSettings?.copy(currentThemeId = themeId)
         prefs.edit().putString("currentThemeId", themeId).apply()
     }
 
@@ -490,12 +502,15 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun getActiveTheme(): KeyboardTheme {
-        return try {
+        cachedActiveTheme?.let { return it }
+        val theme = try {
             val id = getStringSafe("currentThemeId", "dark_neon")
             getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
         } catch (_: Exception) {
             ThemePresets.DARK_NEON
         }
+        cachedActiveTheme = theme
+        return theme
     }
 
     fun saveActiveTheme(theme: KeyboardTheme) {

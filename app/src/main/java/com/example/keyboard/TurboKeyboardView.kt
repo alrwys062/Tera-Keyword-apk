@@ -498,21 +498,26 @@ fun TurboKeyboardView(
         }
     }
 
-    // السحب في الأحرف العائمة: مسموح باتجاه اليمين فقط وممنوع لليسار نهائياً
-    val onDragVariantHandler: (Float) -> Unit = { deltaX ->
+    // السحب في الأحرف العائمة: مسموح بجميع الاتجاهات (يمين، يسار، أعلى، أسفل) وبحركة بطيئة ومنضبطة
+    val onDragVariantHandler: (Float, Float) -> Unit = { deltaX, deltaY ->
         if (longPressVariants.isNotEmpty()) {
-            if (deltaX > 0f) {
-                val stepPx = 28f
-                val step = (deltaX / stepPx).toInt()
-                val targetIdx = step.coerceIn(0, longPressVariants.lastIndex)
-                if (targetIdx != selectedVariantIndex) {
-                    selectedVariantIndex = targetIdx
-                    performFeedback(12L)
-                }
-            } else {
-                if (selectedVariantIndex != 0) {
-                    selectedVariantIndex = 0
-                }
+            val colCount = if (longPressVariants.size > 8) 4 else if (longPressVariants.size >= 6) 4 else 3
+            val rowCount = (longPressVariants.size + colCount - 1) / colCount
+
+            val stepPx = 48f
+            val colOffset = (deltaX / stepPx).toInt()
+            val rowOffset = (deltaY / stepPx).toInt()
+
+            val currentCol = selectedVariantIndex % colCount
+            val currentRow = selectedVariantIndex / colCount
+
+            val targetCol = (currentCol + colOffset).coerceIn(0, colCount - 1)
+            val targetRow = (currentRow + rowOffset).coerceIn(0, rowCount - 1)
+            val targetIdx = (targetRow * colCount + targetCol).coerceIn(0, longPressVariants.lastIndex)
+
+            if (targetIdx != selectedVariantIndex) {
+                selectedVariantIndex = targetIdx
+                performFeedback(12L)
             }
         }
     }
@@ -1786,8 +1791,15 @@ fun TurboKeyboardView(
                         }
 
 
-                        val bottomKeyBg = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
-                        val bottomKeyPressedBg = ThemePresets.resolveKeyColor(activeTheme.keyPressedColor, activeTheme.keyOpacity)
+                        val bottomKeyBg = remember(activeTheme.keyBackgroundColor, activeTheme.keyOpacity) {
+                            ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
+                        }
+                        val bottomKeyPressedBg = remember(activeTheme.keyPressedColor, activeTheme.keyOpacity) {
+                            ThemePresets.resolveKeyColor(activeTheme.keyPressedColor, activeTheme.keyOpacity)
+                        }
+                        val bottomKeyBorderColor = remember(activeTheme.borderColor, activeTheme.borderAlpha) {
+                            Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f))
+                        }
 
                         Row(
                             modifier = Modifier
@@ -1798,16 +1810,8 @@ fun TurboKeyboardView(
                         ) {
                             // 1. ModeChange key 123!#() on FAR LEFT
                             var isModePressed by remember { mutableStateOf(false) }
-                            val modeBg by animateColorAsState(
-                                targetValue = if (isModePressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isModePressed) 20 else 90),
-                                label = "mode_bg"
-                            )
-                            val modeScale by animateFloatAsState(
-                                targetValue = if (isModePressed) 0.95f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "mode_scale"
-                            )
+                            val modeBg = if (isModePressed) bottomKeyPressedBg else bottomKeyBg
+                            val modeScale = if (isModePressed) 0.95f else 1.0f
                             Box(
                                 modifier = Modifier
                                     .weight(1.15f)
@@ -1815,7 +1819,7 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = modeScale; scaleY = modeScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(modeBg)
-                                    .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                    .border(1.dp, bottomKeyBorderColor, RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .pointerInput(Unit) {
                                         detectTapGestures(
                                             onPress = {
@@ -1857,16 +1861,8 @@ fun TurboKeyboardView(
 
                             // 2. Dedicated Language Switcher Button [🌐 / 文A]
                             var isLangBtnPressed by remember { mutableStateOf(false) }
-                            val langBtnBg by animateColorAsState(
-                                targetValue = if (isLangBtnPressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isLangBtnPressed) 20 else 90),
-                                label = "lang_btn_bg"
-                            )
-                            val langBtnScale by animateFloatAsState(
-                                targetValue = if (isLangBtnPressed) 0.95f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "lang_btn_scale"
-                            )
+                            val langBtnBg = if (isLangBtnPressed) bottomKeyPressedBg else bottomKeyBg
+                            val langBtnScale = if (isLangBtnPressed) 0.95f else 1.0f
                             Box(
                                 modifier = Modifier
                                     .weight(0.9f)
@@ -1876,7 +1872,7 @@ fun TurboKeyboardView(
                                     .background(langBtnBg)
                                     .border(
                                         1.dp,
-                                        Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)),
+                                        bottomKeyBorderColor,
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
                                     .pointerInput(currentLangCode) {
@@ -1911,16 +1907,8 @@ fun TurboKeyboardView(
 
                             // 3. Dedicated Clipboard button [📋]
                             var isSlot3Pressed by remember { mutableStateOf(false) }
-                            val slot3Bg by animateColorAsState(
-                                targetValue = if (isSlot3Pressed || activeSubView == KeyboardSubView.CLIPBOARD) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isSlot3Pressed) 20 else 90),
-                                label = "slot3_bg"
-                            )
-                            val slot3Scale by animateFloatAsState(
-                                targetValue = if (isSlot3Pressed) 0.95f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "slot3_scale"
-                            )
+                            val slot3Bg = if (isSlot3Pressed || activeSubView == KeyboardSubView.CLIPBOARD) bottomKeyPressedBg else bottomKeyBg
+                            val slot3Scale = if (isSlot3Pressed) 0.95f else 1.0f
                             Box(
                                 modifier = Modifier
                                     .weight(0.9f)
@@ -1930,7 +1918,7 @@ fun TurboKeyboardView(
                                     .background(slot3Bg)
                                     .border(
                                         1.dp,
-                                        if (activeSubView == KeyboardSubView.CLIPBOARD) Color(activeTheme.accentColor) else Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)),
+                                        if (activeSubView == KeyboardSubView.CLIPBOARD) Color(activeTheme.accentColor) else bottomKeyBorderColor,
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
                                     .pointerInput(Unit) {
@@ -1958,16 +1946,8 @@ fun TurboKeyboardView(
 
                             // 4. Spacebar in the center with active world language name and horizontal swipe language switch
                             var isSpacePressed by remember { mutableStateOf(false) }
-                            val spaceBg by animateColorAsState(
-                                targetValue = if (isSpacePressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isSpacePressed) 20 else 90),
-                                label = "space_bg"
-                            )
-                            val spaceScale by animateFloatAsState(
-                                targetValue = if (isSpacePressed) 0.97f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "space_scale"
-                            )
+                            val spaceBg = if (isSpacePressed) bottomKeyPressedBg else bottomKeyBg
+                            val spaceScale = if (isSpacePressed) 0.97f else 1.0f
                             val currentSwipeEnabled by rememberUpdatedState(currentSettings.swipeSpaceSwitchLanguage)
 
                             Box(
@@ -2183,17 +2163,26 @@ fun TurboKeyboardView(
                                         RoundedCornerShape(activeTheme.cornerRadius.dp)
                                     )
                                     .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                isEnterPressed = true
-                                                performFeedback(isSpecial = true)
-                                                tryAwaitRelease()
-                                                isEnterPressed = false
-                                            },
-                                            onTap = {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            isEnterPressed = true
+                                            performFeedback(isSpecial = true)
+                                            var isLongPressHandled = false
+                                            val holdJob = coroutineScope.launch {
+                                                delay(1500L) // 1.5 seconds long-press for translation
+                                                if (isActive && isEnterPressed) {
+                                                    isLongPressHandled = true
+                                                    performFeedback(isSpecial = true)
+                                                    triggerInstantTranslate()
+                                                }
+                                            }
+                                            val up = waitForUpOrCancellation()
+                                            holdJob.cancel()
+                                            isEnterPressed = false
+                                            if (up != null && !isLongPressHandled) {
                                                 sendEnter()
                                             }
-                                        )
+                                        }
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2413,7 +2402,7 @@ fun KeyButton(
     onPerformFeedback: ((Long) -> Unit)? = null,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
-    onDragVariant: ((Float) -> Unit)? = null,
+    onDragVariant: ((Float, Float) -> Unit)? = null,
     onReleaseVariant: (() -> Unit)? = null
 ) {
     val char = (key.type as? KeyType.Character)?.primary ?: ""
@@ -2447,21 +2436,19 @@ fun KeyButton(
         currentFeedback?.invoke(durationMs)
     }
 
-    val normalKeyColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
-    val pressedKeyColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
+    val normalKeyColor = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    }
+    val pressedKeyColor = remember(theme.keyPressedColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
+    }
     val targetKeyColor = if (isTouching) pressedKeyColor else normalKeyColor
 
-    val animatedKeyColor by animateColorAsState(
-        targetValue = targetKeyColor,
-        animationSpec = tween(durationMillis = 20),
-        label = "key_color"
-    )
-
-    val pressScale by animateFloatAsState(
-        targetValue = if (isTouching) 0.96f else 1.0f,
-        animationSpec = tween(durationMillis = 20),
-        label = "key_scale"
-    )
+    val keyBorderColor = remember(theme.keyStyle, theme.accentColor, theme.borderColor, theme.borderAlpha) {
+        if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
+        else if (theme.keyStyle == "glass") Color(0x35FFFFFF)
+        else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
+    }
 
     val hintText = numberHint
 
@@ -2477,16 +2464,15 @@ fun KeyButton(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = pressScale
-                    scaleY = pressScale
+                    val s = if (isTouching) 0.96f else 1.0f
+                    scaleX = s
+                    scaleY = s
                 }
                 .clip(RoundedCornerShape(theme.cornerRadius.dp))
-                .background(animatedKeyColor)
+                .background(targetKeyColor)
                 .border(
                     width = if (theme.keyStyle == "neon") 1.2.dp else if (theme.keyStyle == "glass") 0.8.dp else 1.dp,
-                    color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
-                    else if (theme.keyStyle == "glass") Color(0x35FFFFFF)
-                    else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
+                    color = keyBorderColor,
                     shape = RoundedCornerShape(theme.cornerRadius.dp)
                 )
                 .pointerInput(displayChar, onLongClick != null, longPressDelayMs) {
@@ -2496,6 +2482,7 @@ fun KeyButton(
                             isTouching = true
                             triggerFeedback(0L)
                             val startX = down.position.x
+                            val startY = down.position.y
                             var isLongPressed = false
                             var hasDragged = false
                             val job = coroutineScope.launch {
@@ -2516,12 +2503,11 @@ fun KeyButton(
                                     }
                                     if (isLongPressed) {
                                         val deltaX = change.position.x - startX
-                                        // السحب مسموح باتجاه اليمين فقط وممنوع لليسار نهائياً
-                                        if (deltaX > 6.dp.toPx()) {
+                                        val deltaY = change.position.y - startY
+                                        // السحب مسموح بجميع الاتجاهات (يمين، يسار، أعلى، أسفل) بحركة منضبطة
+                                        if (kotlin.math.abs(deltaX) > 8.dp.toPx() || kotlin.math.abs(deltaY) > 8.dp.toPx()) {
                                             hasDragged = true
-                                            currentOnDragVariant?.invoke(deltaX)
-                                        } else {
-                                            currentOnDragVariant?.invoke(0f)
+                                            currentOnDragVariant?.invoke(deltaX, deltaY)
                                         }
                                         change.consume()
                                     }
@@ -2655,34 +2641,34 @@ fun SpecialKeyButton(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val normalColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
-    val pressedColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
-    val targetBg = if (isActive) Color(theme.accentColor).copy(alpha = 0.35f) else if (isPressed) pressedColor else normalColor
+    val normalColor = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    }
+    val pressedColor = remember(theme.keyPressedColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
+    }
+    val accentColor = remember(theme.accentColor) { Color(theme.accentColor) }
+    val targetBg = if (isActive) accentColor.copy(alpha = 0.35f) else if (isPressed) pressedColor else normalColor
 
-    val animatedBg by animateColorAsState(
-        targetValue = targetBg,
-        animationSpec = tween(durationMillis = if (isPressed) 20 else 90),
-        label = "special_bg"
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-        label = "special_scale"
-    )
+    val borderColor = remember(theme.keyStyle, theme.borderColor, theme.borderAlpha, isActive, accentColor) {
+        if (isActive) accentColor
+        else if (theme.keyStyle == "glass") Color(0x35FFFFFF)
+        else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
+    }
 
     Box(
         modifier = modifier
             .height(keyHeight)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                val s = if (isPressed) 0.95f else 1.0f
+                scaleX = s
+                scaleY = s
             }
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(animatedBg)
+            .background(targetBg)
             .border(
                 1.dp,
-                if (isActive) Color(theme.accentColor) else if (theme.keyStyle == "glass") Color(0x35FFFFFF) else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
+                borderColor,
                 RoundedCornerShape(theme.cornerRadius.dp)
             )
             .pointerInput(onLongClick, onClick) {
@@ -2764,33 +2750,32 @@ fun BackspaceKeyButton(
         }
     }
 
-    val normalColor = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
-    val pressedColor = ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
+    val normalColor = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    }
+    val pressedColor = remember(theme.keyPressedColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyPressedColor, theme.keyOpacity)
+    }
+    val targetBg = if (isPressed) pressedColor else normalColor
 
-    val animatedBg by animateColorAsState(
-        targetValue = if (isPressed) pressedColor else normalColor,
-        animationSpec = tween(durationMillis = 25),
-        label = "backspace_bg"
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1.0f,
-        animationSpec = tween(durationMillis = 25),
-        label = "backspace_scale"
-    )
+    val borderColor = remember(theme.borderColor, theme.borderAlpha, theme.accentColor, isPressed) {
+        if (isPressed) Color(theme.accentColor)
+        else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
+    }
 
     Box(
         modifier = modifier
             .height(keyHeight)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                val s = if (isPressed) 0.96f else 1.0f
+                scaleX = s
+                scaleY = s
             }
             .clip(RoundedCornerShape(theme.cornerRadius.dp))
-            .background(animatedBg)
+            .background(targetBg)
             .border(
                 1.dp,
-                if (isPressed) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
+                borderColor,
                 RoundedCornerShape(theme.cornerRadius.dp)
             )
             .pointerInput(Unit) {

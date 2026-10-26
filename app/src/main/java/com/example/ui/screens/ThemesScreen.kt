@@ -6,8 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PreferencesManager
@@ -92,6 +96,12 @@ fun ThemesScreen(
         }
     }
 
+    // Selected theme for live hero preview (defaults to currently applied theme)
+    var heroThemeId by remember(currentThemeId) { mutableStateOf(currentThemeId) }
+    val heroTheme = remember(heroThemeId, allThemes) {
+        allThemes.find { it.id == heroThemeId } ?: allThemes.firstOrNull() ?: ThemePresets.DARK_NEON
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -128,7 +138,7 @@ fun ThemesScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${filteredThemes.size} ستايل احترافي متكامل",
+                    text = "${filteredThemes.size} ستايل فائق السرعة والخفة",
                     color = Color(0xFF00E5FF),
                     fontSize = 11.sp
                 )
@@ -153,17 +163,18 @@ fun ThemesScreen(
                     )
                 }
 
+                // Add custom theme
                 IconButton(
                     onClick = onOpenCustomBuilder,
                     modifier = Modifier
                         .size(38.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF141926))
+                        .background(Color(0xFF00E5FF))
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = "New Theme",
-                        tint = Color(0xFF00E5FF)
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Custom Theme",
+                        tint = Color.Black
                     )
                 }
             }
@@ -171,32 +182,75 @@ fun ThemesScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Category filter chips
+        // Search Bar
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = {
+                Text(
+                    text = "ابحث بالاسم أو السمة (آيفون، نيون، جلاكسي، ذهبي...)",
+                    color = Color(0xFF728096),
+                    fontSize = 12.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color(0xFF00E5FF),
+                    modifier = Modifier.size(18.dp)
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = Color(0xFF728096),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFF10141E),
+                unfocusedContainerColor = Color(0xFF10141E),
+                focusedBorderColor = Color(0xFF00E5FF),
+                unfocusedBorderColor = Color(0xFF1E2638),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            ),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Category Filter Chips
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(categories) { cat ->
-                val isSelected = cat == selectedCategory
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.2f)
-                            else Color(0xFF131825)
-                        )
-                        .border(
-                            1.dp,
-                            if (isSelected) Color(0xFF00E5FF) else Color(0xFF26334A),
-                            RoundedCornerShape(14.dp)
-                        )
-                        .clickable { selectedCategory = cat }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+            items(categories) { category ->
+                val isSelected = category == selectedCategory
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF00E5FF) else Color(0xFF121724),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) Color(0xFF00E5FF) else Color(0xFF222B3D)
+                    ),
+                    modifier = Modifier.clickable { selectedCategory = category }
                 ) {
                     Text(
-                        text = cat,
-                        color = if (isSelected) Color(0xFF00E5FF) else Color(0xFF8E9BAE),
-                        fontSize = 12.sp,
+                        text = category,
+                        color = if (isSelected) Color.Black else Color(0xFFC0CAD9),
+                        fontSize = 11.5.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }
@@ -205,29 +259,74 @@ fun ThemesScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Realistic Bottom-Screen Keyboards Showcase List
-        LazyColumn(
+        // High-Performance Grid with Interactive Top Hero Preview
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
-            items(filteredThemes, key = { it.id }) { theme ->
-                val isActive = theme.id == currentThemeId
-
-                RealisticBottomScreenKeyboardCard(
-                    theme = theme,
-                    isActive = isActive,
+            // Span 2: Interactive Hero Preview of the selected theme
+            item(span = { GridItemSpan(2) }) {
+                HeroLivePreviewCard(
+                    theme = heroTheme,
+                    isCurrentActive = heroTheme.id == currentThemeId,
                     isArabic = previewLanguageIsArabic,
                     onApply = {
-                        prefs.setCurrentTheme(theme.id)
-                        onThemeApplied(theme)
+                        prefs.setCurrentTheme(heroTheme.id)
+                        onThemeApplied(heroTheme)
                     },
-                    onDelete = if (theme.isCustom) {
+                    onDelete = if (heroTheme.isCustom) {
                         {
-                            prefs.deleteCustomTheme(theme.id)
+                            prefs.deleteCustomTheme(heroTheme.id)
                             customThemes = prefs.getCustomThemes()
+                            heroThemeId = currentThemeId
                         }
                     } else null
+                )
+            }
+
+            // Section Header
+            item(span = { GridItemSpan(2) }) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "اختر ستايل الكيبورد (${filteredThemes.size})",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "اضغط للمعاينة الفورية",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            // Lightweight, Ultra-Responsive Theme Cards
+            items(filteredThemes, key = { it.id }) { theme ->
+                val isSelectedForPreview = theme.id == heroTheme.id
+                val isCurrentlyActive = theme.id == currentThemeId
+
+                LightweightThemeCard(
+                    theme = theme,
+                    isSelected = isSelectedForPreview,
+                    isActive = isCurrentlyActive,
+                    onClick = {
+                        heroThemeId = theme.id
+                    },
+                    onApplyDirect = {
+                        heroThemeId = theme.id
+                        prefs.setCurrentTheme(theme.id)
+                        onThemeApplied(theme)
+                    }
                 )
             }
         }
@@ -235,13 +334,13 @@ fun ThemesScreen(
 }
 
 /**
- * Renders a realistic keyboard preview that looks exactly like an actual
- * keyboard at the bottom of a phone screen (as requested in the prompt).
+ * Top interactive hero card rendering a realistic keyboard preview for the selected theme.
+ * Rendered ONCE at the top, avoiding any frame drops or memory leaks.
  */
 @Composable
-fun RealisticBottomScreenKeyboardCard(
+fun HeroLivePreviewCard(
     theme: KeyboardTheme,
-    isActive: Boolean,
+    isCurrentActive: Boolean,
     isArabic: Boolean,
     onApply: () -> Unit,
     onDelete: (() -> Unit)? = null
@@ -249,48 +348,57 @@ fun RealisticBottomScreenKeyboardCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF11141C),
+            .clip(RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFF10141F),
         border = BorderStroke(
-            width = if (isActive) 2.dp else 1.dp,
-            color = if (isActive) Color(theme.accentColor) else Color(0xFF222B3D)
+            width = if (isCurrentActive) 2.dp else 1.2.dp,
+            color = if (isCurrentActive) Color(theme.accentColor) else Color(0xFF263248)
         )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Header bar with theme title and apply button
+            // Header bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF161B26))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .background(Color(0xFF161C2A))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(12.dp)
+                            .size(10.dp)
                             .clip(CircleShape)
                             .background(Color(theme.accentColor))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = theme.nameEn,
+                            text = theme.nameAr,
                             color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = theme.nameAr,
+                            text = theme.nameEn,
                             color = Color(0xFF8E9BAE),
-                            fontSize = 11.sp
+                            fontSize = 10.sp,
+                            maxLines = 1
                         )
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     if (onDelete != null) {
                         IconButton(
                             onClick = onDelete,
@@ -300,108 +408,280 @@ fun RealisticBottomScreenKeyboardCard(
                                 imageVector = Icons.Default.DeleteOutline,
                                 contentDescription = "Delete",
                                 tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
 
                     Button(
                         onClick = onApply,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isActive) Color(theme.accentColor) else Color(0xFF1E283A)
+                            containerColor = if (isCurrentActive) Color(theme.accentColor) else Color(0xFF1E283A)
                         ),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        modifier = Modifier.height(30.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isActive) {
+                            if (isCurrentActive) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
                                     tint = Color.Black,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("المفعل حالياً", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("المفعل حالياً", color = Color.Black, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                             } else {
-                                Text("تطبيق الثيم", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("تطبيق الثيم", color = Color.White, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
                 }
             }
 
-            // Realistic Bottom Phone Screen Bezel containing the Keyboard
-            val bgModifier = if (!theme.backgroundGradient.isNullOrEmpty()) {
-                Modifier.background(Brush.verticalGradient(theme.backgroundGradient.map { Color(it) }))
-            } else {
-                Modifier.background(Color(theme.backgroundColor))
+            // Keyboard Preview Bezel
+            val bgModifier = remember(theme.id, theme.backgroundColor, theme.backgroundGradient) {
+                if (!theme.backgroundGradient.isNullOrEmpty()) {
+                    Modifier.background(Brush.verticalGradient(theme.backgroundGradient.map { Color(it) }))
+                } else {
+                    Modifier.background(Color(theme.backgroundColor))
+                }
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(bgModifier)
-                    .padding(top = 6.dp, bottom = 10.dp, start = 6.dp, end = 6.dp)
+                    .padding(horizontal = 6.dp, vertical = 6.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    // Realistic Toolbar (Search, Timer, Setting, Text Style, Voice, Mic, Text)
-                    RealisticToolbarRow(theme = theme, isArabic = isArabic)
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // Row 1: Q W E R T Y U I O P (or Arabic)
-                    RealisticKeyRow(
-                        keys = if (isArabic) {
-                            listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج")
-                        } else {
-                            listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P")
-                        },
-                        hints = if (isArabic) {
-                            listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "")
-                        } else {
-                            listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح")
-                        },
-                        theme = theme
-                    )
-
-                    // Row 2: A S D F G H J K L (or Arabic)
-                    RealisticKeyRow(
-                        keys = if (isArabic) {
-                            listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط")
-                        } else {
-                            listOf("A", "S", "D", "F", "G", "H", "J", "K", "L")
-                        },
-                        hints = if (isArabic) null else listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م"),
-                        hasSidePadding = !isArabic,
-                        theme = theme
-                    )
-
-                    // Row 3: Shift, Z X C V B N M, Backspace
-                    RealisticBottomCharRow(
-                        theme = theme,
-                        isArabic = isArabic
-                    )
-
-                    // Row 4: ?123, Emoji, Spacebar ("TURBO KEYBOARD" / "العربية"), Enter
-                    RealisticSpacebarRow(
-                        theme = theme,
-                        isArabic = isArabic
-                    )
-
-                    // Phone bottom home indicator line
-                    Box(
+                    // Mini Toolbar Strip
+                    Row(
                         modifier = Modifier
-                            .padding(top = 4.dp)
-                            .align(Alignment.CenterHorizontally)
-                            .width(72.dp)
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color(theme.keyTextColor).copy(alpha = 0.35f))
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(theme.toolbarColor).copy(alpha = 0.75f))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val iconTint = Color(theme.accentColor)
+                        Icon(Icons.Outlined.Search, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.Schedule, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.Settings, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.TextFields, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.Translate, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
+                    }
+
+                    // Key Row 1
+                    val keysRow1 = remember(isArabic) {
+                        if (isArabic) listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج")
+                        else listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P")
+                    }
+                    SampleKeyRow(keys = keysRow1, theme = theme)
+
+                    // Key Row 2
+                    val keysRow2 = remember(isArabic) {
+                        if (isArabic) listOf("ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط")
+                        else listOf("A", "S", "D", "F", "G", "H", "J", "K", "L")
+                    }
+                    SampleKeyRow(keys = keysRow2, theme = theme, sidePadding = !isArabic)
+
+                    // Key Row 3
+                    val keysRow3 = remember(isArabic) {
+                        if (isArabic) listOf("ئ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ")
+                        else listOf("Z", "X", "C", "V", "B", "N", "M")
+                    }
+                    SampleBottomCharRow(keys = keysRow3, theme = theme)
+
+                    // Spacebar Row
+                    SampleSpacebarRow(theme = theme, isArabic = isArabic)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Ultra-fast, lightweight theme card for the 2-column grid.
+ * Uses very low memory, fast layout, and no complex nesting.
+ */
+@Composable
+fun LightweightThemeCard(
+    theme: KeyboardTheme,
+    isSelected: Boolean,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onApplyDirect: () -> Unit
+) {
+    val cardBgModifier = remember(theme.id, theme.backgroundColor, theme.backgroundGradient) {
+        if (!theme.backgroundGradient.isNullOrEmpty()) {
+            Modifier.background(Brush.verticalGradient(theme.backgroundGradient.map { Color(it) }))
+        } else {
+            Modifier.background(Color(theme.backgroundColor))
+        }
+    }
+
+    val keyBg = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    }
+    val accentColor = remember(theme.accentColor) { Color(theme.accentColor) }
+    val borderColor = remember(theme.borderColor, theme.borderAlpha) {
+        Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF10141E),
+        border = BorderStroke(
+            width = if (isActive) 2.dp else if (isSelected) 1.5.dp else 1.dp,
+            color = if (isActive) accentColor else if (isSelected) Color(0xFF00E5FF) else Color(0xFF1C2434)
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Theme Visual Mockup Preview Box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .then(cardBgModifier)
+                    .padding(4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Mini Toolbar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(theme.toolbarColor).copy(alpha = 0.8f))
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(accentColor))
+                        Box(modifier = Modifier.width(18.dp).height(3.dp).clip(RoundedCornerShape(1.dp)).background(accentColor.copy(alpha = 0.5f)))
+                        Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(accentColor))
+                    }
+
+                    // Mini Keys Grid Simulation
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        repeat(6) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(2.5.dp))
+                                    .background(keyBg)
+                                    .border(0.5.dp, borderColor, RoundedCornerShape(2.5.dp))
+                            )
+                        }
+                    }
+
+                    // Mini Spacebar + Enter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(2.5.dp))
+                                .background(keyBg)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(3f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(2.5.dp))
+                                .background(keyBg)
+                                .border(0.5.dp, borderColor, RoundedCornerShape(2.5.dp))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(2.5.dp))
+                                .background(Color(theme.enterButtonColor))
+                        )
+                    }
+                }
+
+                // Active badge overlay
+                if (isActive) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.Black.copy(alpha = 0.75f),
+                        border = BorderStroke(1.dp, accentColor),
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    ) {
+                        Text(
+                            text = "✓ مفعل",
+                            color = accentColor,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
+                }
+            }
+
+            // Card Footer
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF131825))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = theme.nameAr,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = theme.nameEn,
+                        color = Color(0xFF7F8FA4),
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isActive) accentColor.copy(alpha = 0.2f) else Color(0xFF1E283A),
+                    border = BorderStroke(0.8.dp, if (isActive) accentColor else Color(0xFF2C384E)),
+                    modifier = Modifier.clickable { onApplyDirect() }
+                ) {
+                    Text(
+                        text = if (isActive) "مفعل" else "تطبيق",
+                        color = if (isActive) accentColor else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                     )
                 }
             }
@@ -410,276 +690,204 @@ fun RealisticBottomScreenKeyboardCard(
 }
 
 @Composable
-fun RealisticToolbarRow(theme: KeyboardTheme, isArabic: Boolean) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(theme.toolbarColor).copy(alpha = 0.7f))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val iconTint = Color(theme.accentColor)
+private fun SampleKeyRow(
+    keys: List<String>,
+    theme: KeyboardTheme,
+    sidePadding: Boolean = false
+) {
+    val keyBg = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    }
+    val keyText = remember(theme.keyTextColor) { Color(theme.keyTextColor) }
+    val borderColor = remember(theme.borderColor, theme.borderAlpha) {
+        Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
+    }
 
-        Icon(Icons.Outlined.Search, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-        Icon(Icons.Outlined.Schedule, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-        Icon(Icons.Outlined.Settings, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-        Icon(Icons.Outlined.TextFields, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-        Icon(Icons.Outlined.Mic, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-        Icon(Icons.Outlined.Translate, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        if (sidePadding) {
+            Spacer(modifier = Modifier.weight(0.4f))
+        }
+        keys.forEach { char ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(28.dp)
+                    .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                    .background(keyBg)
+                    .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = char,
+                    color = keyText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+        if (sidePadding) {
+            Spacer(modifier = Modifier.weight(0.4f))
+        }
     }
 }
 
 @Composable
-fun RealisticKeyRow(
+private fun SampleBottomCharRow(
     keys: List<String>,
-    hints: List<String>?,
-    hasSidePadding: Boolean = false,
     theme: KeyboardTheme
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        if (hasSidePadding) {
-            Spacer(modifier = Modifier.weight(0.4f))
-        }
-
-        keys.forEachIndexed { index, char ->
-            val hint = hints?.getOrNull(index)
-            RealisticKey(
-                char = char,
-                hint = hint,
-                theme = theme,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (hasSidePadding) {
-            Spacer(modifier = Modifier.weight(0.4f))
-        }
+    val keyBg = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
     }
-}
-
-@Composable
-fun RealisticBottomCharRow(
-    theme: KeyboardTheme,
-    isArabic: Boolean
-) {
-    val charList = if (isArabic) {
-        listOf("ئ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ")
-    } else {
-        listOf("Z", "X", "C", "V", "B", "N", "M")
+    val accentColor = remember(theme.accentColor) { Color(theme.accentColor) }
+    val keyText = remember(theme.keyTextColor) { Color(theme.keyTextColor) }
+    val borderColor = remember(theme.borderColor, theme.borderAlpha) {
+        Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
     }
-    val hintList = if (isArabic) null else listOf("ئ", "ء", "ؤ", "ر", "لا", "ى", "ة")
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        val shiftBackKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
         // Shift Key
         Box(
             modifier = Modifier
                 .weight(1.3f)
-                .height(38.dp)
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(shiftBackKeyBg)
-                .border(
-                    1.dp,
-                    Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
-                    RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))
-                ),
+                .height(28.dp)
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(keyBg)
+                .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.ArrowUpward,
-                contentDescription = "Shift",
-                tint = Color(theme.accentColor),
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = accentColor, modifier = Modifier.size(12.dp))
         }
 
-        // Letter Keys
-        charList.forEachIndexed { index, char ->
-            RealisticKey(
-                char = char,
-                hint = hintList?.getOrNull(index),
-                theme = theme,
-                modifier = Modifier.weight(1f)
-            )
+        keys.forEach { char ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(28.dp)
+                    .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                    .background(keyBg)
+                    .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = char,
+                    color = keyText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
         // Backspace Key
         Box(
             modifier = Modifier
                 .weight(1.3f)
-                .height(38.dp)
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(shiftBackKeyBg)
-                .border(
-                    1.dp,
-                    Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
-                    RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))
-                ),
+                .height(28.dp)
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(keyBg)
+                .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Backspace",
-                tint = Color(theme.accentColor),
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = accentColor, modifier = Modifier.size(12.dp))
         }
     }
 }
 
 @Composable
-fun RealisticSpacebarRow(
+private fun SampleSpacebarRow(
     theme: KeyboardTheme,
     isArabic: Boolean
 ) {
-    val bottomKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    val keyBg = remember(theme.keyBackgroundColor, theme.keyOpacity) {
+        ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+    }
+    val keyText = remember(theme.keyTextColor) { Color(theme.keyTextColor) }
+    val borderColor = remember(theme.borderColor, theme.borderAlpha) {
+        Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+            .height(28.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 123 / ?123
         Box(
             modifier = Modifier
-                .weight(1.2f)
+                .weight(1.1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(bottomKeyBg)
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(keyBg)
+                .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "?123",
-                color = Color(theme.keyTextColor),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("?123", color = keyText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
         }
 
-        // Globe / Language
         Box(
             modifier = Modifier
                 .weight(0.9f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(bottomKeyBg)
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(keyBg)
+                .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Language,
-                contentDescription = null,
-                tint = Color(theme.keyTextColor),
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.Default.Language, contentDescription = null, tint = keyText, modifier = Modifier.size(12.dp))
         }
 
-        // Emoji
         Box(
             modifier = Modifier
                 .weight(0.9f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(bottomKeyBg)
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(keyBg)
+                .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Mood,
-                contentDescription = null,
-                tint = Color(theme.keyTextColor),
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.Outlined.Mood, contentDescription = null, tint = keyText, modifier = Modifier.size(12.dp))
         }
 
-        // Spacebar labeled "TURBO KEYBOARD" / "العربية"
+        // Spacebar
         Box(
             modifier = Modifier
-                .weight(4f)
+                .weight(3.6f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(bottomKeyBg)
-                .border(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(keyBg)
+                .border(0.8.dp, borderColor, RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp))),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = if (isArabic) "اللغة العربية" else "TURBO KEYBOARD",
-                color = Color(theme.keyTextColor).copy(alpha = 0.85f),
-                fontSize = 10.sp,
+                color = keyText.copy(alpha = 0.85f),
+                fontSize = 8.5.sp,
                 fontWeight = FontWeight.Medium
             )
         }
 
-        // Enter Key with accent glow
+        // Enter
         Box(
             modifier = Modifier
-                .weight(1.4f)
+                .weight(1.3f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-                .background(Color(theme.enterButtonColor))
-                .border(1.dp, Color(theme.accentColor).copy(alpha = 0.7f), RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))),
+                .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(6.dp)))
+                .background(Color(theme.enterButtonColor)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-                contentDescription = "Enter",
+                contentDescription = null,
                 tint = ThemePresets.getEnterIconTint(theme),
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(13.dp)
             )
         }
-    }
-}
-
-@Composable
-fun RealisticKey(
-    char: String,
-    hint: String?,
-    theme: KeyboardTheme,
-    modifier: Modifier = Modifier
-) {
-    val keyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
-    Box(
-        modifier = modifier
-            .height(38.dp)
-            .clip(RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp)))
-            .background(keyBg)
-            .border(
-                width = if (theme.keyStyle == "neon") 1.2.dp else 1.dp,
-                color = if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
-                        else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)),
-                shape = RoundedCornerShape(theme.cornerRadius.dp.coerceAtMost(10.dp))
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!hint.isNullOrEmpty()) {
-            Text(
-                text = hint,
-                color = Color(theme.subtextColor).copy(alpha = 0.85f),
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 1.dp, end = 2.dp)
-            )
-        }
-
-        Text(
-            text = char,
-            color = Color(theme.keyTextColor),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center
-        )
     }
 }

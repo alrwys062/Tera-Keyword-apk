@@ -2258,10 +2258,52 @@ fun TurboKeyboardView(
                                 shadowElevation = 0.dp
                             ) {
                                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                    val isGrid = longPressVariants.size > 4
+                                    val isDotVariants = longPressChar == "."
+                                    val isGrid = longPressVariants.size > 4 && !isDotVariants
                                     val colCount = if (longPressVariants.size > 8) 4 else if (longPressVariants.size >= 6) 4 else 3
 
-                                    if (isGrid) {
+                                    if (isDotVariants) {
+                                        // Horizontal scrollable row for Dot domain/email shortcuts (.com, @gmail.com, etc.)
+                                        LazyRow(
+                                            modifier = Modifier.padding(6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            items(longPressVariants) { variant ->
+                                                val isCurrent = longPressVariants.indexOf(variant) == selectedVariantIndex
+                                                Box(
+                                                    modifier = Modifier
+                                                        .height(42.dp)
+                                                        .widthIn(min = 72.dp, max = 150.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(
+                                                            if (isCurrent) Color(activeTheme.keyPressedColor)
+                                                            else Color(activeTheme.keyBackgroundColor)
+                                                        )
+                                                        .border(
+                                                            if (isCurrent) 2.dp else 1.dp,
+                                                            if (isCurrent) Color(activeTheme.accentColor) else Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha),
+                                                            RoundedCornerShape(8.dp)
+                                                        )
+                                                        .clickable {
+                                                            performFeedback()
+                                                            dismissLongPressPopup()
+                                                            sendText(variant)
+                                                        }
+                                                        .padding(horizontal = 8.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = variant,
+                                                        color = if (isCurrent) Color(activeTheme.accentColor) else popupTextCol,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } else if (isGrid) {
                                         // Grid Layout (2x4, 3x4, etc.) for > 4 items
                                         val rows = longPressVariants.chunked(colCount)
                                         Column(
@@ -2626,21 +2668,20 @@ fun KeyPreviewBubble(
     numberHint: String?,
     theme: KeyboardTheme
 ) {
-    val previewBg = ThemePresets.resolveKeyColor(theme.keyPressedColor, 1.0f)
-    val isLight = ThemePresets.isLightColor(theme.keyPressedColor)
-    val previewTextColor = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
+    val previewBg = Color(0xFF2A2E39)
+    val previewTextColor = Color(0xFFFFFFFF)
 
-    // Square-shaped popup box with 4dp corner radius
     Box(
         modifier = Modifier
-            .width(48.dp)
-            .height(52.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .width(52.dp)
+            .height(60.dp)
+            .shadow(8.dp, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(previewBg)
             .border(
                 1.5.dp,
                 Color(theme.accentColor),
-                RoundedCornerShape(4.dp)
+                RoundedCornerShape(12.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -2648,17 +2689,17 @@ fun KeyPreviewBubble(
             Text(
                 text = numberHint,
                 color = Color(theme.accentColor),
-                fontSize = 9.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(top = 2.dp, start = 4.dp)
+                    .padding(top = 3.dp, start = 5.dp)
             )
         }
         Text(
             text = char,
             color = previewTextColor,
-            fontSize = 26.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
     }

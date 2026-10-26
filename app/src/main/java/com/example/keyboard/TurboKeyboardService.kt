@@ -21,7 +21,7 @@ import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
 
-open class TurboKeyboardService : InputMethodService(),
+class TurboKeyboardService : InputMethodService(),
     LifecycleOwner,
     ViewModelStoreOwner,
     SavedStateRegistryOwner {
@@ -94,7 +94,6 @@ open class TurboKeyboardService : InputMethodService(),
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                 win.setDimAmount(0f)
-                win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             window?.window?.decorView?.let { decorView ->
                 decorView.setViewTreeLifecycleOwner(this)

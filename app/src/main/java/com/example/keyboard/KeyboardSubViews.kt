@@ -1374,71 +1374,7 @@ fun EmojiPickerView(
             }
         }
 
-        Spacer(modifier = Modifier.height(3.dp))
-
-        // Dedicated text and emoji composition field (حقل إدخال وكتابة مخصص للابتسامات والرموز)
-        var emojiComposeText by remember { mutableStateOf("") }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(theme.keyBackgroundColor))
-                .border(1.dp, Color(theme.accentColor).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (emojiComposeText.isEmpty()) {
-                    Text(
-                        text = "اكتب نصاً أو شكّل عبارة بإيموجي...",
-                        color = Color(theme.subtextColor).copy(alpha = 0.7f),
-                        fontSize = 11.5.sp
-                    )
-                }
-                BasicTextField(
-                    value = emojiComposeText,
-                    onValueChange = { emojiComposeText = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        color = Color(theme.keyTextColor),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Color(theme.accentColor)),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            if (emojiComposeText.isNotEmpty()) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Clear",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clickable { emojiComposeText = "" }
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(theme.accentColor),
-                    modifier = Modifier.clickable {
-                        onEmojiSelected(emojiComposeText)
-                        emojiComposeText = ""
-                    }
-                ) {
-                    Text(
-                        text = "إدراج",
-                        color = Color.Black,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Bottom Navigation Bar (Return to letters, Space, Delete, Send)
         Row(

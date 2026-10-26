@@ -63,8 +63,7 @@ fun KeyboardToolbar(
         visibleTools
     }
 
-    // Explicit 50dp height for top toolbar (48dp-52dp as required) to prevent any clipping
-    val actualHeight = toolbarHeight ?: if (isCompact) 48.dp else 50.dp
+    val actualHeight = toolbarHeight ?: if (isCompact) 32.dp else 40.dp
 
     Row(
         modifier = Modifier
@@ -72,8 +71,8 @@ fun KeyboardToolbar(
             .height(actualHeight)
             .background(Color(theme.toolbarColor))
             .horizontalScroll(scrollState)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+            .padding(horizontal = 2.dp, vertical = 1.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 0. ملصقات (Stickers & Designer)
@@ -295,17 +294,17 @@ private fun ToolbarFixedItem(
 
     Box(
         modifier = Modifier
-            .widthIn(min = if (isLandscape) 42.dp else 46.dp, max = if (isLandscape) 52.dp else 56.dp)
-            .height(46.dp)
+            .widthIn(min = if (isLandscape) 38.dp else 45.dp, max = if (isLandscape) 48.dp else 54.dp)
+            .fillMaxHeight()
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
+            .background(if (isActive) activeColor.copy(alpha = 0.25f) else Color.Transparent)
             .border(
                 width = if (isActive) 1.2.dp else 0.dp,
                 color = if (isActive) activeColor else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 2.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 1.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -316,13 +315,13 @@ private fun ToolbarFixedItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) activeColor else inactiveTextColor.copy(alpha = 0.90f),
-                modifier = Modifier.size(if (isLandscape) 17.dp else 19.dp)
+                modifier = Modifier.size(if (isLandscape) 16.dp else 18.5.dp)
             )
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(0.5.dp))
             Text(
                 text = label,
                 color = if (isActive) activeColor else inactiveTextColor,
-                fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
+                fontSize = if (isLandscape) 8.sp else 9.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

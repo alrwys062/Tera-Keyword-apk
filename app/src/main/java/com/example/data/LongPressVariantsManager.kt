@@ -93,36 +93,15 @@ object LongPressVariantsManager {
         "٠" to listOf("٠", "ﷺ", "ﷻ", "صلى الله عليه وسلم", "جل جلاله", "رضي الله عنه", "رحمه الله", "0", "⁰", "∅", "⓪")
     )
 
-    // Extensible email domains list for dot key long-press
-    val emailDomains: List<String> = listOf(
-        "@gmail.com",
-        "@hotmail.com",
-        "@yahoo.com",
-        "@outlook.com",
-        "@icloud.com"
-    )
-
     fun getVariants(char: String): List<String> {
-        if (char == "." || char == "٫" || char == "،") {
-            return emailDomains + listOf(".com", ".net", ".org", "www.", "https://")
-        }
-        if (char == "+") {
-            return listOf("♥", "♡", "§", "♣", "♦", "♧", "☆", "★", "✧", "♕", "♜", "♞", "♔", "♗", "❀")
-        }
-        if (char == "\"" || char == "”" || char == "“") {
-            return listOf(",", "٫", "؛", "،", "«", "»", "“", "”", "'")
-        }
-        if (char == "؟" || char == "?") {
-            return listOf("؟", "?", "!", "¡", "¿", "‽")
-        }
-        if (char == "؛" || char == ";") {
-            return listOf("؛", ";", ":", "،")
+        if (char == "." || char == "٫") {
+            return listOf("@gmail.com", "@hotmail.com", "@yahoo.com", "www.", ".com", ".org", ".net", ".edu", "http://", "https://")
         }
         if (char == "-" || char == "–" || char == "—") {
-            return listOf("-", "ـ", "—", "–", "•", "_")
+            return listOf("ـ", "-", "—", "–", "•")
         }
         if (char == "_") {
-            return listOf("_", "-", "ـ", "–", "—")
+            return listOf("ـ", "_", "–", "—")
         }
         val lower = char.lowercase()
         return arabicVariants[char]

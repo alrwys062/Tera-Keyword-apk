@@ -2,13 +2,4 @@
 <resources>
 
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar" />
-
-    <style name="Theme.TurboKeyboard" parent="android:Theme.InputMethod">
-        <item name="android:backgroundDimEnabled">false</item>
-        <item name="android:backgroundDimAmount">0</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:colorBackground">@android:color/transparent</item>
-        <item name="android:windowIsFloating">false</item>
-        <item name="android:windowAnimationStyle">@null</item>
-    </style>
 </resources>

@@ -177,7 +177,7 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    val symbolsRow2 = listOf("-", "@", "#", "/", "+", "%", ".", "*", ":", "؛").map {
+    val symbolsRow2 = listOf("@", "#", "/", "+", "%", "ـ", ".", "-", "*", ":").map {
         KeyModel(KeyType.Character(it))
     }
 
@@ -189,8 +189,8 @@ object KeyLayouts {
         KeyModel(KeyType.Character("&")),
         KeyModel(KeyType.Character("(")),
         KeyModel(KeyType.Character(")")),
-        KeyModel(KeyType.Character("؛")),
-        KeyModel(KeyType.Character("؟")),
+        KeyModel(KeyType.Character(";")),
+        KeyModel(KeyType.Character("?")),
         KeyModel(KeyType.Backspace, weight = 1.3f)
     )
 

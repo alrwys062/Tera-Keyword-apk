@@ -206,69 +206,6 @@ fun StickersPickerView(
             }
         }
 
-        // Dedicated text and sticker input bar (حقل كتابة نصوص وملصقات مخصص)
-        var stickerComposeText by remember { mutableStateOf("") }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-                .height(34.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(theme.keyBackgroundColor))
-                .border(1.dp, Color(theme.accentColor).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (stickerComposeText.isEmpty()) {
-                    Text(
-                        text = "اكتب نصاً لإدراجه مع الملصقات والرموز...",
-                        color = Color(theme.subtextColor).copy(alpha = 0.7f),
-                        fontSize = 11.5.sp
-                    )
-                }
-                BasicTextField(
-                    value = stickerComposeText,
-                    onValueChange = { stickerComposeText = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        color = Color(theme.keyTextColor),
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    cursorBrush = SolidColor(Color(theme.accentColor)),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            if (stickerComposeText.isNotEmpty()) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Clear",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clickable { stickerComposeText = "" }
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(theme.accentColor),
-                    modifier = Modifier.clickable {
-                        onStickerSelected(stickerComposeText)
-                        stickerComposeText = ""
-                    }
-                ) {
-                    Text(
-                        text = "إدراج",
-                        color = Color.Black,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-        }
-
         // Main Content Area
         Box(
             modifier = Modifier

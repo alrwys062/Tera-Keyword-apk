@@ -1982,15 +1982,30 @@ fun TurboKeyboardView(
                                         awaitEachGesture {
                                             val down = awaitFirstDown(requireUnconsumed = false)
                                             isSpacePressed = true
+                                            val pressStartTime = System.currentTimeMillis()
                                             var totalDrag = 0f
                                             var hasSwitchedLanguage = false
                                             var isDragGesture = false
-                                            val swipeThreshold = 22.dp.toPx()
+                                            val swipeThreshold = 18.dp.toPx()
 
                                             try {
                                                 while (true) {
                                                     val event = awaitPointerEvent()
                                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                                                    val downDuration = System.currentTimeMillis() - pressStartTime
+                                                    if (!hasSwitchedLanguage && !isDragGesture && downDuration >= 420L) {
+                                                        hasSwitchedLanguage = true
+                                                        performFeedback(isSpecial = true)
+                                                        val nextLang = InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
+                                                        InputLanguagesManager.setCurrentLanguageCode(context, nextLang.code)
+                                                        currentLangCode = nextLang.code
+                                                        onLanguageChanged?.invoke(nextLang.code)
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        try { ic?.finishComposingText() } catch (_: Exception) {}
+                                                        currentComposingText = ""
+                                                    }
+
                                                     if (!change.pressed) {
                                                         // Pointer lifted
                                                         change.consume()
@@ -2004,7 +2019,7 @@ fun TurboKeyboardView(
                                                     val deltaX = change.position.x - down.position.x
                                                     totalDrag = deltaX
 
-                                                    if (kotlin.math.abs(totalDrag) > 10.dp.toPx()) {
+                                                    if (kotlin.math.abs(totalDrag) > 8.dp.toPx()) {
                                                         isDragGesture = true
                                                     }
 
@@ -2035,14 +2050,15 @@ fun TurboKeyboardView(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
+                                val spacebarLabel = if (currentWorldLang.code == "ar") "عربي أساسي" else if (currentWorldLang.code == "en") "English (US)" else currentWorldLang.nameNative
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = currentWorldLang.nameNative,
+                                        text = "◀  $spacebarLabel  ▶",
                                         color = Color(activeTheme.keyTextColor).copy(alpha = 0.9f),
-                                        fontSize = 13.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }

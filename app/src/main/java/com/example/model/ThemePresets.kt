@@ -1762,7 +1762,7 @@ object ThemePresets {
     )
 
 
-    val allPresets = twentyPremiumThemes + listOf(
+    val allPresets = (twentyPremiumThemes + listOf(
         // Featured Liquid Glass & Pro Styles
         LIQUID_GLASS_BLUR,
         CYBER_BLUE,
@@ -1812,7 +1812,6 @@ object ThemePresets {
 
         // Dark & Light
         DARK_MATTE,
-        MINIMAL_DARK,
         MINIMAL_LIGHT,
         MINIMALIST_WHITE,
         MATERIAL_DARK,
@@ -1824,7 +1823,6 @@ object ThemePresets {
         CANDY_COLORFUL,
 
         // Glass & Transparent
-        LIQUID_GLASS_BLUR,
         GLASSMORPHISM,
         POLAR_ICE,
         WATER_AND_ICE,
@@ -1852,7 +1850,7 @@ object ThemePresets {
         BLUE_GRAY,
         BRUSHED_METAL,
         RETRO_COMPUTE
-    )
+    )).distinctBy { it.id }
 
     fun getById(id: String): KeyboardTheme {
         return allPresets.find { it.id == id } ?: CYBER_PRO

@@ -62,7 +62,7 @@ fun ThemesScreen(
 
     val allThemes = remember(customThemes) {
         val presets = ThemePresets.allPresets
-        customThemes + presets
+        (customThemes + presets).distinctBy { it.id }
     }
 
     val filteredThemes = remember(allThemes, searchQuery, selectedCategory) {

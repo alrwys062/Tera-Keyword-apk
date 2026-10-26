@@ -20,10 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -66,7 +63,8 @@ fun KeyboardToolbar(
         visibleTools
     }
 
-    val actualHeight = (toolbarHeight ?: if (isCompact) 34.dp else 40.dp).coerceAtLeast(38.dp)
+    // Explicit 50dp height for top toolbar (48dp-52dp as required) to prevent any clipping
+    val actualHeight = toolbarHeight ?: if (isCompact) 48.dp else 50.dp
 
     Row(
         modifier = Modifier
@@ -75,7 +73,7 @@ fun KeyboardToolbar(
             .background(Color(theme.toolbarColor))
             .horizontalScroll(scrollState)
             .padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 0. ملصقات (Stickers & Designer)
@@ -290,24 +288,24 @@ private fun ToolbarFixedItem(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val activeColor = Color(theme.accentColor)
-    val isLight = remember(theme.toolbarColor, theme.backgroundColor) { 
-        isLightColor(theme.toolbarColor) || isLightColor(theme.backgroundColor) 
+    val isLight = remember(theme.toolbarColor) { isLightColor(theme.toolbarColor) }
+    val inactiveTextColor = remember(theme.toolbarColor, isLight) {
+        if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     }
-    val textColor = if (isActive) activeColor else if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
 
     Box(
         modifier = Modifier
-            .widthIn(min = if (isLandscape) 44.dp else 54.dp, max = if (isLandscape) 60.dp else 72.dp)
-            .fillMaxHeight()
+            .widthIn(min = if (isLandscape) 42.dp else 46.dp, max = if (isLandscape) 52.dp else 56.dp)
+            .height(46.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) activeColor.copy(alpha = 0.25f) else Color.Transparent)
+            .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
             .border(
                 width = if (isActive) 1.2.dp else 0.dp,
                 color = if (isActive) activeColor else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 3.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -317,18 +315,17 @@ private fun ToolbarFixedItem(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = textColor,
-                modifier = Modifier.size(if (isLandscape) 15.dp else 18.dp)
+                tint = if (isActive) activeColor else inactiveTextColor.copy(alpha = 0.90f),
+                modifier = Modifier.size(if (isLandscape) 17.dp else 19.dp)
             )
             Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = label,
-                color = textColor,
-                fontSize = if (label.length > 6) 8.sp else if (isLandscape) 8.5.sp else 9.5.sp,
-                fontWeight = FontWeight.Bold,
+                color = if (isActive) activeColor else inactiveTextColor,
+                fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

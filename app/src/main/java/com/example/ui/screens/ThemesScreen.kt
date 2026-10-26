@@ -46,7 +46,7 @@ fun ThemesScreen(
 
     val categories = listOf(
         "الكل",
-        "✨ 20 ثيم فاخر (Facemoji 20)",
+        "⭐ 20 ثيم بريميوم",
         "Pro ستايلات الهواتف",
         "أنظمة وهواتف",
         "داكن وفاتح",
@@ -73,7 +73,7 @@ fun ThemesScreen(
 
             val matchCategory = when (selectedCategory) {
                 "الكل" -> true
-                "✨ 20 ثيم فاخر (Facemoji 20)" -> theme.category == "facemoji_20"
+                "⭐ 20 ثيم بريميوم" -> theme.category == "twenty_premium" || theme.id in ThemePresets.twentyPremiumThemes.map { it.id }
                 "Pro ستايلات الهواتف" -> theme.category == "pro_styles"
                 "أنظمة وهواتف" -> theme.category == "systems"
                 "داكن وفاتح" -> theme.category == "dark_light"

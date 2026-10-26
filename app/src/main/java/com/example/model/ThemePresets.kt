@@ -53,559 +53,389 @@ object ThemePresets {
         )
     }
 
-    // -------------------------------------------------------------
-    // 20 Facemoji Premium Themes Library (from Reference Images)
-    // -------------------------------------------------------------
+    // =========================================================================
+    // 20 PREMIUM KEYBOARD THEMES (Inspired by Facemoji & Modern Flagships)
+    // =========================================================================
+
+    // 1. Facemoji Classic — clean, simple, dark keys
     val FACEMOJI_CLASSIC = KeyboardTheme(
         id = "facemoji_classic",
-        nameAr = "فيسموجي كلاسيك (Facemoji Classic)",
+        nameAr = "فيسموجي كلاسيك",
         nameEn = "Facemoji Classic",
-        backgroundColor = 0xFF121418,
-        keyBackgroundColor = 0xFF1E222A,
-        keyPressedColor = 0xFF2C323E,
+        backgroundColor = 0xFF12161F,
+        keyBackgroundColor = 0xFF1E2638,
+        keyPressedColor = 0xFF2A364E,
         keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFF8A94A6,
-        accentColor = 0xFFFFCC00,
+        subtextColor = 0xFF8D99AE,
+        accentColor = 0xFFFFD600,
         enterButtonColor = 0xFF2563EB,
-        toolbarColor = 0xFF161920,
-        borderColor = 0xFF2D3545,
-        borderAlpha = 0.5f,
+        toolbarColor = 0xFF0E131C,
+        borderColor = 0xFF2B374E,
         cornerRadius = 8f,
         keyStyle = "rounded",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 2. Dark Neon — black background with cyan and purple neon borders
     val DARK_NEON = KeyboardTheme(
         id = "dark_neon",
-        nameAr = "دارك نيون فخم (Dark Neon)",
-        nameEn = "Dark Neon Glow",
-        backgroundColor = 0xFF0A0C14,
-        keyBackgroundColor = 0xFF101424,
-        keyPressedColor = 0xFF1C223A,
-        keyTextColor = 0xFF00F0FF,
-        subtextColor = 0xFFBD00FF,
-        accentColor = 0xFF00F0FF,
-        enterButtonColor = 0xFFBD00FF,
-        toolbarColor = 0xFF0D101C,
-        borderColor = 0xFF00F0FF,
+        nameAr = "دارك نيون",
+        nameEn = "Dark Neon",
+        backgroundColor = 0xFF05060A,
+        keyBackgroundColor = 0xFF0E1222,
+        keyPressedColor = 0xFF1E2240,
+        keyTextColor = 0xFF00F2FE,
+        subtextColor = 0xFF9B51E0,
+        accentColor = 0xFF00F2FE,
+        enterButtonColor = 0xFF9B51E0,
+        toolbarColor = 0xFF0A0D18,
+        borderColor = 0xFF00F2FE,
         borderAlpha = 0.85f,
         cornerRadius = 10f,
         keyStyle = "neon",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 3. Gradient Dream — vibrant pink, purple, and blue gradients
     val GRADIENT_DREAM = KeyboardTheme(
         id = "gradient_dream",
-        nameAr = "حلم التدرجات (Gradient Dream)",
+        nameAr = "حلم التدرج",
         nameEn = "Gradient Dream",
-        backgroundColor = 0xFF1E1035,
-        backgroundGradient = listOf(0xFF4A154B, 0xFF6B21A8, 0xFF0D9488),
-        keyBackgroundColor = 0x44FFFFFF,
-        keyPressedColor = 0x77FFFFFF,
+        backgroundColor = 0xFF2A0845,
+        backgroundGradient = listOf(0xFFFF758C, 0xFF764BA2, 0xFF6B8DD6),
+        keyBackgroundColor = 0x40FFFFFF,
+        keyPressedColor = 0x60FFFFFF,
         keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFFE9D5FF,
-        accentColor = 0xFFF43F5E,
-        enterButtonColor = 0xFFEC4899,
-        toolbarColor = 0xFF241442,
-        borderColor = 0x66FFFFFF,
+        subtextColor = 0xFFFFD1DC,
+        accentColor = 0xFFFF758C,
+        enterButtonColor = 0xFF764BA2,
+        toolbarColor = 0x502A0845,
+        borderColor = 0x60FFFFFF,
         borderAlpha = 0.7f,
-        cornerRadius = 10f,
+        cornerRadius = 12f,
         keyStyle = "glass",
         isGlass = true,
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 4. Black & Red — premium black surfaces with red accents
     val BLACK_AND_RED = KeyboardTheme(
         id = "black_and_red",
-        nameAr = "أسود وأحمر ناري (Black & Red)",
-        nameEn = "Black & Red Gaming",
+        nameAr = "أسود وأحمر فاخر",
+        nameEn = "Black & Red",
         backgroundColor = 0xFF0A0A0A,
-        keyBackgroundColor = 0xFF151515,
-        keyPressedColor = 0xFF2E1515,
+        keyBackgroundColor = 0xFF181818,
+        keyPressedColor = 0xFF2D1517,
         keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFFEF4444,
+        subtextColor = 0xFFFF4D4D,
         accentColor = 0xFFFF1E27,
-        enterButtonColor = 0xFFFF1E27,
-        toolbarColor = 0xFF121212,
+        enterButtonColor = 0xFFD50000,
+        toolbarColor = 0xFF0F0F0F,
         borderColor = 0xFFFF1E27,
-        borderAlpha = 0.8f,
+        borderAlpha = 0.75f,
         cornerRadius = 8f,
         keyStyle = "neon",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 5. Light Mode — clean white and light-gray keys
     val LIGHT_MODE = KeyboardTheme(
         id = "light_mode",
-        nameAr = "لايت مود أبيض ناعم (Light Mode)",
-        nameEn = "Light Mode Minimal",
-        backgroundColor = 0xFFF3F4F6,
-        keyBackgroundColor = 0xFFFFFFFF,
-        keyPressedColor = 0xFFE5E7EB,
-        keyTextColor = 0xFF111827,
-        subtextColor = 0xFF6B7280,
+        nameAr = "الوضع الفاتح المريح",
+        nameEn = "Light Mode",
+        backgroundColor = 0xFFFFFFFF,
+        keyBackgroundColor = 0xFFF0F4F8,
+        keyPressedColor = 0xFFE2E8F0,
+        keyTextColor = 0xFF1F1F1F,
+        subtextColor = 0xFF64748B,
         accentColor = 0xFF2563EB,
-        enterButtonColor = 0xFF2563EB,
-        toolbarColor = 0xFFF3F4F6,
-        borderColor = 0xFFD1D5DB,
-        borderAlpha = 0.6f,
+        enterButtonColor = 0xFF3B82F6,
+        toolbarColor = 0xFFF8FAFC,
+        borderColor = 0xFFCBD5E1,
+        borderAlpha = 0.5f,
         cornerRadius = 8f,
         keyStyle = "rounded",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 6. Anime Vibes — anime-inspired artwork and colorful accents
     val ANIME_VIBES = KeyboardTheme(
         id = "anime_vibes",
-        nameAr = "أنمي فايبز (Anime Vibes)",
+        nameAr = "أنمي فايبز",
         nameEn = "Anime Vibes",
-        backgroundColor = 0xFF130F26,
-        backgroundGradient = listOf(0xFF1F1235, 0xFF31174F, 0xFF160E2E),
-        keyBackgroundColor = 0xFF1F1A3A,
-        keyPressedColor = 0xFF352B5E,
-        keyTextColor = 0xFFE0E7FF,
-        subtextColor = 0xFFA5B4FC,
-        accentColor = 0xFF818CF8,
-        enterButtonColor = 0xFF6366F1,
-        toolbarColor = 0xFF17132F,
-        borderColor = 0xFF6366F1,
+        backgroundColor = 0xFF150B24,
+        keyBackgroundColor = 0xFF26143F,
+        keyPressedColor = 0xFF3B1E61,
+        keyTextColor = 0xFFF8FAFC,
+        subtextColor = 0xFFFF80AB,
+        accentColor = 0xFFFF4081,
+        enterButtonColor = 0xFFE040FB,
+        toolbarColor = 0xFF1D0E32,
+        borderColor = 0xFFFF80AB,
         borderAlpha = 0.7f,
-        cornerRadius = 9f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
+        cornerRadius = 10f,
+        category = "twenty_premium"
     )
 
+    // 7. Purple Galaxy — cosmic purple and blue effects
     val PURPLE_GALAXY = KeyboardTheme(
         id = "purple_galaxy",
-        nameAr = "مجرة بنفسجية (Purple Galaxy)",
+        nameAr = "مجرة بنفسجية",
         nameEn = "Purple Galaxy",
-        backgroundColor = 0xFF0B071E,
-        backgroundGradient = listOf(0xFF0F0728, 0xFF280E50, 0xFF0B071E),
-        keyBackgroundColor = 0xFF18103C,
-        keyPressedColor = 0xFF2B1D6B,
-        keyTextColor = 0xFFF3E8FF,
-        subtextColor = 0xFFC084FC,
-        accentColor = 0xFFA855F7,
-        enterButtonColor = 0xFF9333EA,
-        toolbarColor = 0xFF10092B,
-        borderColor = 0xFFA855F7,
-        borderAlpha = 0.75f,
+        backgroundColor = 0xFF0D031A,
+        backgroundGradient = listOf(0xFF1F0538, 0xFF4A0E4E, 0xFF00E5FF),
+        keyBackgroundColor = 0xFF1D0C33,
+        keyPressedColor = 0xFF321456,
+        keyTextColor = 0xFFE1BEE7,
+        subtextColor = 0xFF00E5FF,
+        accentColor = 0xFF00E5FF,
+        enterButtonColor = 0xFF8E24AA,
+        toolbarColor = 0xFF130624,
+        borderColor = 0xFFBA68C8,
+        borderAlpha = 0.65f,
         cornerRadius = 10f,
-        keyStyle = "neon",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 8. Green Matrix — black surfaces with green digital effects
     val GREEN_MATRIX = KeyboardTheme(
         id = "green_matrix",
-        nameAr = "ماتريكس سايبر الأخضر (Green Matrix)",
-        nameEn = "Green Matrix Digital",
-        backgroundColor = 0xFF051008,
-        keyBackgroundColor = 0xFF0A200F,
-        keyPressedColor = 0xFF14381C,
+        nameAr = "ماتريكس سايبر أخضر",
+        nameEn = "Green Matrix",
+        backgroundColor = 0xFF000A03,
+        keyBackgroundColor = 0xFF001F08,
+        keyPressedColor = 0xFF003810,
         keyTextColor = 0xFF00FF66,
-        subtextColor = 0xFF22C55E,
+        subtextColor = 0xFF00CC55,
         accentColor = 0xFF00FF66,
-        enterButtonColor = 0xFF16A34A,
-        toolbarColor = 0xFF08180D,
+        enterButtonColor = 0xFF009933,
+        toolbarColor = 0xFF001205,
         borderColor = 0xFF00FF66,
         borderAlpha = 0.8f,
         cornerRadius = 8f,
         keyStyle = "neon",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
+    // 9. Sunset — warm orange, red, and purple gradients
     val SUNSET = KeyboardTheme(
         id = "sunset",
-        nameAr = "غروب الشمس الدافئ (Sunset Vibes)",
-        nameEn = "Sunset Warm Glow",
-        backgroundColor = 0xFF1F0D15,
-        backgroundGradient = listOf(0xFF45121B, 0xFF7C2D12, 0xFF1C0A10),
-        keyBackgroundColor = 0xFF38141F,
-        keyPressedColor = 0xFF592231,
-        keyTextColor = 0xFFFFF1F2,
-        subtextColor = 0xFFFB923C,
-        accentColor = 0xFFF97316,
-        enterButtonColor = 0xFFEA580C,
-        toolbarColor = 0xFF28111A,
-        borderColor = 0xFFF97316,
-        borderAlpha = 0.7f,
-        cornerRadius = 9f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
+        nameAr = "غروب دافئ",
+        nameEn = "Sunset",
+        backgroundColor = 0xFF1C0A05,
+        backgroundGradient = listOf(0xFFFF512F, 0xFFDD2476, 0xFFF09819),
+        keyBackgroundColor = 0x50331005,
+        keyPressedColor = 0x7055180A,
+        keyTextColor = 0xFFFFE0B2,
+        subtextColor = 0xFFFFB74D,
+        accentColor = 0xFFFF9800,
+        enterButtonColor = 0xFFE65100,
+        toolbarColor = 0x501C0A05,
+        borderColor = 0xFFFF9800,
+        borderAlpha = 0.6f,
+        cornerRadius = 10f,
+        category = "twenty_premium"
     )
 
+    // 10. Ocean Blue — blue aquatic textures and cool highlights
     val OCEAN_BLUE = KeyboardTheme(
         id = "ocean_blue",
-        nameAr = "المحيط الأزرق (Ocean Blue)",
-        nameEn = "Ocean Blue Aquatic",
-        backgroundColor = 0xFF061528,
-        backgroundGradient = listOf(0xFF03224C, 0xFF063A78, 0xFF051830),
-        keyBackgroundColor = 0xFF0C2442,
-        keyPressedColor = 0xFF143763,
+        nameAr = "أزرق المحيط العميق",
+        nameEn = "Ocean Blue",
+        backgroundColor = 0xFF021024,
+        backgroundGradient = listOf(0xFF0052D4, 0xFF4364F7, 0xFF6FB1FC),
+        keyBackgroundColor = 0xFF05264E,
+        keyPressedColor = 0xFF0C3D7A,
         keyTextColor = 0xFFE0F2FE,
-        subtextColor = 0xFF38BDF8,
-        accentColor = 0xFF0EA5E9,
-        enterButtonColor = 0xFF0284C7,
-        toolbarColor = 0xFF081C33,
-        borderColor = 0xFF0EA5E9,
-        borderAlpha = 0.7f,
-        cornerRadius = 10f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
-    )
-
-    val NEON_RAINBOW = KeyboardTheme(
-        id = "neon_rainbow",
-        nameAr = "نيون قوس قزح (Neon Rainbow)",
-        nameEn = "Neon Rainbow Glow",
-        backgroundColor = 0xFF0E0E14,
-        keyBackgroundColor = 0xFF181824,
-        keyPressedColor = 0xFF2A2A3D,
-        keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFF06B6D4,
-        accentColor = 0xFF06B6D4,
-        enterButtonColor = 0xFFF59E0B,
-        toolbarColor = 0xFF12121A,
-        borderColor = 0xFF8B5CF6,
-        borderAlpha = 0.85f,
-        cornerRadius = 10f,
-        keyStyle = "neon",
-        category = "facemoji_20"
-    )
-
-    val SAKURA = KeyboardTheme(
-        id = "sakura",
-        nameAr = "ساكورا الكرز الياباني (Sakura)",
-        nameEn = "Sakura Japanese Blossom",
-        backgroundColor = 0xFFFFF0F5,
-        backgroundGradient = listOf(0xFFFFE4E1, 0xFFFFB6C1, 0xFFFFF0F5),
-        keyBackgroundColor = 0xFFFFFFFF,
-        keyPressedColor = 0xFFFFD9E6,
-        keyTextColor = 0xFF831843,
-        subtextColor = 0xFFDB2777,
-        accentColor = 0xFFEC4899,
-        enterButtonColor = 0xFFDB2777,
-        toolbarColor = 0xFFFFEBF2,
-        borderColor = 0xFFFBCFE8,
-        borderAlpha = 0.8f,
-        cornerRadius = 9f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
-    )
-
-    val FACEMOJI_GOLD_LUXURY = KeyboardTheme(
-        id = "facemoji_gold_luxury",
-        nameAr = "الذهب الملكي الفاخر (Gold Luxury)",
-        nameEn = "Gold Luxury Crown",
-        backgroundColor = 0xFF0C0A06,
-        keyBackgroundColor = 0xFF18150D,
-        keyPressedColor = 0xFF2B2516,
-        keyTextColor = 0xFFFFDF7A,
-        subtextColor = 0xFFD4AF37,
-        accentColor = 0xFFFFD700,
-        enterButtonColor = 0xFFD4AF37,
-        toolbarColor = 0xFF120F09,
-        borderColor = 0xFFFFD700,
-        borderAlpha = 0.8f,
-        cornerRadius = 8f,
-        keyStyle = "gold",
-        category = "facemoji_20"
-    )
-
-    val BLUE_FLAME = KeyboardTheme(
-        id = "blue_flame",
-        nameAr = "اللهب الأزرق الكهربائي (Blue Flame)",
-        nameEn = "Blue Flame Electric",
-        backgroundColor = 0xFF050B1A,
-        backgroundGradient = listOf(0xFF03102B, 0xFF082663, 0xFF050B1A),
-        keyBackgroundColor = 0xFF0D1D3A,
-        keyPressedColor = 0xFF183261,
-        keyTextColor = 0xFF38BDF8,
-        subtextColor = 0xFF60A5FA,
-        accentColor = 0xFF00D2FF,
-        enterButtonColor = 0xFF2563EB,
-        toolbarColor = 0xFF081126,
-        borderColor = 0xFF00D2FF,
-        borderAlpha = 0.85f,
-        cornerRadius = 9f,
-        keyStyle = "neon",
-        category = "facemoji_20"
-    )
-
-    val BROWN_WOOD = KeyboardTheme(
-        id = "brown_wood",
-        nameAr = "الخشب الكلاسيكي الدافئ (Brown Wood)",
-        nameEn = "Brown Wood Warm",
-        backgroundColor = 0xFF1E130D,
-        keyBackgroundColor = 0xFF332015,
-        keyPressedColor = 0xFF4D3121,
-        keyTextColor = 0xFFFEF3C7,
-        subtextColor = 0xFFD97706,
-        accentColor = 0xFFD97706,
-        enterButtonColor = 0xFFB45309,
-        toolbarColor = 0xFF251811,
-        borderColor = 0xFF92400E,
-        borderAlpha = 0.6f,
-        cornerRadius = 8f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
-    )
-
-    val NEON_TECH = KeyboardTheme(
-        id = "neon_tech",
-        nameAr = "نيون تك سايبر (Neon Tech)",
-        nameEn = "Neon Tech Cyber",
-        backgroundColor = 0xFF050811,
-        keyBackgroundColor = 0xFF0B1224,
-        keyPressedColor = 0xFF152242,
-        keyTextColor = 0xFF00F5FF,
-        subtextColor = 0xFFFF007F,
-        accentColor = 0xFF00F5FF,
-        enterButtonColor = 0xFFFF007F,
-        toolbarColor = 0xFF070B18,
-        borderColor = 0xFF00F5FF,
-        borderAlpha = 0.85f,
-        cornerRadius = 8f,
-        keyStyle = "neon",
-        category = "facemoji_20"
-    )
-
-    val CUTE_KAWAII = KeyboardTheme(
-        id = "cute_kawaii",
-        nameAr = "كيوت كاواي الوردي (Cute Kawaii)",
-        nameEn = "Cute Kawaii Pastel",
-        backgroundColor = 0xFFFFEDF2,
-        backgroundGradient = listOf(0xFFFFF0F5, 0xFFFFE4E9, 0xFFFFD6E0),
-        keyBackgroundColor = 0xFFFFF7FA,
-        keyPressedColor = 0xFFFFD6E4,
-        keyTextColor = 0xFFBE185D,
-        subtextColor = 0xFFF472B6,
-        accentColor = 0xFFFB7185,
-        enterButtonColor = 0xFFF43F5E,
-        toolbarColor = 0xFFFFE8EF,
-        borderColor = 0xFFFDA4AF,
-        borderAlpha = 0.75f,
-        cornerRadius = 12f,
-        keyStyle = "bubble",
-        category = "facemoji_20"
-    )
-
-    val MIDNIGHT = KeyboardTheme(
-        id = "midnight",
-        nameAr = "منتصف الليل الكحلي (Midnight)",
-        nameEn = "Midnight Navy Moon",
-        backgroundColor = 0xFF070B14,
-        backgroundGradient = listOf(0xFF0A101F, 0xFF101B33, 0xFF070B14),
-        keyBackgroundColor = 0xFF0F172A,
-        keyPressedColor = 0xFF1E293B,
-        keyTextColor = 0xFFF8FAFC,
-        subtextColor = 0xFF94A3B8,
+        subtextColor = 0xFF7DD3FC,
         accentColor = 0xFF38BDF8,
         enterButtonColor = 0xFF0284C7,
-        toolbarColor = 0xFF0B101E,
-        borderColor = 0xFF334155,
-        borderAlpha = 0.65f,
-        cornerRadius = 8f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
+        toolbarColor = 0xFF031938,
+        borderColor = 0xFF38BDF8,
+        borderAlpha = 0.6f,
+        cornerRadius = 10f,
+        category = "twenty_premium"
     )
 
+    // 11. Neon Rainbow — multicolor illuminated key borders
+    val NEON_RAINBOW = KeyboardTheme(
+        id = "neon_rainbow",
+        nameAr = "نيون رينبو الملون",
+        nameEn = "Neon Rainbow",
+        backgroundColor = 0xFF080810,
+        keyBackgroundColor = 0xFF141424,
+        keyPressedColor = 0xFF22223D,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFFFFEE58,
+        accentColor = 0xFFFF007F,
+        enterButtonColor = 0xFF00F0FF,
+        toolbarColor = 0xFF0C0C18,
+        borderColor = 0xFFFF007F,
+        borderAlpha = 0.9f,
+        cornerRadius = 12f,
+        keyStyle = "neon",
+        category = "twenty_premium"
+    )
+
+    // 12. Sakura — soft pink Japanese cherry blossom aesthetic
+    val SAKURA = KeyboardTheme(
+        id = "sakura",
+        nameAr = "ساكورا اليابانية",
+        nameEn = "Sakura",
+        backgroundColor = 0xFFFFF0F3,
+        backgroundGradient = listOf(0xFFFFEBF0, 0xFFFF8DA1),
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFFFD6E0,
+        keyTextColor = 0xFF4A1525,
+        subtextColor = 0xFFFF5C8A,
+        accentColor = 0xFFFF4081,
+        enterButtonColor = 0xFFFF5C8A,
+        toolbarColor = 0xFFFFE4E9,
+        borderColor = 0xFFFFB3C1,
+        borderAlpha = 0.7f,
+        cornerRadius = 12f,
+        category = "twenty_premium"
+    )
+
+    // 13. Gold Luxury — elegant black and metallic gold
+    val GOLD_LUXURY_THEME = KeyboardTheme(
+        id = "gold_luxury_theme",
+        nameAr = "ذهب فاخر ملوكي",
+        nameEn = "Gold Luxury",
+        backgroundColor = 0xFF0B0A08,
+        keyBackgroundColor = 0xFF191712,
+        keyPressedColor = 0xFF2B261B,
+        keyTextColor = 0xFFFFE082,
+        subtextColor = 0xFFD4AF37,
+        accentColor = 0xFFFFD700,
+        enterButtonColor = 0xFFC5A028,
+        toolbarColor = 0xFF110E09,
+        borderColor = 0xFFD4AF37,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "gold",
+        category = "twenty_premium"
+    )
+
+    // 14. Blue Flame — electric blue flame-inspired effects
+    val BLUE_FLAME = KeyboardTheme(
+        id = "blue_flame",
+        nameAr = "لهب أزرق متوهج",
+        nameEn = "Blue Flame",
+        backgroundColor = 0xFF040A14,
+        keyBackgroundColor = 0xFF0B192C,
+        keyPressedColor = 0xFF152E4F,
+        keyTextColor = 0xFFE0F7FA,
+        subtextColor = 0xFF00E5FF,
+        accentColor = 0xFF00D2FF,
+        enterButtonColor = 0xFF0091EA,
+        toolbarColor = 0xFF061120,
+        borderColor = 0xFF00E5FF,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "neon",
+        category = "twenty_premium"
+    )
+
+    // 15. Brown Wood — natural brown wood textures
+    val BROWN_WOOD = KeyboardTheme(
+        id = "brown_wood",
+        nameAr = "خشب بني طبيعي",
+        nameEn = "Brown Wood",
+        backgroundColor = 0xFF1D130E,
+        keyBackgroundColor = 0xFF332018,
+        keyPressedColor = 0xFF4D3025,
+        keyTextColor = 0xFFF5EBE6,
+        subtextColor = 0xFFD7A15C,
+        accentColor = 0xFFD7A15C,
+        enterButtonColor = 0xFFA0522D,
+        toolbarColor = 0xFF241812,
+        borderColor = 0xFF8B5A2B,
+        borderAlpha = 0.7f,
+        cornerRadius = 8f,
+        category = "twenty_premium"
+    )
+
+    // 16. Neon Tech — futuristic cyan and magenta cyber styling
+    val NEON_TECH = KeyboardTheme(
+        id = "neon_tech",
+        nameAr = "سايبر تك المستقبلي",
+        nameEn = "Neon Tech",
+        backgroundColor = 0xFF050814,
+        keyBackgroundColor = 0xFF0E1428,
+        keyPressedColor = 0xFF192242,
+        keyTextColor = 0xFF00F5D4,
+        subtextColor = 0xFFFF007F,
+        accentColor = 0xFF00F5D4,
+        enterButtonColor = 0xFFFF007F,
+        toolbarColor = 0xFF080D20,
+        borderColor = 0xFF00F5D4,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "neon",
+        category = "twenty_premium"
+    )
+
+    // 17. Cute Kawaii — pastel pink, adorable icons, and soft keys
+    val CUTE_KAWAII = KeyboardTheme(
+        id = "cute_kawaii",
+        nameAr = "كيوت كاواي",
+        nameEn = "Cute Kawaii",
+        backgroundColor = 0xFFFFF5F7,
+        keyBackgroundColor = 0xFFFFE3E8,
+        keyPressedColor = 0xFFFFCCD5,
+        keyTextColor = 0xFF5C2D3B,
+        subtextColor = 0xFFFF69B4,
+        accentColor = 0xFFFF69B4,
+        enterButtonColor = 0xFFFF4081,
+        toolbarColor = 0xFFFFECF0,
+        borderColor = 0xFFFFB6C1,
+        borderAlpha = 0.8f,
+        cornerRadius = 14f,
+        keyStyle = "bubble",
+        category = "twenty_premium"
+    )
+
+    // 18. Midnight — deep navy, moonlight, and subtle blue highlights
+    val MIDNIGHT = KeyboardTheme(
+        id = "midnight",
+        nameAr = "منتصف الليل القمري",
+        nameEn = "Midnight",
+        backgroundColor = 0xFF060913,
+        keyBackgroundColor = 0xFF111728,
+        keyPressedColor = 0xFF1E2840,
+        keyTextColor = 0xFFF1F5F9,
+        subtextColor = 0xFF60A5FA,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF1D4ED8,
+        toolbarColor = 0xFF0B101E,
+        borderColor = 0xFF1E293B,
+        borderAlpha = 0.6f,
+        cornerRadius = 9f,
+        category = "twenty_premium"
+    )
+
+    // 19. Fire & Ice — contrasting fiery orange and icy blue accents
     val FIRE_AND_ICE = KeyboardTheme(
         id = "fire_and_ice",
-        nameAr = "النار والجليد الملحمي (Fire & Ice)",
-        nameEn = "Fire & Ice Epic",
-        backgroundColor = 0xFF0B0F19,
-        keyBackgroundColor = 0xFF141A29,
-        keyPressedColor = 0xFF242F4A,
+        nameAr = "نار وجليد أسطوري",
+        nameEn = "Fire & Ice",
+        backgroundColor = 0xFF070B14,
+        keyBackgroundColor = 0xFF121A2A,
+        keyPressedColor = 0xFF202E48,
         keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFF38BDF8,
-        accentColor = 0xFFFF5722,
-        enterButtonColor = 0xFF00D2FF,
-        toolbarColor = 0xFF0E1421,
-        borderColor = 0xFFFF5722,
+        subtextColor = 0xFFFF6B00,
+        accentColor = 0xFF00F5FF,
+        enterButtonColor = 0xFFFF5722,
+        toolbarColor = 0xFF0A101C,
+        borderColor = 0xFF00F5FF,
         borderAlpha = 0.85f,
-        cornerRadius = 9f,
+        cornerRadius = 10f,
         keyStyle = "neon",
-        category = "facemoji_20"
+        category = "twenty_premium"
     )
 
-    val MINIMAL_DARK_FACEMOJI = KeyboardTheme(
-        id = "facemoji_minimal_dark",
-        nameAr = "مينيمال داكن الاحترافي (Minimal Dark)",
-        nameEn = "Minimal Dark Charcoal",
-        backgroundColor = 0xFF0D0F12,
-        keyBackgroundColor = 0xFF181B20,
-        keyPressedColor = 0xFF252A33,
-        keyTextColor = 0xFFE2E8F0,
-        subtextColor = 0xFF717D91,
-        accentColor = 0xFF94A3B8,
-        enterButtonColor = 0xFF3B82F6,
-        toolbarColor = 0xFF111418,
-        borderColor = 0xFF272C35,
-        borderAlpha = 0.5f,
-        cornerRadius = 7f,
-        keyStyle = "rounded",
-        category = "facemoji_20"
-    )
-
-    val facemoji20Themes = listOf(
-        FACEMOJI_CLASSIC,
-        DARK_NEON,
-        GRADIENT_DREAM,
-        BLACK_AND_RED,
-        LIGHT_MODE,
-        ANIME_VIBES,
-        PURPLE_GALAXY,
-        GREEN_MATRIX,
-        SUNSET,
-        OCEAN_BLUE,
-        NEON_RAINBOW,
-        SAKURA,
-        FACEMOJI_GOLD_LUXURY,
-        BLUE_FLAME,
-        BROWN_WOOD,
-        NEON_TECH,
-        CUTE_KAWAII,
-        MIDNIGHT,
-        FIRE_AND_ICE,
-        MINIMAL_DARK_FACEMOJI
-    )
-
-    // 0. Default Theme - Matches User Screenshot 100%
-    val IPHONE_WHITE = KeyboardTheme(
-        id = "iphone_white",
-        nameAr = "آيفون الأبيض الأصلي (iOS Master)",
-        nameEn = "iPhone White Master",
-        backgroundColor = 0xFFECEEF5,
-        keyBackgroundColor = 0xFFFFFFFF,
-        keyPressedColor = 0xFFE2E5F0,
-        keyTextColor = 0xFF181B26,
-        subtextColor = 0xFF8A92A6,
-        accentColor = 0xFF5856D6,
-        enterButtonColor = 0xFF5856D6,
-        toolbarColor = 0xFFECEEF5,
-        borderColor = 0xFFD7DAE5,
-        borderAlpha = 0.6f,
-        cornerRadius = 7f,
-        keyStyle = "rounded",
-        category = "ios"
-    )
-
-    // Global Brand Themes Pack
-    val IOS_18_GLASS = KeyboardTheme(
-        id = "ios_18_glass",
-        nameAr = "آبل iOS 18 Glass",
-        nameEn = "Apple iOS 18 Glass",
-        backgroundColor = 0xFFE8ECF5,
-        keyBackgroundColor = 0xDDFFFFFF,
-        keyPressedColor = 0xAAE5EBF5,
-        keyTextColor = 0xFF0F172A,
-        subtextColor = 0xFF64748B,
-        accentColor = 0xFF007AFF,
-        enterButtonColor = 0xFF007AFF,
-        toolbarColor = 0xFFE8ECF5,
-        borderColor = 0x55FFFFFF,
-        borderAlpha = 0.8f,
-        cornerRadius = 8f,
-        keyStyle = "glass",
-        isGlass = true,
-        category = "brands"
-    )
-
-    val SAMSUNG_ONEUI_6 = KeyboardTheme(
-        id = "samsung_oneui_6",
-        nameAr = "سامسونج OneUI 6",
-        nameEn = "Samsung OneUI 6",
-        backgroundColor = 0xFFF3F4F8,
-        keyBackgroundColor = 0xFFFFFFFF,
-        keyPressedColor = 0xFFE6E8F0,
-        keyTextColor = 0xFF191C21,
-        subtextColor = 0xFF797E8B,
-        accentColor = 0xFF2A6BF2,
-        enterButtonColor = 0xFF2A6BF2,
-        toolbarColor = 0xFFF3F4F8,
-        borderColor = 0xFFE0E2EC,
-        borderAlpha = 0.5f,
-        cornerRadius = 12f,
-        keyStyle = "rounded",
-        category = "brands"
-    )
-
-    val GOOGLE_MATERIAL_YOU = KeyboardTheme(
-        id = "google_material_you",
-        nameAr = "جوجل Material You (Monet)",
-        nameEn = "Google Material You",
-        backgroundColor = 0xFFEDE7F6,
-        keyBackgroundColor = 0xFFFAF7FD,
-        keyPressedColor = 0xFFE1D9F0,
-        keyTextColor = 0xFF1D192B,
-        subtextColor = 0xFF79747E,
-        accentColor = 0xFF6750A4,
-        enterButtonColor = 0xFF6750A4,
-        toolbarColor = 0xFFEDE7F6,
-        borderColor = 0xFFD0C7DC,
-        borderAlpha = 0.6f,
-        cornerRadius = 14f,
-        keyStyle = "rounded",
-        category = "brands"
-    )
-
-    val XIAOMI_HYPEROS = KeyboardTheme(
-        id = "xiaomi_hyperos",
-        nameAr = "شاومي Xiaomi HyperOS",
-        nameEn = "Xiaomi HyperOS",
-        backgroundColor = 0xFF111215,
-        keyBackgroundColor = 0xFF1E2025,
-        keyPressedColor = 0xFF2B2E36,
-        keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFF9CA3AF,
-        accentColor = 0xFFFF6900,
-        enterButtonColor = 0xFFFF6900,
-        toolbarColor = 0xFF15171C,
-        borderColor = 0xFF2A2D35,
-        borderAlpha = 0.5f,
-        cornerRadius = 8f,
-        keyStyle = "rounded",
-        category = "brands"
-    )
-
-    val NOTHING_OS = KeyboardTheme(
-        id = "nothing_os",
-        nameAr = "نوثينج Nothing OS",
-        nameEn = "Nothing OS Monochrome",
-        backgroundColor = 0xFF000000,
-        keyBackgroundColor = 0xFF121212,
-        keyPressedColor = 0xFF242424,
-        keyTextColor = 0xFFFFFFFF,
-        subtextColor = 0xFF888888,
-        accentColor = 0xFFE01111,
-        enterButtonColor = 0xFFE01111,
-        toolbarColor = 0xFF080808,
-        borderColor = 0xFF282828,
-        borderAlpha = 0.6f,
-        cornerRadius = 4f,
-        keyStyle = "retro",
-        category = "brands"
-    )
-
-    val CYBERPUNK_NEON = KeyboardTheme(
-        id = "cyberpunk_neon",
-        nameAr = "سايبربانك نيون Cyberpunk",
-        nameEn = "Cyberpunk Neon",
-        backgroundColor = 0xFF0A0A12,
-        keyBackgroundColor = 0xFF121324,
-        keyPressedColor = 0xFF1E2038,
-        keyTextColor = 0xFF00F0FF,
-        subtextColor = 0xFF7C8BA1,
-        accentColor = 0xFF00F0FF,
-        enterButtonColor = 0xFFFF003C,
-        toolbarColor = 0xFF0F101C,
-        borderColor = 0xFF00F0FF,
-        borderAlpha = 0.7f,
-        cornerRadius = 6f,
-        keyStyle = "neon",
-        category = "brands"
-    )
-
-    // 1. Dark & Light Themes
+    // 20. Minimal Dark — modern charcoal keys with subtle highlights
     val MINIMAL_DARK = KeyboardTheme(
         id = "minimal_dark",
         nameAr = "مينيمال داكن",
@@ -621,8 +451,34 @@ object ThemePresets {
         borderColor = 0xFF333333,
         cornerRadius = 8f,
         keyStyle = "rounded",
-        category = "dark_light"
+        category = "twenty_premium"
     )
+
+    // List of the 20 featured premium themes
+    val twentyPremiumThemes: List<KeyboardTheme> = listOf(
+        FACEMOJI_CLASSIC,
+        DARK_NEON,
+        GRADIENT_DREAM,
+        BLACK_AND_RED,
+        LIGHT_MODE,
+        ANIME_VIBES,
+        PURPLE_GALAXY,
+        GREEN_MATRIX,
+        SUNSET,
+        OCEAN_BLUE,
+        NEON_RAINBOW,
+        SAKURA,
+        GOLD_LUXURY_THEME,
+        BLUE_FLAME,
+        BROWN_WOOD,
+        NEON_TECH,
+        CUTE_KAWAII,
+        MIDNIGHT,
+        FIRE_AND_ICE,
+        MINIMAL_DARK
+    )
+
+    // 1. Dark & Light Themes
 
     val MINIMAL_LIGHT = KeyboardTheme(
         id = "minimal_light",
@@ -1906,16 +1762,7 @@ object ThemePresets {
     )
 
 
-    val allPresets = facemoji20Themes + listOf(
-        // Default iPhone White Master Theme (100% matches screenshot)
-        IPHONE_WHITE,
-        // Global Brand Themes Pack
-        IOS_18_GLASS,
-        SAMSUNG_ONEUI_6,
-        GOOGLE_MATERIAL_YOU,
-        XIAOMI_HYPEROS,
-        NOTHING_OS,
-        CYBERPUNK_NEON,
+    val allPresets = twentyPremiumThemes + listOf(
         // Featured Liquid Glass & Pro Styles
         LIQUID_GLASS_BLUR,
         CYBER_BLUE,
@@ -2008,6 +1855,6 @@ object ThemePresets {
     )
 
     fun getById(id: String): KeyboardTheme {
-        return allPresets.find { it.id == id } ?: IPHONE_WHITE
+        return allPresets.find { it.id == id } ?: CYBER_PRO
     }
 }

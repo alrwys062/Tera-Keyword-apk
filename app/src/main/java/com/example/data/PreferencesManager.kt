@@ -22,14 +22,16 @@ class PreferencesManager(private val context: Context) {
         )
         val INT_KEYS = setOf(
             "vibrationDurationMs", "keyRepeatSpeedMs", "longPressDelayMs", "arabicColumnsCount",
+            "toolbarHeightDp", "keyHeightDp", "keyFontSizeSp", "floatingNavSpeed",
             "last_clipboard_scroll_idx", "last_clipboard_scroll_offset"
         )
         val BOOLEAN_KEYS = setOf(
             "vibrationEnabled", "soundEnabled", "autoReturnToLettersOnSend", "autoReturnToLettersOnShortcut",
             "autoReturnAfterEmojiInsert", "keyPopupEnabled", "autoCapitalization", "doubleSpacePeriod",
             "suggestionsEnabled", "autoCorrection", "numberRowEnabled", "topQuickEmojiRowEnabled",
-            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled",
+            "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled", "spacebarCursorControl",
             "showDualHints", "clipboardCloseOnPaste", "clipboardSaveForever", "swapClipboardAndEmoji",
+            "isFloatingKeyboard", "isSplitKeyboard",
             "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy"
         )
         val STRING_KEYS = setOf(
@@ -47,6 +49,12 @@ class PreferencesManager(private val context: Context) {
         var lastSyncedText: String? = null
         @Volatile
         var lastSyncedTime: Long = 0L
+        @Volatile
+        var cachedSettings: KeyboardSettings? = null
+        @Volatile
+        var cachedActiveTheme: KeyboardTheme? = null
+        @Volatile
+        var cachedCustomThemes: List<KeyboardTheme>? = null
     }
 
     init {
@@ -198,7 +206,8 @@ class PreferencesManager(private val context: Context) {
 
     // Settings
     fun getSettings(): KeyboardSettings {
-        return try {
+        cachedSettings?.let { return it }
+        val loaded = try {
             KeyboardSettings(
                 vibrationEnabled = getBooleanSafe("vibrationEnabled", true),
                 vibrationDurationMs = getIntSafe("vibrationDurationMs", 30),
@@ -223,19 +232,26 @@ class PreferencesManager(private val context: Context) {
                 keyFontSizeFactor = getFloatSafe("keyFontSizeFactor", 1.0f),
                 keyButtonScale = getFloatSafe("keyButtonScale", 1.0f),
                 backspaceKeyScale = getFloatSafe("backspaceKeyScale", 1.15f),
-                currentThemeId = getStringSafe("currentThemeId", "cyber_pro"),
+                currentThemeId = getStringSafe("currentThemeId", "crystal_light"),
                 defaultLanguage = getStringSafe("defaultLanguage", "ar"),
                 swipeSpaceSwitchLanguage = getBooleanSafe("swipeSpaceSwitchLanguage", true),
+                spacebarCursorControl = getBooleanSafe("spacebarCursorControl", true),
                 enterLongPressTranslateEnabled = getBooleanSafe("enterLongPressTranslateEnabled", true),
                 emojiBarHeightFactor = getFloatSafe("emojiBarHeightFactor", 1.0f),
                 emojiButtonSizeFactor = getFloatSafe("emojiButtonSizeFactor", 1.0f),
                 emojiSizeScale = getFloatSafe("emojiSizeScale", 1.0f),
+                toolbarHeightDp = getIntSafe("toolbarHeightDp", 34),
+                keyHeightDp = getIntSafe("keyHeightDp", 40),
+                keyFontSizeSp = getIntSafe("keyFontSizeSp", 20),
+                floatingNavSpeed = getIntSafe("floatingNavSpeed", 6),
                 showDualHints = getBooleanSafe("showDualHints", true),
                 clipboardCloseOnPaste = getBooleanSafe("clipboardCloseOnPaste", true),
                 clipboardSaveForever = getBooleanSafe("clipboardSaveForever", true),
                 swapClipboardAndEmoji = getBooleanSafe("swapClipboardAndEmoji", true),
+                isFloatingKeyboard = getBooleanSafe("isFloatingKeyboard", false),
+                isSplitKeyboard = getBooleanSafe("isSplitKeyboard", false),
                 enterKeyOnLeft = getBooleanSafe("enterKeyOnLeft", false),
-                isNightModeEnabled = getBooleanSafe("isNightModeEnabled", true),
+                isNightModeEnabled = getBooleanSafe("isNightModeEnabled", false),
                 autoReturnAfterEmojiInsert = getBooleanSafe("autoReturnAfterEmojiInsert", false),
                 activeDecorationStyle = getStringSafe("activeDecorationStyle", "none"),
                 keyboardLayoutStyle = getStringSafe("keyboardLayoutStyle", "10_columns"),
@@ -252,6 +268,8 @@ class PreferencesManager(private val context: Context) {
         } catch (e: Exception) {
             KeyboardSettings()
         }
+        cachedSettings = loaded
+        return loaded
     }
 
     fun getVisibleToolbarTools(): List<String> {
@@ -268,6 +286,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun saveSettings(settings: KeyboardSettings) {
+        cachedSettings = settings
         saveVisibleToolbarTools(settings.visibleToolbarTools)
         prefs.edit()
             .putBoolean("vibrationEnabled", settings.vibrationEnabled)
@@ -297,14 +316,21 @@ class PreferencesManager(private val context: Context) {
             .putString("currentThemeId", settings.currentThemeId)
             .putString("defaultLanguage", settings.defaultLanguage)
             .putBoolean("swipeSpaceSwitchLanguage", settings.swipeSpaceSwitchLanguage)
+            .putBoolean("spacebarCursorControl", settings.spacebarCursorControl)
             .putBoolean("enterLongPressTranslateEnabled", settings.enterLongPressTranslateEnabled)
             .putFloat("emojiBarHeightFactor", settings.emojiBarHeightFactor)
             .putFloat("emojiButtonSizeFactor", settings.emojiButtonSizeFactor)
             .putFloat("emojiSizeScale", settings.emojiSizeScale)
+            .putInt("toolbarHeightDp", settings.toolbarHeightDp)
+            .putInt("keyHeightDp", settings.keyHeightDp)
+            .putInt("keyFontSizeSp", settings.keyFontSizeSp)
+            .putInt("floatingNavSpeed", settings.floatingNavSpeed)
             .putBoolean("showDualHints", settings.showDualHints)
             .putBoolean("clipboardCloseOnPaste", settings.clipboardCloseOnPaste)
             .putBoolean("clipboardSaveForever", settings.clipboardSaveForever)
             .putBoolean("swapClipboardAndEmoji", settings.swapClipboardAndEmoji)
+            .putBoolean("isFloatingKeyboard", settings.isFloatingKeyboard)
+            .putBoolean("isSplitKeyboard", settings.isSplitKeyboard)
             .putBoolean("enterKeyOnLeft", settings.enterKeyOnLeft)
             .putBoolean("isNightModeEnabled", settings.isNightModeEnabled)
             .putString("activeDecorationStyle", settings.activeDecorationStyle)
@@ -345,6 +371,8 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun setCurrentTheme(themeId: String) {
+        cachedActiveTheme = null
+        cachedSettings = cachedSettings?.copy(currentThemeId = themeId)
         prefs.edit().putString("currentThemeId", themeId).apply()
     }
 
@@ -469,17 +497,20 @@ class PreferencesManager(private val context: Context) {
         }
         prefs.edit().putString("custom_themes_list", arr.toString()).apply()
         if (getStringSafe("currentThemeId", "") == themeId) {
-            setCurrentTheme("cyber_pro")
+            setCurrentTheme("iphone_white")
         }
     }
 
     fun getActiveTheme(): KeyboardTheme {
-        return try {
-            val id = getStringSafe("currentThemeId", "cyber_pro")
+        cachedActiveTheme?.let { return it }
+        val theme = try {
+            val id = getStringSafe("currentThemeId", "crystal_light")
             getCustomThemes().find { it.id == id } ?: ThemePresets.getById(id)
         } catch (_: Exception) {
-            ThemePresets.CYBER_PRO
+            ThemePresets.CRYSTAL_LIGHT
         }
+        cachedActiveTheme = theme
+        return theme
     }
 
     fun saveActiveTheme(theme: KeyboardTheme) {
@@ -693,10 +724,11 @@ class PreferencesManager(private val context: Context) {
 
                 if (!extractedText.isNullOrBlank()) {
                     val trimmed = extractedText.trim()
-                    if (trimmed.isNotEmpty() && !isDeletedSystemClip(trimmed)) {
+                    if (trimmed.isNotEmpty()) {
                         val now = System.currentTimeMillis()
-                        // Ensure newly copied text from Telegram/WhatsApp is immediately captured
+                        // Ensure newly copied text is immediately captured
                         if (lastSyncedText != trimmed || (now - lastSyncedTime > 400L)) {
+                            unblacklistSystemClip(trimmed)
                             lastSyncedText = trimmed
                             lastSyncedTime = now
                             addClipboardItem(trimmed)

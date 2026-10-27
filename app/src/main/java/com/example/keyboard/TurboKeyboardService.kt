@@ -21,7 +21,7 @@ import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
 
-class TurboKeyboardService : InputMethodService(),
+open class TurboKeyboardService : InputMethodService(),
     LifecycleOwner,
     ViewModelStoreOwner,
     SavedStateRegistryOwner {
@@ -42,7 +42,7 @@ class TurboKeyboardService : InputMethodService(),
     private val activeInputConnectionState = mutableStateOf<InputConnection?>(null)
     private val activeEditorInfoState = mutableStateOf<EditorInfo?>(null)
     private val keyboardSettingsState = mutableStateOf(KeyboardSettings())
-    private val keyboardThemeState = mutableStateOf(com.example.model.ThemePresets.CYBER_PRO)
+    private val keyboardThemeState = mutableStateOf(com.example.model.ThemePresets.CRYSTAL_LIGHT)
     private val keyboardLanguageState = mutableStateOf("ar")
     private val inputSessionSignal = mutableStateOf(0L)
     private var composeView: ComposeView? = null
@@ -94,6 +94,9 @@ class TurboKeyboardService : InputMethodService(),
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                 win.setDimAmount(0f)
+                win.setGravity(android.view.Gravity.BOTTOM)
+                win.addFlags(android.view.WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+                win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             window?.window?.decorView?.let { decorView ->
                 decorView.setViewTreeLifecycleOwner(this)

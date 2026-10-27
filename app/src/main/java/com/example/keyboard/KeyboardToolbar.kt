@@ -20,6 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -51,6 +58,7 @@ fun KeyboardToolbar(
     onSubViewSelected: (KeyboardSubView) -> Unit,
     onToggleDecorationBar: () -> Unit,
     onToggleTranslationBar: () -> Unit,
+    onTranslateLongPressEnter: (() -> Unit)? = null,
     onToggleNightMode: () -> Unit,
     onVoiceClick: () -> Unit,
     onOpenSettingsClick: () -> Unit,
@@ -63,7 +71,8 @@ fun KeyboardToolbar(
         visibleTools
     }
 
-    val actualHeight = toolbarHeight ?: if (isCompact) 32.dp else 40.dp
+    // Explicit 50dp height for top toolbar (48dp-52dp as required) to prevent any clipping
+    val actualHeight = toolbarHeight ?: if (isCompact) 48.dp else 50.dp
 
     Row(
         modifier = Modifier
@@ -71,8 +80,8 @@ fun KeyboardToolbar(
             .height(actualHeight)
             .background(Color(theme.toolbarColor))
             .horizontalScroll(scrollState)
-            .padding(horizontal = 2.dp, vertical = 1.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 0. ملصقات (Stickers & Designer)
@@ -89,7 +98,7 @@ fun KeyboardToolbar(
             )
         }
 
-        // 1. ترجمة (Translation)
+        // 1. ترجمة (Translation) - ضغطة سريعة تفتح/تغلق الترجمة، وضغطة مطولة 1.5 ثانية تعمل كزر Enter
         if ("translate" in toolsToShow) {
             val isTranslateActive = isTranslationActive || activeSubView == KeyboardSubView.TRANSLATE
             ToolbarFixedItem(
@@ -97,7 +106,9 @@ fun KeyboardToolbar(
                 label = "ترجمة",
                 isActive = isTranslateActive,
                 theme = theme,
-                onClick = onToggleTranslationBar
+                onClick = onToggleTranslationBar,
+                onLongClick = onTranslateLongPressEnter,
+                longClickDelayMs = 1500L
             )
         }
 
@@ -282,7 +293,9 @@ private fun ToolbarFixedItem(
     label: String,
     isActive: Boolean,
     theme: KeyboardTheme,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    longClickDelayMs: Long = 500L
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -291,20 +304,45 @@ private fun ToolbarFixedItem(
     val inactiveTextColor = remember(theme.toolbarColor, isLight) {
         if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
-            .widthIn(min = if (isLandscape) 38.dp else 45.dp, max = if (isLandscape) 48.dp else 54.dp)
-            .fillMaxHeight()
+            .widthIn(min = if (isLandscape) 42.dp else 46.dp, max = if (isLandscape) 52.dp else 56.dp)
+            .height(46.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) activeColor.copy(alpha = 0.25f) else Color.Transparent)
+            .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
             .border(
                 width = if (isActive) 1.2.dp else 0.dp,
                 color = if (isActive) activeColor else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 2.dp, vertical = 1.dp),
+            .then(
+                if (onLongClick != null) {
+                    Modifier.pointerInput(onClick, onLongClick) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            var isLong = false
+                            val job = coroutineScope.launch {
+                                delay(longClickDelayMs)
+                                isLong = true
+                                onLongClick()
+                            }
+                            try {
+                                waitForUpOrCancellation()
+                            } finally {
+                                job.cancel()
+                            }
+                            if (!isLong) {
+                                onClick()
+                            }
+                        }
+                    }
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                }
+            )
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -315,13 +353,13 @@ private fun ToolbarFixedItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) activeColor else inactiveTextColor.copy(alpha = 0.90f),
-                modifier = Modifier.size(if (isLandscape) 16.dp else 18.5.dp)
+                modifier = Modifier.size(if (isLandscape) 17.dp else 19.dp)
             )
-            Spacer(modifier = Modifier.height(0.5.dp))
+            Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = label,
                 color = if (isActive) activeColor else inactiveTextColor,
-                fontSize = if (isLandscape) 8.sp else 9.sp,
+                fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

@@ -177,7 +177,7 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
 
-    val symbolsRow2 = listOf("@", "#", "/", "+", "%", "ـ", ".", "-", "*", ":").map {
+    val symbolsRow2 = listOf("@", "#", "$", "%", "&", "*", "-", "+", "(", ")").map {
         KeyModel(KeyType.Character(it))
     }
 
@@ -185,12 +185,12 @@ object KeyLayouts {
         KeyModel(KeyType.Character("=\\<"), weight = 1.2f),
         KeyModel(KeyType.Character("!")),
         KeyModel(KeyType.Character("\"")),
-        KeyModel(KeyType.Character("$")),
-        KeyModel(KeyType.Character("&")),
-        KeyModel(KeyType.Character("(")),
-        KeyModel(KeyType.Character(")")),
-        KeyModel(KeyType.Character(";")),
-        KeyModel(KeyType.Character("?")),
+        KeyModel(KeyType.Character("'")),
+        KeyModel(KeyType.Character(":")),
+        KeyModel(KeyType.Character("؛")),
+        KeyModel(KeyType.Character("/")),
+        KeyModel(KeyType.Character("،")),
+        KeyModel(KeyType.Character("؟")),
         KeyModel(KeyType.Backspace, weight = 1.3f)
     )
 
@@ -205,13 +205,14 @@ object KeyLayouts {
 
     val symbolsMoreRow3 = listOf(
         KeyModel(KeyType.Character("123"), weight = 1.2f),
+        KeyModel(KeyType.Character("«")),
+        KeyModel(KeyType.Character("»")),
+        KeyModel(KeyType.Character("±")),
+        KeyModel(KeyType.Character("≤")),
+        KeyModel(KeyType.Character("≥")),
+        KeyModel(KeyType.Character("≠")),
+        KeyModel(KeyType.Character("≈")),
         KeyModel(KeyType.Character("™")),
-        KeyModel(KeyType.Character("®")),
-        KeyModel(KeyType.Character("©")),
-        KeyModel(KeyType.Character("¶")),
-        KeyModel(KeyType.Character("\\")),
-        KeyModel(KeyType.Character("<")),
-        KeyModel(KeyType.Character(">")),
         KeyModel(KeyType.Backspace, weight = 1.3f)
     )
 

@@ -93,15 +93,78 @@ object LongPressVariantsManager {
         "٠" to listOf("٠", "ﷺ", "ﷻ", "صلى الله عليه وسلم", "جل جلاله", "رضي الله عنه", "رحمه الله", "0", "⁰", "∅", "⓪")
     )
 
+    // Extensible email domains list for dot key long-press matching exact user requirement:
+    // www. , @hotmail.com , @gmail.com , @yahoo.com , .com
+    val dotShortcuts: List<String> = listOf(
+        "www.",
+        "@hotmail.com",
+        "@gmail.com",
+        "@yahoo.com",
+        ".com",
+        "@outlook.com",
+        "@icloud.com",
+        ".net",
+        ".org",
+        "https://"
+    )
+
     fun getVariants(char: String): List<String> {
         if (char == "." || char == "٫") {
-            return listOf("@gmail.com", "@hotmail.com", "@yahoo.com", "www.", ".com", ".org", ".net", ".edu", "http://", "https://")
+            return dotShortcuts
+        }
+        if (char == "،" || char == ",") {
+            return listOf("،", ",", "؛", ";", ":", "…", "«", "»")
+        }
+        if (char == "+") {
+            return listOf("+", "±", "×", "÷", "√", "π", "∞", "♥", "♡", "§", "♣", "♦", "♧", "☆", "★", "✧", "♕", "♜", "♞", "♔", "♗", "❀")
+        }
+        if (char == "*" || char == "×") {
+            return listOf("×", "*", "÷", "±", "√", "π", "∞", "≤", "≥", "≠", "≈", "★", "☆", "✧", "✦")
+        }
+        if (char == "/" || char == "÷") {
+            return listOf("÷", "/", "\\", "±", "⁄", "|", "¦")
+        }
+        if (char == "=") {
+            return listOf("=", "≠", "≈", "≤", "≥", "±", "≡", "√", "∞")
+        }
+        if (char == "(" || char == ")") {
+            return listOf(")", "(", "«", "»", "[", "]", "{", "}", "⟨", "⟩")
+        }
+        if (char == "[" || char == "]") {
+            return listOf("[", "]", "{", "}", "«", "»", "(", ")", "<", ">")
+        }
+        if (char == "{" || char == "}") {
+            return listOf("{", "}", "[", "]", "«", "»", "(", ")")
+        }
+        if (char == "«" || char == "»") {
+            return listOf("«", "»", "\"", "'", "“", "”", "„", "‟")
+        }
+        if (char == "\"" || char == "”" || char == "“") {
+            return listOf("«", "»", "\"", "“", "”", "'", "‘", "’", "،", "؛")
+        }
+        if (char == "؟" || char == "?") {
+            return listOf("؟", "?", "!", "¡", "¿", "‽", "؛", "،")
+        }
+        if (char == "!" || char == "¡") {
+            return listOf("!", "؟", "?", "¡", "‽", "‼")
+        }
+        if (char == "؛" || char == ";") {
+            return listOf("؛", ";", "،", ",", ":", "…")
+        }
+        if (char == ":" || char == "colon") {
+            return listOf(":", "؛", ";", "،", ",", "…")
         }
         if (char == "-" || char == "–" || char == "—") {
-            return listOf("ـ", "-", "—", "–", "•")
+            return listOf("ـ", "-", "—", "–", "•", "_", "~")
         }
         if (char == "_") {
-            return listOf("ـ", "_", "–", "—")
+            return listOf("_", "ـ", "-", "–", "—", "~")
+        }
+        if (char == "%" || char == "٪") {
+            return listOf("%", "٪", "‰", "‱", "°")
+        }
+        if (char == "$" || char == "€" || char == "£" || char == "¥") {
+            return listOf("﷼", "$", "€", "£", "¥", "د.ك", "د.إ", "ج.م", "₹", "¢", "₿")
         }
         val lower = char.lowercase()
         return arabicVariants[char]

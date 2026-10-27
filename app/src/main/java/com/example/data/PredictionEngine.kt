@@ -90,18 +90,48 @@ object PredictionEngine {
         val isCustomCandidate: Boolean = false
     )
 
+    fun levenshteinDistance(s1: String, s2: String): Int {
+        val a = s1.lowercase()
+        val b = s2.lowercase()
+        if (a == b) return 0
+        if (a.isEmpty()) return b.length
+        if (b.isEmpty()) return a.length
+
+        val costs = IntArray(b.length + 1) { it }
+        for (i in 1..a.length) {
+            costs[0] = i
+            var nw = i - 1
+            for (j in 1..b.length) {
+                val cj = if (a[i - 1] == b[j - 1]) nw else 1 + minOf(costs[j], costs[j - 1], nw)
+                nw = costs[j]
+                costs[j] = cj
+            }
+        }
+        return costs[b.length]
+    }
+
     fun getPredictionsWithCorrection(
         prefix: String,
         isArabic: Boolean,
-        userWords: List<String> = emptyList()
+        userWords: List<String> = emptyList(),
+        prevWord: String? = null,
+        userDict: UserDictionaryManager? = null
     ): List<PredictionResult> {
         val clean = prefix.trim()
         val dictionary = if (isArabic) commonArabicWords else commonEnglishWords
         val nextWordMap = if (isArabic) arabicNextWordPredictions else englishNextWordPredictions
+        val cleanPrev = prevWord?.trim()?.replace(Regex("[،؛؟?!.,:;]+$"), "")
 
-        // If prefix is empty (e.g. at start of line or after space):
-        // Show polite, natural greetings and conversational starters
+        // 1. If prefix is empty: show context-aware next-word predictions (n-gram / user history)
         if (clean.isEmpty()) {
+            if (!cleanPrev.isNullOrBlank()) {
+                val learnedNext = userDict?.getLearnedNextWords(cleanPrev) ?: emptyList()
+                val staticNext = nextWordMap[cleanPrev] ?: emptyList()
+                val candidates = (learnedNext + staticNext).distinct()
+                if (candidates.isNotEmpty()) {
+                    return candidates.take(3).map { PredictionResult(word = it) }
+                }
+            }
             return if (isArabic) {
                 listOf(
                     PredictionResult("السلام"),
@@ -117,41 +147,63 @@ object PredictionEngine {
             }
         }
 
-        val correction = SpellCheckDictionary.getCorrection(clean, isArabic)
         val results = mutableListOf<PredictionResult>()
 
+        // 2. Direct SpellCheckDictionary correction
+        val correction = SpellCheckDictionary.getCorrection(clean, isArabic)
         if (correction != null && !correction.equals(clean, ignoreCase = true)) {
-            // First priority: corrected spelling!
             results.add(PredictionResult(word = correction, isCorrection = true))
         }
 
-        // Check if clean matches a preceding word for next-word prediction only when no typo
-        if (results.isEmpty()) {
-            val nextWords = nextWordMap[clean]
-            if (nextWords != null && nextWords.isNotEmpty()) {
-                return nextWords.take(3).map { PredictionResult(word = it) }
+        // 3. User learned words sorted by frequency + dictionary
+        val learnedFreqWords = userDict?.getWordsByFrequency() ?: userWords
+        val combined = (learnedFreqWords + dictionary).distinct()
+
+        // 4. Context-aware n-gram priority: words that follow prevWord AND start with prefix
+        if (!cleanPrev.isNullOrBlank()) {
+            val learnedNext = userDict?.getLearnedNextWords(cleanPrev) ?: emptyList()
+            val staticNext = nextWordMap[cleanPrev] ?: emptyList()
+            val contextMatches = (learnedNext + staticNext).filter {
+                it.startsWith(clean, ignoreCase = true)
+            }
+            for (cm in contextMatches) {
+                if (results.size < 3 && results.none { it.word.equals(cm, ignoreCase = true) }) {
+                    results.add(PredictionResult(word = cm, isCorrection = false))
+                }
             }
         }
 
-        val combined = (userWords + dictionary).distinct()
-
-        // Prefix matches
-        val matches = combined.filter {
+        // 5. General Prefix matches (exact start)
+        val prefixMatches = combined.filter {
             it.startsWith(clean, ignoreCase = true)
-        }.sortedBy { it.length }
+        }.sortedWith(compareBy({ it.length }, { it }))
 
-        for (m in matches) {
+        for (m in prefixMatches) {
             if (results.size < 3 && results.none { it.word.equals(m, ignoreCase = true) }) {
                 results.add(PredictionResult(word = m, isCorrection = false))
             }
         }
 
-        // If user typed a complete non-dictionary word, offer to save to personal dictionary
+        // 6. Approximate Spell Check using fast bounded search (Levenshtein distance <= 2)
+        if (results.size < 3 && clean.length in 3..12) {
+            val candidateSlice = combined.take(80)
+            for (candidate in candidateSlice) {
+                if (results.size >= 3) break
+                if (kotlin.math.abs(candidate.length - clean.length) <= 1 &&
+                    levenshteinDistance(candidate, clean) in 1..2 &&
+                    results.none { it.word.equals(candidate, ignoreCase = true) }
+                ) {
+                    results.add(PredictionResult(word = candidate, isCorrection = true))
+                }
+            }
+        }
+
+        // 7. If user typed a custom new word, offer to save
         if (clean.length >= 3 && !combined.any { it.equals(clean, ignoreCase = true) } && correction == null && results.size < 3) {
             results.add(PredictionResult(word = clean, isCustomCandidate = true))
         }
 
-        // Fillers from dictionary if needed (never "اقتراح" or "اقتراحات"!)
+        // 8. Natural fillers if still under 3
         val fallbackWords = if (isArabic) listOf("شكراً", "تمام", "نعم", "ممتاز", "أكيد") else listOf("Okay", "Sure", "Great", "Yes", "Thanks")
         for (fb in fallbackWords) {
             if (results.size >= 3) break
@@ -163,17 +215,22 @@ object PredictionEngine {
         return results.take(3)
     }
 
-    fun getNextWordPredictions(prevWord: String, isArabic: Boolean): List<PredictionResult> {
+    fun getNextWordPredictions(
+        prevWord: String,
+        isArabic: Boolean,
+        userDict: UserDictionaryManager? = null
+    ): List<PredictionResult> {
         val clean = prevWord.trim().replace(Regex("[،؛؟?!.,:;]+$"), "")
         if (clean.isEmpty()) {
-            return getPredictionsWithCorrection("", isArabic)
+            return getPredictionsWithCorrection("", isArabic, userDict = userDict)
         }
+        val learned = userDict?.getLearnedNextWords(clean) ?: emptyList()
         val nextWordMap = if (isArabic) arabicNextWordPredictions else englishNextWordPredictions
-        val predictions = nextWordMap[clean]
-        if (!predictions.isNullOrEmpty()) {
+        val staticNext = nextWordMap[clean] ?: emptyList()
+        val predictions = (learned + staticNext).distinct()
+        if (predictions.isNotEmpty()) {
             return predictions.take(3).map { PredictionResult(word = it) }
         }
-        // Fallback starters
         return if (isArabic) {
             listOf(PredictionResult("شكراً"), PredictionResult("تمام"), PredictionResult("نعم"))
         } else {

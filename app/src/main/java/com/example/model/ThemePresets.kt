@@ -54,23 +54,23 @@ object ThemePresets {
     }
 
     // =========================================================================
-    // FLAGSHIP DEFAULT THEME — Crystal Light Royal (Glassmorphism Minimal Light)
+    // FLAGSHIP DEFAULT THEME — Royal Crystal Luxe (Glassmorphism Minimal Light)
     // =========================================================================
     val CRYSTAL_LIGHT = KeyboardTheme(
         id = "crystal_light",
-        nameAr = "كريستال لايت الملكي (الافتراضي)",
-        nameEn = "Crystal Light Royal (Default)",
-        backgroundColor = 0xFFF1F5F9,
+        nameAr = "كريستال رويال الفاخر (الافتراضي)",
+        nameEn = "Royal Crystal Luxe (Default)",
+        backgroundColor = 0xFFF4F6FB,
         keyBackgroundColor = 0xFFFFFFFF,
         keyPressedColor = 0xFFE2E8F0,
         keyTextColor = 0xFF0F172A,
         subtextColor = 0xFF64748B,
         accentColor = 0xFF2563EB,
         enterButtonColor = 0xFF2563EB,
-        toolbarColor = 0xFFF8FAFC,
-        borderColor = 0xFFE2E8F0,
-        borderAlpha = 0.8f,
-        cornerRadius = 10f,
+        toolbarColor = 0xFFEDF2F9,
+        borderColor = 0xFFD8E1ED,
+        borderAlpha = 0.85f,
+        cornerRadius = 9.5f,
         keyStyle = "glass_light",
         category = "twenty_premium"
     )

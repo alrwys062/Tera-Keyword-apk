@@ -771,6 +771,437 @@ object ThemePresets {
         category = "colorful"
     )
 
+    // =========================================================================
+    // 20 MODERN LIGHT THEMES SUITE (20 ستايل فاتح للكيبورد - من صورة الطلب)
+    // =========================================================================
+
+    // 1. Light Blue 💧
+    val LIGHT_BLUE_SUITE = KeyboardTheme(
+        id = "light_blue_suite",
+        nameAr = "لايت بلو 💧",
+        nameEn = "Light Blue",
+        backgroundColor = 0xFFE0F2FE,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFBAE6FD,
+        keyTextColor = 0xFF0369A1,
+        subtextColor = 0xFF0284C7,
+        accentColor = 0xFF0284C7,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xFFD0ECFD,
+        borderColor = 0xFFBAE6FD,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 2. Pink Dream 💖
+    val PINK_DREAM_SUITE = KeyboardTheme(
+        id = "pink_dream_suite",
+        nameAr = "بينك دريم 💖",
+        nameEn = "Pink Dream",
+        backgroundColor = 0xFFFCE7F3,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFFBCFE8,
+        keyTextColor = 0xFF831843,
+        subtextColor = 0xFFDB2777,
+        accentColor = 0xFFEC4899,
+        enterButtonColor = 0xFFDB2777,
+        toolbarColor = 0xFFF9D6EA,
+        borderColor = 0xFFFBCFE8,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 3. Mint Green 🍃
+    val MINT_GREEN_SUITE = KeyboardTheme(
+        id = "mint_green_suite",
+        nameAr = "مينت جرين 🍃",
+        nameEn = "Mint Green",
+        backgroundColor = 0xFFDCFCE7,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFBBF7D0,
+        keyTextColor = 0xFF065F46,
+        subtextColor = 0xFF059669,
+        accentColor = 0xFF10B981,
+        enterButtonColor = 0xFF059669,
+        toolbarColor = 0xFFCEFAD9,
+        borderColor = 0xFFBBF7D0,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 4. Lavender 🌸
+    val LAVENDER_SUITE = KeyboardTheme(
+        id = "lavender_suite",
+        nameAr = "لافندر 🌸",
+        nameEn = "Lavender",
+        backgroundColor = 0xFFEDE9FE,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFDDD6FE,
+        keyTextColor = 0xFF4C1D95,
+        subtextColor = 0xFF7C3AED,
+        accentColor = 0xFF8B5CF6,
+        enterButtonColor = 0xFF7C3AED,
+        toolbarColor = 0xFFDFD7FE,
+        borderColor = 0xFFDDD6FE,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 5. Sunset Light 🌅
+    val SUNSET_LIGHT_SUITE = KeyboardTheme(
+        id = "sunset_light_suite",
+        nameAr = "سانست لايت 🌅",
+        nameEn = "Sunset Light",
+        backgroundColor = 0xFFFFEDD5,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFFED7AA,
+        keyTextColor = 0xFF7C2D12,
+        subtextColor = 0xFFEA580C,
+        accentColor = 0xFFF97316,
+        enterButtonColor = 0xFFEA580C,
+        toolbarColor = 0xFFFDE3C4,
+        borderColor = 0xFFFED7AA,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 6. Sky White ☁️
+    val SKY_WHITE_SUITE = KeyboardTheme(
+        id = "sky_white_suite",
+        nameAr = "سكاي وايت ☁️",
+        nameEn = "Sky White",
+        backgroundColor = 0xFFF8FAFC,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE2E8F0,
+        keyTextColor = 0xFF0F172A,
+        subtextColor = 0xFF0284C7,
+        accentColor = 0xFF0EA5E9,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xFFEDF2F7,
+        borderColor = 0xFFCBD5E1,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 7. Forest Light 🌿
+    val FOREST_LIGHT_SUITE = KeyboardTheme(
+        id = "forest_light_suite",
+        nameAr = "فورست لايت 🌿",
+        nameEn = "Forest Light",
+        backgroundColor = 0xFFE8F5E9,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFC8E6C9,
+        keyTextColor = 0xFF1B5E20,
+        subtextColor = 0xFF2E7D32,
+        accentColor = 0xFF2E7D32,
+        enterButtonColor = 0xFF2E7D32,
+        toolbarColor = 0xFFD7EED9,
+        borderColor = 0xFFC8E6C9,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 8. Gold Touch 👑
+    val GOLD_TOUCH_SUITE = KeyboardTheme(
+        id = "gold_touch_suite",
+        nameAr = "جولد تاتش 👑",
+        nameEn = "Gold Touch",
+        backgroundColor = 0xFFFEF9C3,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFFEF08A,
+        keyTextColor = 0xFF78350F,
+        subtextColor = 0xFFB45309,
+        accentColor = 0xFFD97706,
+        enterButtonColor = 0xFFD97706,
+        toolbarColor = 0xFFFCF4AA,
+        borderColor = 0xFFFEF08A,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 9. Ocean Wave 🌊
+    val OCEAN_WAVE_SUITE = KeyboardTheme(
+        id = "ocean_wave_suite",
+        nameAr = "أوشن ويف 🌊",
+        nameEn = "Ocean Wave",
+        backgroundColor = 0xFFE0F7FA,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFB2EBF2,
+        keyTextColor = 0xFF006064,
+        subtextColor = 0xFF00838F,
+        accentColor = 0xFF00ACC1,
+        enterButtonColor = 0xFF00838F,
+        toolbarColor = 0xFFCDEFF4,
+        borderColor = 0xFFB2EBF2,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 10. Sakura 🌸
+    val SAKURA_SUITE = KeyboardTheme(
+        id = "sakura_suite",
+        nameAr = "ساكورا 🌸",
+        nameEn = "Sakura",
+        backgroundColor = 0xFFFCE4EC,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFF8BBD0,
+        keyTextColor = 0xFF880E4F,
+        subtextColor = 0xFFC2185B,
+        accentColor = 0xFFE91E63,
+        enterButtonColor = 0xFFD81B60,
+        toolbarColor = 0xFFF8D3DF,
+        borderColor = 0xFFF8BBD0,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 11. Purple Light ⭐
+    val PURPLE_LIGHT_SUITE = KeyboardTheme(
+        id = "purple_light_suite",
+        nameAr = "بيربل لايت ⭐",
+        nameEn = "Purple Light",
+        backgroundColor = 0xFFF3E8FF,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE9D5FF,
+        keyTextColor = 0xFF3B0764,
+        subtextColor = 0xFF6B21A8,
+        accentColor = 0xFF7C3AED,
+        enterButtonColor = 0xFF6B21A8,
+        toolbarColor = 0xFFEBD4FD,
+        borderColor = 0xFFE9D5FF,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 12. Sky Sunset 🌅
+    val SKY_SUNSET_SUITE = KeyboardTheme(
+        id = "sky_sunset_suite",
+        nameAr = "سكاي سانست 🌅",
+        nameEn = "Sky Sunset",
+        backgroundColor = 0xFFEEF2FF,
+        backgroundGradient = listOf(0xFFE0E7FF, 0xFFFCE7F3),
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE0E7FF,
+        keyTextColor = 0xFF1E1B4B,
+        subtextColor = 0xFF4338CA,
+        accentColor = 0xFF6366F1,
+        enterButtonColor = 0xFF4F46E5,
+        toolbarColor = 0xFFE5E7FD,
+        borderColor = 0xFFC7D2FE,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 13. Neon White ✨
+    val NEON_WHITE_SUITE = KeyboardTheme(
+        id = "neon_white_suite",
+        nameAr = "نيون وايت ✨",
+        nameEn = "Neon White",
+        backgroundColor = 0xFFFFFFFF,
+        keyBackgroundColor = 0xFFF8FAFC,
+        keyPressedColor = 0xFFE2E8F0,
+        keyTextColor = 0xFF000000,
+        subtextColor = 0xFF0284C7,
+        accentColor = 0xFF00B0FF,
+        enterButtonColor = 0xFF0091EA,
+        toolbarColor = 0xFFF1F5F9,
+        borderColor = 0xFF00E5FF,
+        borderAlpha = 0.9f,
+        cornerRadius = 10f,
+        keyStyle = "neon",
+        category = "twenty_light"
+    )
+
+    // 14. Beige Minimal 🌾
+    val BEIGE_MINIMAL_SUITE = KeyboardTheme(
+        id = "beige_minimal_suite",
+        nameAr = "بيج مينيمال 🌾",
+        nameEn = "Beige Minimal",
+        backgroundColor = 0xFFF5F5DC,
+        keyBackgroundColor = 0xFFFFFDF5,
+        keyPressedColor = 0xFFEFE8D8,
+        keyTextColor = 0xFF3D2B1F,
+        subtextColor = 0xFF785E4F,
+        accentColor = 0xFFA07855,
+        enterButtonColor = 0xFF8C6240,
+        toolbarColor = 0xFFECE7D5,
+        borderColor = 0xFFE0D8C3,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 15. Aqua Glow ✨
+    val AQUA_GLOW_SUITE = KeyboardTheme(
+        id = "aqua_glow_suite",
+        nameAr = "أكوا جلو ✨",
+        nameEn = "Aqua Glow",
+        backgroundColor = 0xFF004D40,
+        backgroundGradient = listOf(0xFF004D40, 0xFF00796B),
+        keyBackgroundColor = 0xFFE0F2F1,
+        keyPressedColor = 0xFFB2DFDB,
+        keyTextColor = 0xFF00332C,
+        subtextColor = 0xFF004D40,
+        accentColor = 0xFF00E5FF,
+        enterButtonColor = 0xFF00BFA5,
+        toolbarColor = 0xFF00382E,
+        borderColor = 0xFF00E5FF,
+        borderAlpha = 0.9f,
+        cornerRadius = 10f,
+        keyStyle = "neon",
+        category = "twenty_light"
+    )
+
+    // 16. Rainbow Light 🌈
+    val RAINBOW_LIGHT_SUITE = KeyboardTheme(
+        id = "rainbow_light_suite",
+        nameAr = "رينبو لايت 🌈",
+        nameEn = "Rainbow Light",
+        backgroundColor = 0xFFFFF5F5,
+        backgroundGradient = listOf(0xFFFFF1F2, 0xFFFEF9C3, 0xFFE0F2FE),
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFFCE7F3,
+        keyTextColor = 0xFF3B0764,
+        subtextColor = 0xFF9333EA,
+        accentColor = 0xFFA855F7,
+        enterButtonColor = 0xFF9333EA,
+        toolbarColor = 0xFFFDF0F8,
+        borderColor = 0xFFFBCFE8,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 17. Cloudy Day ☁️
+    val CLOUDY_DAY_SUITE = KeyboardTheme(
+        id = "cloudy_day_suite",
+        nameAr = "كلاودي داي ☁️",
+        nameEn = "Cloudy Day",
+        backgroundColor = 0xFFE2E8F0,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFCBD5E1,
+        keyTextColor = 0xFF1E293B,
+        subtextColor = 0xFF475569,
+        accentColor = 0xFF64748B,
+        enterButtonColor = 0xFF475569,
+        toolbarColor = 0xFFD8E0EA,
+        borderColor = 0xFFCBD5E1,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 18. Rose Gold 💎
+    val ROSE_GOLD_SUITE = KeyboardTheme(
+        id = "rose_gold_suite",
+        nameAr = "روز جولد 💎",
+        nameEn = "Rose Gold",
+        backgroundColor = 0xFFFFF0F5,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFFFE4E1,
+        keyTextColor = 0xFF5C2C35,
+        subtextColor = 0xFF9C5160,
+        accentColor = 0xFFB76E79,
+        enterButtonColor = 0xFFA35763,
+        toolbarColor = 0xFFFBE4EB,
+        borderColor = 0xFFFFC0CB,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 19. Purple Blue ⭐
+    val PURPLE_BLUE_SUITE = KeyboardTheme(
+        id = "purple_blue_suite",
+        nameAr = "بيربل بلو ⭐",
+        nameEn = "Purple Blue",
+        backgroundColor = 0xFFF1F5F9,
+        backgroundGradient = listOf(0xFFEDE9FE, 0xFFDBEAFE),
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE0E7FF,
+        keyTextColor = 0xFF1E1B4B,
+        subtextColor = 0xFF4338CA,
+        accentColor = 0xFF4F46E5,
+        enterButtonColor = 0xFF4338CA,
+        toolbarColor = 0xFFE4ECFA,
+        borderColor = 0xFFC7D2FE,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    // 20. Green Leaf 🍃
+    val GREEN_LEAF_SUITE = KeyboardTheme(
+        id = "green_leaf_suite",
+        nameAr = "جرين ليف 🍃",
+        nameEn = "Green Leaf",
+        backgroundColor = 0xFFDCFCE7,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFBBF7D0,
+        keyTextColor = 0xFF14532D,
+        subtextColor = 0xFF16A34A,
+        accentColor = 0xFF22C55E,
+        enterButtonColor = 0xFF16A34A,
+        toolbarColor = 0xFFCFF6DC,
+        borderColor = 0xFF86EFAC,
+        borderAlpha = 0.85f,
+        cornerRadius = 10f,
+        keyStyle = "glass_light",
+        category = "twenty_light"
+    )
+
+    val twentyLightThemes: List<KeyboardTheme> = listOf(
+        LIGHT_BLUE_SUITE,
+        PINK_DREAM_SUITE,
+        MINT_GREEN_SUITE,
+        LAVENDER_SUITE,
+        SUNSET_LIGHT_SUITE,
+        SKY_WHITE_SUITE,
+        FOREST_LIGHT_SUITE,
+        GOLD_TOUCH_SUITE,
+        OCEAN_WAVE_SUITE,
+        SAKURA_SUITE,
+        PURPLE_LIGHT_SUITE,
+        SKY_SUNSET_SUITE,
+        NEON_WHITE_SUITE,
+        BEIGE_MINIMAL_SUITE,
+        AQUA_GLOW_SUITE,
+        RAINBOW_LIGHT_SUITE,
+        CLOUDY_DAY_SUITE,
+        ROSE_GOLD_SUITE,
+        PURPLE_BLUE_SUITE,
+        GREEN_LEAF_SUITE
+    )
+
     // 1. Dark & Light Themes
 
     val MINIMAL_LIGHT = KeyboardTheme(
@@ -2055,7 +2486,7 @@ object ThemePresets {
     )
 
 
-    val allPresets = (twentyPremiumThemes + listOf(
+    val allPresets = (twentyLightThemes + twentyPremiumThemes + listOf(
         // New Anime, Fantasy & Pastel Light Themes
         SHADOW_NINJA,
         SAKURA_DREAM,

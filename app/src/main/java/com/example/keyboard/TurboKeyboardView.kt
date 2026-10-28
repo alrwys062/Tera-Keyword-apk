@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -305,6 +306,7 @@ fun TurboKeyboardView(
 
     var customTopEmojis by remember { mutableStateOf(prefs.getCustomTopEmojis()) }
     var isCustomizeTopEmojisOpen by remember { mutableStateOf(false) }
+    var customizerInputText by remember { mutableStateOf("") }
 
     // Live Transboard features
     var activeDecorationStyle by remember { mutableStateOf(prefs.getActiveDecorationStyle()) }
@@ -319,6 +321,7 @@ fun TurboKeyboardView(
     var longPressChar by remember { mutableStateOf<String?>(null) }
     var longPressVariants by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedVariantIndex by remember { mutableIntStateOf(0) }
+    var lastVariantStepTime by remember { mutableLongStateOf(0L) }
     var popupOffsetX by remember { mutableFloatStateOf(0f) }
     var popupOffsetY by remember { mutableFloatStateOf(0f) }
 
@@ -447,6 +450,10 @@ fun TurboKeyboardView(
     }
 
     fun sendText(text: String) {
+        if (isCustomizeTopEmojisOpen) {
+            customizerInputText = (customizerInputText + text).take(15)
+            return
+        }
         dismissLongPressPopup()
         val resolvedText = if (text == "-" || text == "_") {
             val prevChar = currentComposingText.lastOrNull()
@@ -511,26 +518,29 @@ fun TurboKeyboardView(
         }
     }
 
-    // السحب في الأحرف العائمة: مسموح بجميع الاتجاهات (يمين، يسار، أعلى، أسفل) مع التحكم بالسرعة من الإعدادات
+    // السحب في الأحرف العائمة: مسموح بجميع الاتجاهات بتحكم هادئ وموزون ومضبوط الحساسية والتأخير
     val onDragVariantHandler: (Float, Float) -> Unit = { deltaX, deltaY ->
         if (longPressVariants.isNotEmpty()) {
-            val colCount = if (longPressVariants.size > 8) 4 else if (longPressVariants.size >= 6) 4 else 3
+            val isDotVariants = longPressChar == "."
+            val colCount = if (isDotVariants) 1 else if (longPressVariants.size > 8) 4 else if (longPressVariants.size >= 6) 4 else 3
             val rowCount = (longPressVariants.size + colCount - 1) / colCount
 
             val speed = currentSettings.floatingNavSpeed.coerceIn(1, 10)
-            val stepPx = (75f - (speed * 5f)).coerceAtLeast(20f)
+            // خطوة السحب: السرعة 1 تتطلب 65dp، والسرعة 10 تتطلب 25dp
+            val stepPx = (65f - (speed * 4f)).coerceAtLeast(25f)
+            val debounceMs = (110 - (speed * 6)).coerceIn(55, 110)
+
+            val now = System.currentTimeMillis()
             val colOffset = (deltaX / stepPx).toInt()
             val rowOffset = (deltaY / stepPx).toInt()
 
-            val currentCol = selectedVariantIndex % colCount
-            val currentRow = selectedVariantIndex / colCount
-
-            val targetCol = (currentCol + colOffset).coerceIn(0, colCount - 1)
-            val targetRow = (currentRow + rowOffset).coerceIn(0, rowCount - 1)
+            val targetCol = colOffset.coerceIn(0, colCount - 1)
+            val targetRow = rowOffset.coerceIn(0, rowCount - 1)
             val targetIdx = (targetRow * colCount + targetCol).coerceIn(0, longPressVariants.lastIndex)
 
-            if (targetIdx != selectedVariantIndex) {
+            if (targetIdx != selectedVariantIndex && (now - lastVariantStepTime >= debounceMs)) {
                 selectedVariantIndex = targetIdx
+                lastVariantStepTime = now
                 performFeedback(12L)
             }
         }
@@ -561,6 +571,12 @@ fun TurboKeyboardView(
     }
 
     fun sendDelete() {
+        if (isCustomizeTopEmojisOpen) {
+            if (customizerInputText.isNotEmpty()) {
+                customizerInputText = customizerInputText.dropLast(1)
+            }
+            return
+        }
         dismissLongPressPopup()
         performFeedback(isDelete = true)
         if (currentComposingText.isNotEmpty()) {
@@ -1393,31 +1409,60 @@ fun TurboKeyboardView(
             }
         }
 
-        // Panel to Customize Top Emojis Row (seamlessly replaces keys area at constant height)
+        // Panel to Customize Top Emojis Row (docked above keys, keeping keyboard keys visible and active below)
         if (isCustomizeTopEmojisOpen) {
-            CustomizeTopEmojisDialog(
+            CustomizeTopEmojisInlinePanel(
                 theme = activeTheme,
-                currentEmojis = customTopEmojis,
-                currentHeightFactor = currentSettings.emojiBarHeightFactor,
-                currentButtonSizeFactor = currentSettings.emojiButtonSizeFactor,
-                keyboardHeight = calculatedKeyboardHeight,
-                onSave = { updatedList, newHeightFactor, newButtonSizeFactor ->
-                    customTopEmojis = updatedList
-                    prefs.saveCustomTopEmojis(updatedList)
-                    val updatedSettings = currentSettings.copy(
-                        emojiBarHeightFactor = newHeightFactor,
-                        emojiButtonSizeFactor = newButtonSizeFactor
-                    )
-                    currentSettings = updatedSettings
-                    prefs.saveSettings(updatedSettings)
-                    isCustomizeTopEmojisOpen = false
+                workingList = customTopEmojis,
+                inputText = customizerInputText,
+                onInputTextChange = { customizerInputText = it },
+                onAddEmoji = { emoji ->
+                    if (emoji.isNotBlank()) {
+                        val trimmed = emoji.trim()
+                        if (!customTopEmojis.contains(trimmed)) {
+                            customTopEmojis = (customTopEmojis + trimmed)
+                            prefs.saveCustomTopEmojis(customTopEmojis)
+                        }
+                    }
                 },
-                onDismiss = { isCustomizeTopEmojisOpen = false }
+                onRemoveEmoji = { emoji ->
+                    customTopEmojis = customTopEmojis.filter { it != emoji }
+                    prefs.saveCustomTopEmojis(customTopEmojis)
+                },
+                heightFactor = currentSettings.emojiBarHeightFactor,
+                onHeightFactorChange = { factor ->
+                    val updated = currentSettings.copy(emojiBarHeightFactor = factor)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                },
+                buttonSizeFactor = currentSettings.emojiButtonSizeFactor,
+                onButtonSizeFactorChange = { factor ->
+                    val updated = currentSettings.copy(emojiButtonSizeFactor = factor)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                },
+                onResetDefaults = {
+                    val defaults = listOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
+                    customTopEmojis = defaults
+                    prefs.saveCustomTopEmojis(defaults)
+                    val updated = currentSettings.copy(emojiBarHeightFactor = 1.0f, emojiButtonSizeFactor = 1.0f)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                },
+                onSaveAndClose = {
+                    isCustomizeTopEmojisOpen = false
+                    customizerInputText = ""
+                    prefs.saveCustomTopEmojis(customTopEmojis)
+                },
+                onDismiss = {
+                    isCustomizeTopEmojisOpen = false
+                    customizerInputText = ""
+                }
             )
         }
 
-        // Main Keyboard Keys Section (Hidden when Customize Top Emojis or sub-views are open)
-        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isCustomizeTopEmojisOpen) {
+        // Main Keyboard Keys Section (ALWAYS VISIBLE - حتى عند تخصيص الابتسامات لكتابة الفيسات والحروف بحرية)
+        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE) {
             val (worldR1, worldR2, worldR3) = remember(
                 currentWorldLang,
                 isShifted,
@@ -2210,13 +2255,12 @@ fun TurboKeyboardView(
                         }
                     }
 
-                    // Floating Long-Press Character Popup Overlay (Adaptive shape, free drag in all directions, persists until (X) or item tap)
+                    // Floating Long-Press Character Popup Overlay (Exact match to Image 2 with red (X), 4-col matrix, and bottom floating preview key)
                     if (longPressChar != null && longPressVariants.isNotEmpty()) {
                         val isLight = ThemePresets.isLightColor(activeTheme.backgroundColor)
                         val popupTextCol = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
                         val isDotVariants = longPressChar == "."
-                        val isSmallSet = longPressVariants.size <= 5 && !isDotVariants
-                        val colCount = if (isDotVariants) 1 else if (longPressVariants.size > 12) 5 else if (longPressVariants.size > 6) 4 else 3
+                        val colCount = if (isDotVariants) 1 else 4
 
                         Box(
                             modifier = Modifier
@@ -2228,25 +2272,25 @@ fun TurboKeyboardView(
                             contentAlignment = Alignment.Center
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(activeTheme.backgroundColor).copy(alpha = 0.96f),
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(activeTheme.backgroundColor).copy(alpha = 0.98f),
                                 border = BorderStroke(1.5.dp, Color(activeTheme.accentColor)),
-                                shadowElevation = 8.dp,
+                                shadowElevation = 10.dp,
                                 modifier = Modifier
                                     .padding(horizontal = 8.dp)
                                     .clickable(enabled = false) {}
                             ) {
                                 Column(
                                     modifier = Modifier
-                                        .padding(6.dp)
+                                        .padding(horizontal = 10.dp, vertical = 8.dp)
                                         .wrapContentSize(),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    // Header with drag handle and explicit (X) close button
+                                    // Header matching Image 2: Red [X] on left, Title in center, Accent Badge on right
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(bottom = 4.dp)
+                                            .padding(bottom = 6.dp)
                                             .pointerInput(Unit) {
                                                 detectDragGestures { change, dragAmount ->
                                                     change.consume()
@@ -2261,7 +2305,7 @@ fun TurboKeyboardView(
                                         // Dismiss (X) button
                                         Box(
                                             modifier = Modifier
-                                                .size(26.dp)
+                                                .size(28.dp)
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(Color(0xFFEF4444))
                                                 .clickable {
@@ -2274,41 +2318,30 @@ fun TurboKeyboardView(
                                                 imageVector = Icons.Default.Close,
                                                 contentDescription = "Close",
                                                 tint = Color.White,
-                                                modifier = Modifier.size(15.dp)
-                                            )
-                                        }
-
-                                        // Drag handle and title
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.DragHandle,
-                                                contentDescription = "سحب",
-                                                tint = Color(activeTheme.subtextColor),
                                                 modifier = Modifier.size(16.dp)
                                             )
-                                            Text(
-                                                text = "الحروف العائمة (${longPressChar})",
-                                                color = Color(activeTheme.subtextColor),
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
                                         }
 
-                                        // Selected preview
+                                        // Title: الحروف العائمة (ي) =
+                                        Text(
+                                            text = "الحروف العائمة (${longPressChar}) =",
+                                            color = Color(activeTheme.keyTextColor),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        // Selected preview badge
                                         Box(
                                             modifier = Modifier
-                                                .size(26.dp)
+                                                .size(28.dp)
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(activeTheme.accentColor).copy(alpha = 0.25f)),
+                                                .background(Color(activeTheme.accentColor).copy(alpha = 0.22f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = longPressVariants.getOrElse(selectedVariantIndex) { longPressChar ?: "" },
                                                 color = Color(activeTheme.accentColor),
-                                                fontSize = 13.sp,
+                                                fontSize = 14.sp,
                                                 fontWeight = FontWeight.ExtraBold
                                             )
                                         }
@@ -2356,62 +2389,24 @@ fun TurboKeyboardView(
                                                     }
                                                 }
                                             }
-                                        } else if (isSmallSet) {
-                                            // Rectangular strip (مستطيل) for <= 5 items
-                                            Row(
-                                                modifier = Modifier.padding(vertical = 4.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                longPressVariants.forEachIndexed { index, variant ->
-                                                    val isCurrent = index == selectedVariantIndex
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(width = 46.dp, height = 46.dp)
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                            .background(
-                                                                if (isCurrent) Color(activeTheme.keyPressedColor)
-                                                                else Color(activeTheme.keyBackgroundColor)
-                                                            )
-                                                            .border(
-                                                                if (isCurrent) 2.dp else 1.dp,
-                                                                if (isCurrent) Color(activeTheme.accentColor) else Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha),
-                                                                RoundedCornerShape(8.dp)
-                                                            )
-                                                            .clickable {
-                                                                performFeedback()
-                                                                dismissLongPressPopup()
-                                                                sendText(variant)
-                                                            },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(
-                                                            text = variant,
-                                                            color = if (isCurrent) Color(activeTheme.accentColor) else popupTextCol,
-                                                            fontSize = 18.sp,
-                                                            fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold
-                                                        )
-                                                    }
-                                                }
-                                            }
                                         } else {
-                                            // Balanced square matrix grid (مربع) for > 5 items
+                                            // Exactly 4-column balanced grid matching Image 2
                                             val rows = longPressVariants.chunked(colCount)
                                             Column(
                                                 modifier = Modifier.padding(vertical = 4.dp),
-                                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                                verticalArrangement = Arrangement.spacedBy(5.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
                                                 rows.forEach { rowItems ->
                                                     Row(
-                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         rowItems.forEach { variant ->
                                                             val isCurrent = longPressVariants.indexOf(variant) == selectedVariantIndex
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .size(width = 44.dp, height = 44.dp)
+                                                                    .size(width = 48.dp, height = 44.dp)
                                                                     .clip(RoundedCornerShape(8.dp))
                                                                     .background(
                                                                         if (isCurrent) Color(activeTheme.keyPressedColor)
@@ -2432,7 +2427,7 @@ fun TurboKeyboardView(
                                                                 Text(
                                                                     text = variant,
                                                                     color = if (isCurrent) Color(activeTheme.accentColor) else popupTextCol,
-                                                                    fontSize = 17.sp,
+                                                                    fontSize = 18.sp,
                                                                     fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold
                                                                 )
                                                             }
@@ -2440,6 +2435,32 @@ fun TurboKeyboardView(
                                                     }
                                                 }
                                             }
+                                        }
+                                    }
+
+                                    // Floating Target Preview Key centered under the grid matching Image 2
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(activeTheme.keyBackgroundColor),
+                                        border = BorderStroke(1.5.dp, Color(activeTheme.accentColor)),
+                                        shadowElevation = 6.dp,
+                                        modifier = Modifier
+                                            .size(width = 54.dp, height = 44.dp)
+                                            .clickable {
+                                                performFeedback()
+                                                val chosen = longPressVariants.getOrElse(selectedVariantIndex) { longPressChar ?: "" }
+                                                dismissLongPressPopup()
+                                                sendText(chosen)
+                                            }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = longPressVariants.getOrElse(selectedVariantIndex) { longPressChar ?: "" },
+                                                color = Color(activeTheme.keyTextColor),
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
                                         }
                                     }
                                 }
@@ -2886,359 +2907,275 @@ fun BackspaceKeyButton(
 }
 
 @Composable
-fun CustomizeTopEmojisDialog(
+fun CustomizeTopEmojisInlinePanel(
     theme: KeyboardTheme,
-    currentEmojis: List<String>,
-    currentHeightFactor: Float = 1.0f,
-    currentButtonSizeFactor: Float = 1.0f,
-    keyboardHeight: Dp = 260.dp,
-    onSave: (List<String>, Float, Float) -> Unit,
+    workingList: List<String>,
+    inputText: String,
+    onInputTextChange: (String) -> Unit,
+    onAddEmoji: (String) -> Unit,
+    onRemoveEmoji: (String) -> Unit,
+    heightFactor: Float,
+    onHeightFactorChange: (Float) -> Unit,
+    buttonSizeFactor: Float,
+    onButtonSizeFactorChange: (Float) -> Unit,
+    onResetDefaults: () -> Unit,
+    onSaveAndClose: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var workingList by remember { mutableStateOf(currentEmojis.toMutableList()) }
-    var heightFactor by remember { mutableFloatStateOf(currentHeightFactor) }
-    var buttonSizeFactor by remember { mutableFloatStateOf(currentButtonSizeFactor) }
-    var newEmojiText by remember { mutableStateOf("") }
+    var showSliders by remember { mutableStateOf(false) }
+    var activeEmojiCat by remember { mutableIntStateOf(0) }
+    val emojiCategories = remember {
+        listOf(
+            "😊 فيسات" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
+            "❤️ قلوب" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
+            "🔥 تفاعلات" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
+            "🔣 رموز" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓", "«", "»", "±", "×", "÷"),
+            "🔤 حروف" to listOf("أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي")
+        )
+    }
 
-    Box(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(keyboardHeight)
-            .background(Color(theme.backgroundColor)),
-        contentAlignment = Alignment.TopCenter
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(theme.backgroundColor),
+        border = BorderStroke(1.2.dp, Color(theme.accentColor).copy(alpha = 0.6f)),
+        shadowElevation = 4.dp
     ) {
-        Surface(
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-            color = Color(theme.backgroundColor),
-            border = BorderStroke(1.2.dp, Color(theme.accentColor).copy(alpha = 0.5f)),
-            modifier = Modifier.fillMaxSize()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Header: Close [X], Title, and Save [✓]
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Close button
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFFEF4444).copy(alpha = 0.9f))
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color(theme.subtextColor),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Text(
-                        text = "تخصيص شريط الابتسامات العلوي",
-                        color = Color(theme.keyTextColor),
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Close, contentDescription = "إلغاء", tint = Color.White, modifier = Modifier.size(14.dp))
                 }
 
                 Text(
-                    text = "اضغط على أي ابتسامة لحذفها، أو اختر من القائمة لإضافتها",
-                    color = Color(theme.subtextColor),
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(bottom = 6.dp)
+                    text = "تخصيص شريط الابتسامات العلوي",
+                    color = Color(theme.keyTextColor),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
-                // Current Emojis Chips (matching screenshots with "× emoji")
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 6.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Save button
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(theme.accentColor),
+                    modifier = Modifier.clickable { onSaveAndClose() }
                 ) {
-                    items(workingList) { item ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(theme.keyBackgroundColor),
-                            border = BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.5f)),
-                            modifier = Modifier.clickable {
-                                workingList = workingList.toMutableList().apply { remove(item) }
-                            }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        Text("حفظ", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Current emojis chips with '×' to remove
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(theme.toolbarColor), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 4.dp, vertical = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(workingList) { item ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(theme.keyBackgroundColor),
+                        border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.4f)),
+                        modifier = Modifier.clickable { onRemoveEmoji(item) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Remove",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = item, color = Color(theme.keyTextColor), fontSize = 15.sp)
-                            }
+                            Icon(Icons.Default.Close, contentDescription = "حذف", tint = Color(0xFFEF4444), modifier = Modifier.size(11.dp))
+                            Text(text = item, color = Color(theme.keyTextColor), fontSize = 13.sp)
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Custom input row matching screenshot: [إضافة] [X] [اكتب أو اختر من الرموز أدناه...]
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Input Row: [إضافة] [X] [اكتب بالكيبورد أدناه أو اختر رمزاً...] [⚙️ حجم/ارتفاع]
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Add button
+                Button(
+                    onClick = {
+                        if (inputText.isNotBlank()) {
+                            onAddEmoji(inputText)
+                            onInputTextChange("")
+                        }
+                    },
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                    modifier = Modifier.height(30.dp)
                 ) {
-                    // Add button
-                    Button(
-                        onClick = {
-                            if (newEmojiText.isNotBlank()) {
-                                val trimmed = newEmojiText.trim()
-                                if (!workingList.contains(trimmed)) {
-                                    workingList = workingList.toMutableList().apply { add(trimmed) }
-                                }
-                                newEmojiText = ""
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        modifier = Modifier.height(38.dp)
-                    ) {
-                        Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
+                    Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
 
-                    // Clear button
+                // Clear input button
+                if (inputText.isNotEmpty()) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = Color(theme.keyBackgroundColor),
-                        border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clickable { newEmojiText = "" }
+                        border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
+                        modifier = Modifier.size(30.dp).clickable { onInputTextChange("") }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = Color(theme.subtextColor),
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.Default.Close, contentDescription = "مسح", tint = Color(theme.subtextColor), modifier = Modifier.size(13.dp))
                         }
                     }
+                }
 
-                    // Custom text display box (no nested IME loop!)
+                // Text Display / Input Field (keyboard types directly into here!)
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, if (inputText.isNotEmpty()) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.5f)),
+                    modifier = Modifier.weight(1f).height(30.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = inputText.ifEmpty { "اكتب بالكيبورد أدناه أو اختر رمزاً..." },
+                            color = if (inputText.isEmpty()) Color(theme.subtextColor) else Color(theme.keyTextColor),
+                            fontSize = if (inputText.isEmpty()) 10.sp else 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // Sliders toggle button
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (showSliders) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
+                    border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
+                    modifier = Modifier.size(30.dp).clickable { showSliders = !showSliders }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Tune, contentDescription = "الحجم والارتفاع", tint = Color(theme.keyTextColor), modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+
+            // Quick emoji categories & pickable items
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                emojiCategories.indices.forEach { idx ->
+                    val isCatSelected = activeEmojiCat == idx
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        color = if (isCatSelected) Color(theme.accentColor).copy(alpha = 0.22f) else Color(theme.keyBackgroundColor),
+                        border = BorderStroke(0.8.dp, if (isCatSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.3f)),
+                        modifier = Modifier.weight(1f).clickable { activeEmojiCat = idx }
+                    ) {
+                        Text(
+                            text = emojiCategories[idx].first,
+                            color = if (isCatSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
+                            fontSize = 9.sp,
+                            fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            // Scrollable row of items in active category (click to add directly)
+            val currentCategoryItems = emojiCategories[activeEmojiCat].second
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(theme.toolbarColor).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                    .padding(vertical = 3.dp, horizontal = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(currentCategoryItems) { item ->
+                    Surface(
+                        shape = RoundedCornerShape(5.dp),
                         color = Color(theme.keyBackgroundColor),
-                        border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(38.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Text(
-                                text = if (newEmojiText.isEmpty()) "اكتب أو اختر من الرموز أدناه..." else newEmojiText,
-                                color = if (newEmojiText.isEmpty()) Color(theme.subtextColor) else Color(theme.keyTextColor),
-                                fontSize = if (newEmojiText.isEmpty()) 11.sp else 14.sp,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Built-in Keyboard Tabs & Emoji Grid (فيسات، قلوب، تفاعلات، رموز، حروف)
-                var activeEmojiCat by remember { mutableStateOf(0) }
-                val emojiCategories = listOf(
-                    "😊 فيسات" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
-                    "❤️ قلوب" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
-                    "🔥 تفاعلات" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
-                    "🔣 رموز" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓", "«", "»", "±", "×", "÷"),
-                    "🔤 حروف" to listOf("أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي", "A", "B", "C", "D")
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    emojiCategories.indices.forEach { idx ->
-                        val isCatSelected = activeEmojiCat == idx
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (isCatSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
-                            border = BorderStroke(1.dp, if (isCatSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.3f)),
-                            modifier = Modifier.weight(1f).clickable { activeEmojiCat = idx }
-                        ) {
-                            Text(
-                                text = emojiCategories[idx].first,
-                                color = if (isCatSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
-                                fontSize = 10.sp,
-                                fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Clickable items in active category
-                val currentCategoryItems = emojiCategories[activeEmojiCat].second
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(theme.toolbarColor).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                        .padding(vertical = 6.dp, horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(currentCategoryItems) { item ->
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(theme.keyBackgroundColor),
-                            border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.4f)),
-                            modifier = Modifier.clickable {
-                                newEmojiText = (newEmojiText + item).take(12)
-                                if (!workingList.contains(item)) {
-                                    workingList = workingList.toMutableList().apply { add(item) }
-                                }
-                            }
-                        ) {
-                            Text(
-                                text = item,
-                                fontSize = 17.sp,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Real-time Live Preview
-                Text(
-                    text = "معاينة الشريط المباشرة:",
-                    color = Color(theme.keyTextColor),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(32.dp * heightFactor)
-                        .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    workingList.take(8).forEach { item ->
-                        Box(
-                            modifier = Modifier
-                                .size(26.dp * buttonSizeFactor)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(theme.keyBackgroundColor)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = item,
-                                fontSize = (13 * buttonSizeFactor).sp
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Height Slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "ارتفاع الشريط", color = Color(theme.keyTextColor), fontSize = 11.sp)
-                    Text(text = "${(heightFactor * 100).toInt()}%", color = Color(theme.accentColor), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = heightFactor,
-                    onValueChange = { heightFactor = it },
-                    valueRange = 0.7f..1.6f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(theme.accentColor),
-                        activeTrackColor = Color(theme.accentColor)
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(26.dp)
-                )
-
-                // Button Size Slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "حجم أيقونات الابتسامات", color = Color(theme.keyTextColor), fontSize = 11.sp)
-                    Text(text = "${(buttonSizeFactor * 100).toInt()}%", color = Color(theme.accentColor), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = buttonSizeFactor,
-                    onValueChange = { buttonSizeFactor = it },
-                    valueRange = 0.7f..1.6f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(theme.accentColor),
-                        activeTrackColor = Color(theme.accentColor)
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(26.dp)
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Action buttons: Reset & Save
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        onClick = {
-                            workingList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
-                            heightFactor = 1.0f
-                            buttonSizeFactor = 1.0f
-                        }
-                    ) {
-                        Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(theme.accentColor),
+                        border = BorderStroke(0.7.dp, Color(theme.borderColor).copy(alpha = 0.4f)),
                         modifier = Modifier.clickable {
-                            if (workingList.isEmpty()) {
-                                workingList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
-                            }
-                            onSave(workingList, heightFactor, buttonSizeFactor)
+                            onAddEmoji(item)
                         }
                     ) {
                         Text(
-                            text = "حفظ الابتسامات",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            text = item,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+                }
+            }
+
+            // Expandable sliders for height and icon size
+            if (showSliders) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(theme.toolbarColor), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("ارتفاع الشريط: ${(heightFactor * 100).toInt()}%", color = Color(theme.keyTextColor), fontSize = 10.sp)
+                        Text("حجم الأيقونات: ${(buttonSizeFactor * 100).toInt()}%", color = Color(theme.accentColor), fontSize = 10.sp)
+                        TextButton(onClick = onResetDefaults, contentPadding = PaddingValues(0.dp)) {
+                            Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 9.sp)
+                        }
+                    }
+                    Slider(
+                        value = heightFactor,
+                        onValueChange = onHeightFactorChange,
+                        valueRange = 0.7f..1.6f,
+                        colors = SliderDefaults.colors(thumbColor = Color(theme.accentColor), activeTrackColor = Color(theme.accentColor)),
+                        modifier = Modifier.fillMaxWidth().height(22.dp)
+                    )
+                    Slider(
+                        value = buttonSizeFactor,
+                        onValueChange = onButtonSizeFactorChange,
+                        valueRange = 0.7f..1.6f,
+                        colors = SliderDefaults.colors(thumbColor = Color(theme.accentColor), activeTrackColor = Color(theme.accentColor)),
+                        modifier = Modifier.fillMaxWidth().height(22.dp)
+                    )
                 }
             }
         }

@@ -87,8 +87,8 @@ data class KeyboardSettings(
     val enterKeyOnLeft: Boolean = false,
     val isNightModeEnabled: Boolean = false, // الوضع الفاتح الافتراضي لثيم آيفون الأبيض
     val activeDecorationStyle: String = "none",
-    val keyboardLayoutStyle: String = "10_columns", // الافتراضي تخطيط الصورة (10 أعمدة)
-    val arabicColumnsCount: Int = 10, // 10 أعمدة (مثل الصورة)، 11 عمود، 12 عمود
+    val keyboardLayoutStyle: String = "11_columns", // الافتراضي تخطيط الصورة (11 عمود)
+    val arabicColumnsCount: Int = 11, // 11 عمود (مطابق للصورة تماماً)
     val customArabicRow1: String = "", // ترتيب مخصص يدوي للصف الأول
     val customArabicRow2: String = "", // ترتيب مخصص يدوي للصف الثاني
     val customArabicRow3: String = "", // ترتيب مخصص يدوي للصف الثالث

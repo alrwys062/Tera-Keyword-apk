@@ -50,6 +50,7 @@ fun ThemesScreen(
 
     val categories = listOf(
         "الكل",
+        "✨ 20 ستايل فاتح",
         "⭐ 20 ثيم بريميوم",
         "Pro ستايلات الهواتف",
         "أنظمة وهواتف",
@@ -77,6 +78,7 @@ fun ThemesScreen(
 
             val matchCategory = when (selectedCategory) {
                 "الكل" -> true
+                "✨ 20 ستايل فاتح" -> theme.category == "twenty_light" || theme.id in ThemePresets.twentyLightThemes.map { it.id }
                 "⭐ 20 ثيم بريميوم" -> theme.category == "twenty_premium" || theme.id in ThemePresets.twentyPremiumThemes.map { it.id }
                 "Pro ستايلات الهواتف" -> theme.category == "pro_styles"
                 "أنظمة وهواتف" -> theme.category == "systems"

@@ -49,7 +49,7 @@ object KeyLayouts {
         KeyModel(KeyType.Backspace, weight = 1.35f)
     )
 
-    // 2. 11 Columns Arabic Layout (Standard Transboard / SwiftKey)
+    // 2. 11 Columns Arabic Layout (Exact match for reference image: Top: ج..ض, Middle: ط..ش, Bottom: ذ..ئ)
     val arabic11ColRow1 = listOf("ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج").map {
         KeyModel(KeyType.Character(it))
     }
@@ -57,7 +57,7 @@ object KeyLayouts {
         KeyModel(KeyType.Character(it))
     }
     val arabic11ColRow3 = listOf(
-        KeyModel(KeyType.Character("ذ")),
+        KeyModel(KeyType.Character("ئ")),
         KeyModel(KeyType.Character("ء")),
         KeyModel(KeyType.Character("ؤ")),
         KeyModel(KeyType.Character("ر")),
@@ -67,6 +67,7 @@ object KeyLayouts {
         KeyModel(KeyType.Character("ز")),
         KeyModel(KeyType.Character("ظ")),
         KeyModel(KeyType.Character("د")),
+        KeyModel(KeyType.Character("ذ")),
         KeyModel(KeyType.Backspace, weight = 1.35f)
     )
 
@@ -259,16 +260,16 @@ object KeyLayouts {
             }
 
             return when {
-                layoutStyle == "10_columns" || layoutStyle == "gboard" || columnsCount == 10 -> {
+                layoutStyle == "10_columns" || columnsCount == 10 -> {
                     Triple(arabic10ColRow1, arabic10ColRow2, arabic10ColRow3)
                 }
-                layoutStyle == "11_columns" || layoutStyle == "swift" || layoutStyle == "aosp" || columnsCount == 11 -> {
-                    Triple(arabic11ColRow1, arabic11ColRow2, arabic11ColRow3)
-                }
-                layoutStyle == "12_columns" || layoutStyle == "samsung" || columnsCount == 12 -> {
+                layoutStyle == "12_columns" || columnsCount == 12 -> {
                     Triple(arabic12ColRow1, arabic12ColRow2, arabic12ColRow3)
                 }
-                else -> Triple(arabic10ColRow1, arabic10ColRow2, arabic10ColRow3)
+                else -> {
+                    // Default layout matching reference screenshot (11 columns)
+                    Triple(arabic11ColRow1, arabic11ColRow2, arabic11ColRow3)
+                }
             }
         }
 

@@ -40,7 +40,7 @@ fun KeyboardSuggestionsBar(
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val barHeight = if (isLandscape) 26.dp else 36.dp
+    val barHeight = if (isLandscape) 28.dp else 36.dp
 
     Row(
         modifier = Modifier
@@ -48,14 +48,13 @@ fun KeyboardSuggestionsBar(
             .height(barHeight)
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 6.dp, vertical = if (isLandscape) 1.dp else 2.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val left = suggestions.getOrNull(0)
         val center = suggestions.getOrNull(1) ?: left
         val right = suggestions.getOrNull(2)
 
-        // Left suggestion
         if (left != null) {
             SuggestionItem(
                 result = left,
@@ -67,19 +66,17 @@ fun KeyboardSuggestionsBar(
             )
         }
 
-        // Center highlighted suggestion / Correction
         if (center != null) {
             SuggestionItem(
                 result = center,
                 theme = theme,
                 isCenter = true,
-                modifier = Modifier.weight(1.35f),
+                modifier = Modifier.weight(1.3f),
                 onClick = { onSuggestionClick(center.word) },
                 onAddWord = onAddWordToDictionary
             )
         }
 
-        // Right suggestion
         if (right != null) {
             SuggestionItem(
                 result = right,
@@ -103,38 +100,48 @@ private fun SuggestionItem(
     onAddWord: ((String) -> Unit)?
 ) {
     val isBgLight = androidx.compose.runtime.remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
-    val inactiveTextColor = androidx.compose.runtime.remember(theme.backgroundColor, isBgLight) {
+    val textColor = androidx.compose.runtime.remember(theme.backgroundColor, isBgLight) {
         if (isBgLight) Color(0xFF1E293B) else Color(0xFFE2E8F0)
     }
 
+    val itemShape = RoundedCornerShape(8.dp)
+
     if (result.isCustomCandidate && onAddWord != null) {
-        // Quick add to dictionary button
-        Box(
+        // Quick add to dictionary button - matching identical height and shape
+        androidx.compose.material3.Surface(
             modifier = modifier
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF10B981).copy(alpha = 0.2f))
-                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                .clickable { onAddWord(result.word) }
-                .padding(horizontal = 6.dp),
-            contentAlignment = Alignment.Center
+                .clickable { onAddWord(result.word) },
+            shape = itemShape,
+            color = Color(0xFF10B981).copy(alpha = 0.16f),
+            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF10B981).copy(alpha = 0.8f))
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Word",
-                    tint = Color(0xFF10B981),
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
-                    text = "حفظ: ${result.word}",
-                    color = Color(0xFF10B981),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Word",
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "حفظ: ${result.word}",
+                        color = Color(0xFF10B981),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     } else {
@@ -144,33 +151,31 @@ private fun SuggestionItem(
             Color(theme.keyBackgroundColor)
         }
         val activeBorder = if (isCenter) {
-            androidx.compose.foundation.BorderStroke(1.5.dp, Color(theme.accentColor))
+            androidx.compose.foundation.BorderStroke(1.2.dp, Color(theme.accentColor))
         } else {
-            androidx.compose.foundation.BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha))
+            androidx.compose.foundation.BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.4f)))
         }
 
         androidx.compose.material3.Surface(
             modifier = modifier
                 .fillMaxHeight()
-                .padding(horizontal = 2.5.dp)
                 .clickable(onClick = onClick),
-            shape = RoundedCornerShape(8.dp),
+            shape = itemShape,
             color = activeBg,
-            border = activeBorder,
-            shadowElevation = if (isCenter) 2.dp else 0.8.dp
+            border = activeBorder
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val configuration = androidx.compose.ui.platform.LocalConfiguration.current
                 val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 Text(
                     text = result.word,
-                    color = if (isCenter) Color(theme.accentColor) else inactiveTextColor,
-                    fontSize = if (isCenter) (if (isLandscape) 12.sp else 13.5.sp) else (if (isLandscape) 10.5.sp else 12.sp),
+                    color = if (isCenter) Color(theme.accentColor) else textColor,
+                    fontSize = if (isCenter) (if (isLandscape) 12.sp else 13.5.sp) else (if (isLandscape) 11.sp else 12.5.sp),
                     fontWeight = if (isCenter) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

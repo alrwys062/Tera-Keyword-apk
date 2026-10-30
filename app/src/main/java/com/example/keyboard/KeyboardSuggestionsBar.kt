@@ -3,7 +3,9 @@ package com.example.keyboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -39,9 +41,11 @@ fun KeyboardSuggestionsBar(
     onAddWordToDictionary: ((String) -> Unit)? = null,
     onSwipeBack: (() -> Unit)? = null,
     detectedOtpCode: String? = null,
-    onOtpClick: ((String) -> Unit)? = null
+    onOtpClick: ((String) -> Unit)? = null,
+    browserShortcuts: List<String> = emptyList(),
+    onBrowserShortcutClick: ((String) -> Unit)? = null
 ) {
-    if (suggestions.isEmpty() && detectedOtpCode.isNullOrBlank()) return
+    if (suggestions.isEmpty() && detectedOtpCode.isNullOrBlank() && browserShortcuts.isEmpty()) return
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -53,15 +57,42 @@ fun KeyboardSuggestionsBar(
             .height(barHeight)
             .background(Color(theme.backgroundColor))
             .edgeSwipeToBack(enabled = onSwipeBack != null, onSwipeBack = { onSwipeBack?.invoke() })
+            .then(if (browserShortcuts.isNotEmpty() || suggestions.size > 3) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
             .padding(horizontal = 6.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (browserShortcuts.isNotEmpty()) {
+            browserShortcuts.forEach { shortcut ->
+                Surface(
+                    modifier = Modifier
+                        .height(if (isLandscape) 22.dp else 28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onBrowserShortcutClick?.invoke(shortcut) },
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.5f))
+                ) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = shortcut,
+                            color = Color(theme.accentColor),
+                            fontSize = if (isLandscape) 10.sp else 11.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
         if (!detectedOtpCode.isNullOrBlank()) {
             Surface(
                 modifier = Modifier
-                    .weight(1.5f)
                     .fillMaxHeight()
+                    .padding(vertical = 1.dp)
                     .clickable { onOtpClick?.invoke(detectedOtpCode) },
                 shape = RoundedCornerShape(8.dp),
                 color = Color(0xFF059669),
@@ -69,8 +100,7 @@ fun KeyboardSuggestionsBar(
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -81,15 +111,18 @@ fun KeyboardSuggestionsBar(
                             imageVector = Icons.Default.Lock,
                             contentDescription = "رمز التحقق",
                             tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                         Text(
                             text = "رمز التحقق: $detectedOtpCode (لصق)",
                             color = Color.White,
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            style = androidx.compose.ui.text.TextStyle(
+                                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                            )
                         )
                     }
                 }
@@ -223,7 +256,10 @@ private fun SuggestionItem(
                     fontSize = if (isCenter) (if (isLandscape) 12.sp else 13.5.sp) else (if (isLandscape) 11.sp else 12.5.sp),
                     fontWeight = if (isCenter) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                    )
                 )
             }
         }

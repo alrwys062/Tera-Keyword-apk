@@ -192,6 +192,9 @@ open class TurboKeyboardService : InputMethodService(),
                     onHideKeyboardRequested = {
                         requestHideSelf(0)
                     },
+                    onThemeChanged = { newTheme ->
+                        keyboardThemeState.value = newTheme
+                    },
                     prefsManager = prefs
                 )
             }

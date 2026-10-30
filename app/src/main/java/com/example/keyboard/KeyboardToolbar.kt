@@ -106,14 +106,12 @@ fun KeyboardToolbar(
     onOpenSettingsClick: () -> Unit,
     onCustomizeToolbar: () -> Unit = {},
     onSwipeBack: (() -> Unit)? = null,
-    browserShortcuts: List<String> = emptyList(),
-    onBrowserShortcutClick: ((String) -> Unit)? = null,
     onMyThemeClick: (() -> Unit)? = null,
     onMyThemeLongClick: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
-        listOf("stickers", "translate", "clipboard", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
+        listOf("stickers", "clipboard", "decoration", "phrases", "translate", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
     } else {
         visibleTools
     }
@@ -133,33 +131,11 @@ fun KeyboardToolbar(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        // 0.1 Browser URL suggestions (.com, .org, etc.)
-        if (browserShortcuts.isNotEmpty()) {
-            browserShortcuts.forEach { shortcut ->
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(theme.keyBackgroundColor))
-                        .border(1.dp, Color(theme.accentColor).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                        .clickable { onBrowserShortcutClick?.invoke(shortcut) }
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = shortcut,
-                        color = Color(theme.accentColor),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        // 0.2 "ثيمتي" My Theme Quick Reset
+        // 0.2 "ثيماتي" My Theme Quick Reset
         if (onMyThemeClick != null) {
             ToolbarFixedItem(
                 icon = Icons.Outlined.Palette,
-                label = "ثيمتي",
+                label = "ثيماتي",
                 isActive = false,
                 theme = theme,
                 onClick = onMyThemeClick,
@@ -178,20 +154,6 @@ fun KeyboardToolbar(
                 onClick = {
                     onSubViewSelected(if (isStickersActive) KeyboardSubView.NONE else KeyboardSubView.STICKERS)
                 }
-            )
-        }
-
-        // 1. ترجمة (Translation) - ضغطة سريعة تفتح/تغلق الترجمة، وضغطة مطولة 1.5 ثانية تعمل كزر Enter
-        if ("translate" in toolsToShow) {
-            val isTranslateActive = isTranslationActive || activeSubView == KeyboardSubView.TRANSLATE
-            ToolbarFixedItem(
-                icon = Icons.Default.Translate,
-                label = "ترجمة",
-                isActive = isTranslateActive,
-                theme = theme,
-                onClick = onToggleTranslationBar,
-                onLongClick = onTranslateLongPressEnter,
-                longClickDelayMs = 1500L
             )
         }
 
@@ -247,6 +209,21 @@ fun KeyboardToolbar(
                 }
             )
         }
+
+        // 1. ترجمة (Translation) - ضغطة سريعة تفتح/تغلق الترجمة، وضغطة مطولة 1.5 ثانية تعمل كزر Enter
+        if ("translate" in toolsToShow) {
+            val isTranslateActive = isTranslationActive || activeSubView == KeyboardSubView.TRANSLATE
+            ToolbarFixedItem(
+                icon = Icons.Default.Translate,
+                label = "ترجمة",
+                isActive = isTranslateActive,
+                theme = theme,
+                onClick = onToggleTranslationBar,
+                onLongClick = onTranslateLongPressEnter,
+                longClickDelayMs = 1500L
+            )
+        }
+
 
         // 5. حاسبة (Calculator)
         if ("calculator" in toolsToShow) {
@@ -412,12 +389,12 @@ private fun ToolbarFixedItem(
                                 onLongClick()
                             }
                             try {
-                                waitForUpOrCancellation()
+                                val up = waitForUpOrCancellation()
+                                if (up != null && !isLong) {
+                                    onClick()
+                                }
                             } finally {
                                 job.cancel()
-                            }
-                            if (!isLong) {
-                                onClick()
                             }
                         }
                     }

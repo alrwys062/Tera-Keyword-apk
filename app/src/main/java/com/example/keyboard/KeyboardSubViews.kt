@@ -1085,6 +1085,8 @@ fun EmojiPickerView(
     keyboardHeight: Dp = 265.dp,
     hideAbcKey: Boolean = false,
     backspaceScale: Float = 1.0f,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
     onEmojiSelected: (String) -> Unit,
     onSpacePressed: () -> Unit = {},
     onDeletePressed: () -> Unit = {},
@@ -1097,7 +1099,6 @@ fun EmojiPickerView(
 
     // -1 = Recent Emojis 🕒, 0..N = Standard Categories
     var selectedCategoryIndex by remember { mutableIntStateOf(-1) }
-    var searchQuery by remember { mutableStateOf("") }
     var isIosStyle by remember { mutableStateOf(true) }
 
     val preferencesManager = remember { com.example.data.PreferencesManager(context) }
@@ -1159,7 +1160,7 @@ fun EmojiPickerView(
                         }
                         androidx.compose.foundation.text.BasicTextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = onSearchQueryChange,
                             singleLine = true,
                             textStyle = androidx.compose.ui.text.TextStyle(
                                 color = Color(theme.keyTextColor),
@@ -1177,7 +1178,7 @@ fun EmojiPickerView(
                             tint = Color(theme.subtextColor),
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable { searchQuery = "" }
+                                .clickable { onSearchQueryChange("") }
                         )
                     }
                 }
@@ -4111,26 +4112,16 @@ fun ThemesPickerDrawer(
     theme: KeyboardTheme,
     prefs: PreferencesManager,
     keyboardHeight: Dp,
+    allThemes: List<KeyboardTheme>,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
     onThemeSelected: (KeyboardTheme) -> Unit,
     onClose: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var allThemes by remember { mutableStateOf<List<KeyboardTheme>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var searchQuery by remember { mutableStateOf("") }
     val currentThemeId = theme.id
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            val custom = prefs.getCustomThemes()
-            val presets = ThemePresets.allPresets
-            val combined = (custom + presets).distinctBy { it.id }
-            withContext(Dispatchers.Main) {
-                allThemes = combined
-                isLoading = false
-            }
-        }
-    }
+    val isLoading = allThemes.isEmpty()
 
     val filteredThemes = remember(allThemes, searchQuery) {
         if (searchQuery.isBlank()) allThemes
@@ -4189,7 +4180,7 @@ fun ThemesPickerDrawer(
 
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = { searchQuery = it },
+            onValueChange = onSearchQueryChange,
             placeholder = { Text("ابحث عن ستايل أو ثيم...", fontSize = 11.sp) },
             modifier = Modifier
                 .fillMaxWidth()

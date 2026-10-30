@@ -274,7 +274,7 @@ class PreferencesManager(private val context: Context) {
                 samsungStyleHints = getBooleanSafe("samsungStyleHints", true),
                 hideEmojiAbcKey = getBooleanSafe("hideEmojiAbcKey", false),
                 calculatorNumpadMode = getBooleanSafe("calculatorNumpadMode", false),
-                myThemeId = getStringSafe("myThemeId", "liquid_glass_blur"),
+                myThemeId = getStringSafe("myThemeId", "crystal_light"),
                 visibleToolbarTools = getVisibleToolbarTools()
             )
         } catch (e: Exception) {
@@ -1115,11 +1115,11 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun getMyThemeId(): String {
-        return getStringSafe("myThemeId", "liquid_glass_blur")
+        return getStringSafe("myThemeId", "crystal_light")
     }
 
     fun resetToMyTheme(): KeyboardTheme {
-        val defaultTheme = ThemePresets.ROYAL_TITANIUM_LUXE
+        val defaultTheme = ThemePresets.CRYSTAL_LIGHT
         saveActiveTheme(defaultTheme)
         setMyThemeId(defaultTheme.id)
         return defaultTheme

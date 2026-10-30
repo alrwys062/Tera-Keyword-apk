@@ -33,10 +33,11 @@ object LongPressVariantsManager {
         "ي" to listOf("ي", "ئ", "ى", "يـ", "يّة", "يَ", "يِ", "يُ"),
         "ا" to listOf("ا", "أ", "إ", "آ", "ٱ", "ء", "ـ"),
         "ء" to listOf("ء", "ئ", "ؤ", "أ", "إ", "آ"),
-        "ى" to listOf("ى", "ي", "ئ", "ۍ"),
-        "ة" to listOf("ة", "ت", "ه"),
+        "ى" to listOf("ى", "ي", "ئ", "ۍ", "ێ"),
+        "ة" to listOf("ة", "ت", "ه", "ۂ"),
         "ئ" to listOf("ئ", "ي", "ء", "ى"),
-        "ؤ" to listOf("ؤ", "و", "ء")
+        "ؤ" to listOf("ؤ", "و", "ء", "ۆ"),
+        "ـ" to listOf("ـ", "َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ّ", "ْ", "ٰ", "ٓ", "ٔ", "ٕ", "﷼", "₺")
     )
 
     // Complete English letters variants (Unicode styles: Bold, Italic Script, Fraktur, Circled, Accents)
@@ -163,8 +164,8 @@ object LongPressVariantsManager {
         if (char == "%" || char == "٪") {
             return listOf("%", "٪", "‰", "‱", "°")
         }
-        if (char == "$" || char == "€" || char == "£" || char == "¥") {
-            return listOf("﷼", "$", "€", "£", "¥", "د.ك", "د.إ", "ج.م", "₹", "¢", "₿")
+        if (char == "$" || char == "€" || char == "£" || char == "¥" || char == "﷼" || char == "₺") {
+            return listOf("﷼", "₺", "$", "€", "£", "¥", "د.ك", "د.إ", "ج.م", "₹", "¢", "₿")
         }
         val lower = char.lowercase()
         return arabicVariants[char]

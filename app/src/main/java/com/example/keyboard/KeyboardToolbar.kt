@@ -35,6 +35,52 @@ import androidx.compose.ui.unit.sp
 import com.example.model.KeyboardSubView
 import com.example.model.KeyboardTheme
 
+import androidx.compose.ui.input.pointer.PointerEventPass
+import kotlin.math.abs
+
+fun Modifier.edgeSwipeToBack(
+    edgeThreshold: Dp = 48.dp,
+    dragThreshold: Dp = 20.dp,
+    enabled: Boolean = true,
+    onSwipeBack: () -> Unit
+): Modifier = if (!enabled) this else this.pointerInput(onSwipeBack) {
+    awaitEachGesture {
+        val down = awaitFirstDown(pass = PointerEventPass.Initial)
+        val startX = down.position.x
+        val startY = down.position.y
+        val edgePx = edgeThreshold.toPx()
+        val dragPx = dragThreshold.toPx()
+        val isNearLeftEdge = startX <= edgePx
+        val isNearRightEdge = startX >= (size.width - edgePx)
+        var backTriggered = false
+
+        while (true) {
+            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (!change.pressed) break
+
+            val deltaX = change.position.x - startX
+            val deltaY = change.position.y - startY
+            val absX = abs(deltaX)
+            val absY = abs(deltaY)
+
+            if (!backTriggered) {
+                // Inward swipe from left or right edge, or downward swipe
+                val isLeftInward = isNearLeftEdge && deltaX > dragPx && absX > absY
+                val isRightInward = isNearRightEdge && deltaX < -dragPx && absX > absY
+                val isSwipeDown = deltaY > (dragPx * 1.5f) && absY > absX
+
+                if (isLeftInward || isRightInward || isSwipeDown) {
+                    backTriggered = true
+                    change.consume()
+                    onSwipeBack()
+                    break
+                }
+            }
+        }
+    }
+}
+
 private fun isLightColor(colorLong: Long): Boolean {
     val r = ((colorLong shr 16) and 0xFF) / 255.0
     val g = ((colorLong shr 8) and 0xFF) / 255.0
@@ -62,7 +108,13 @@ fun KeyboardToolbar(
     onToggleNightMode: () -> Unit,
     onVoiceClick: () -> Unit,
     onOpenSettingsClick: () -> Unit,
-    onCustomizeToolbar: () -> Unit = {}
+    onCustomizeToolbar: () -> Unit = {},
+    onSwipeBack: (() -> Unit)? = null,
+    detectedOtpCode: String? = null,
+    onOtpClick: ((String) -> Unit)? = null,
+    browserShortcuts: List<String> = emptyList(),
+    onBrowserShortcutClick: ((String) -> Unit)? = null,
+    onMyThemeClick: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
@@ -71,19 +123,79 @@ fun KeyboardToolbar(
         visibleTools
     }
 
-    // Explicit 50dp height for top toolbar (48dp-52dp as required) to prevent any clipping
-    val actualHeight = toolbarHeight ?: if (isCompact) 48.dp else 50.dp
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val actualHeight = toolbarHeight ?: if (isLandscape) 32.dp else if (isCompact) 48.dp else 50.dp
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(actualHeight)
             .background(Color(theme.toolbarColor))
+            .edgeSwipeToBack(enabled = onSwipeBack != null, onSwipeBack = { onSwipeBack?.invoke() })
             .horizontalScroll(scrollState)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 4.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 0.0 OTP Direct Auto-fill Suggestion
+        if (!detectedOtpCode.isNullOrBlank()) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF059669))
+                    .clickable { onOtpClick?.invoke(detectedOtpCode) }
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "رمز التحقق",
+                    tint = Color.White,
+                    modifier = Modifier.size(13.dp)
+                )
+                Text(
+                    text = "رمز التحقق: $detectedOtpCode (لصق)",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // 0.1 Browser URL suggestions (.com, .org, etc.)
+        if (browserShortcuts.isNotEmpty()) {
+            browserShortcuts.forEach { shortcut ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(theme.keyBackgroundColor))
+                        .border(1.dp, Color(theme.accentColor).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                        .clickable { onBrowserShortcutClick?.invoke(shortcut) }
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = shortcut,
+                        color = Color(theme.accentColor),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // 0.2 "ثيمتي" My Theme Quick Reset
+        if (onMyThemeClick != null) {
+            ToolbarFixedItem(
+                icon = Icons.Outlined.Palette,
+                label = "ثيمتي",
+                isActive = false,
+                theme = theme,
+                onClick = onMyThemeClick
+            )
+        }
         // 0. ملصقات (Stickers & Designer)
         if ("stickers" in toolsToShow) {
             val isStickersActive = activeSubView == KeyboardSubView.STICKERS
@@ -308,8 +420,8 @@ private fun ToolbarFixedItem(
 
     Box(
         modifier = Modifier
-            .widthIn(min = if (isLandscape) 42.dp else 46.dp, max = if (isLandscape) 52.dp else 56.dp)
-            .height(46.dp)
+            .widthIn(min = if (isLandscape) 38.dp else 46.dp, max = if (isLandscape) 48.dp else 56.dp)
+            .height(if (isLandscape) 28.dp else 46.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
             .border(
@@ -342,7 +454,7 @@ private fun ToolbarFixedItem(
                     Modifier.clickable(onClick = onClick)
                 }
             )
-            .padding(horizontal = 2.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -353,13 +465,13 @@ private fun ToolbarFixedItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) activeColor else inactiveTextColor.copy(alpha = 0.90f),
-                modifier = Modifier.size(if (isLandscape) 17.dp else 19.dp)
+                modifier = Modifier.size(if (isLandscape) 14.dp else 19.dp)
             )
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 0.dp else 1.dp))
             Text(
                 text = label,
                 color = if (isActive) activeColor else inactiveTextColor,
-                fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
+                fontSize = if (isLandscape) 7.5.sp else 9.5.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

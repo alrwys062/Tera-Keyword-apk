@@ -23,6 +23,7 @@ class PreferencesManager(private val context: Context) {
         val INT_KEYS = setOf(
             "vibrationDurationMs", "keyRepeatSpeedMs", "longPressDelayMs", "arabicColumnsCount",
             "toolbarHeightDp", "keyHeightDp", "keyFontSizeSp", "floatingNavSpeed",
+            "sideMarginDp", "bottomMarginDp",
             "last_clipboard_scroll_idx", "last_clipboard_scroll_offset"
         )
         val BOOLEAN_KEYS = setOf(
@@ -32,7 +33,9 @@ class PreferencesManager(private val context: Context) {
             "swipeSpaceSwitchLanguage", "enterLongPressTranslateEnabled", "spacebarCursorControl",
             "showDualHints", "clipboardCloseOnPaste", "clipboardSaveForever", "swapClipboardAndEmoji",
             "isFloatingKeyboard", "isSplitKeyboard",
-            "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy"
+            "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy",
+            "toolbarEnabled", "replaceNumberRowWithEmojis", "samsungStyleHints",
+            "hideEmojiAbcKey", "calculatorNumpadMode"
         )
         val STRING_KEYS = setOf(
             "soundProfile", "keyPressTimingStyle", "typingSpeedMode", "currentThemeId",
@@ -40,7 +43,8 @@ class PreferencesManager(private val context: Context) {
             "customArabicRow1", "customArabicRow2", "customArabicRow3",
             "translationSource", "translationTarget", "visibleToolbarTools",
             "custom_stickers_list", "custom_themes_list", "clipboard_history",
-            "text_shortcuts_list", "recent_emojis", "custom_top_emojis_list"
+            "text_shortcuts_list", "recent_emojis", "custom_top_emojis_list",
+            "myThemeId"
         )
 
         @Volatile
@@ -263,6 +267,14 @@ class PreferencesManager(private val context: Context) {
                 translationSource = getStringSafe("translationSource", "ar"),
                 translationTarget = getStringSafe("translationTarget", "en"),
                 autoTranslateOnCopy = getBooleanSafe("autoTranslateOnCopy", false),
+                toolbarEnabled = getBooleanSafe("toolbarEnabled", true),
+                sideMarginDp = getIntSafe("sideMarginDp", 0),
+                bottomMarginDp = getIntSafe("bottomMarginDp", 0),
+                replaceNumberRowWithEmojis = getBooleanSafe("replaceNumberRowWithEmojis", false),
+                samsungStyleHints = getBooleanSafe("samsungStyleHints", true),
+                hideEmojiAbcKey = getBooleanSafe("hideEmojiAbcKey", false),
+                calculatorNumpadMode = getBooleanSafe("calculatorNumpadMode", false),
+                myThemeId = getStringSafe("myThemeId", "liquid_glass_blur"),
                 visibleToolbarTools = getVisibleToolbarTools()
             )
         } catch (e: Exception) {
@@ -343,6 +355,14 @@ class PreferencesManager(private val context: Context) {
             .putString("translationSource", settings.translationSource)
             .putString("translationTarget", settings.translationTarget)
             .putBoolean("autoTranslateOnCopy", settings.autoTranslateOnCopy)
+            .putBoolean("toolbarEnabled", settings.toolbarEnabled)
+            .putInt("sideMarginDp", settings.sideMarginDp)
+            .putInt("bottomMarginDp", settings.bottomMarginDp)
+            .putBoolean("replaceNumberRowWithEmojis", settings.replaceNumberRowWithEmojis)
+            .putBoolean("samsungStyleHints", settings.samsungStyleHints)
+            .putBoolean("hideEmojiAbcKey", settings.hideEmojiAbcKey)
+            .putBoolean("calculatorNumpadMode", settings.calculatorNumpadMode)
+            .putString("myThemeId", settings.myThemeId)
             .apply()
     }
 
@@ -724,11 +744,10 @@ class PreferencesManager(private val context: Context) {
 
                 if (!extractedText.isNullOrBlank()) {
                     val trimmed = extractedText.trim()
-                    if (trimmed.isNotEmpty()) {
+                    if (trimmed.isNotEmpty() && !isDeletedSystemClip(trimmed)) {
                         val now = System.currentTimeMillis()
                         // Ensure newly copied text is immediately captured
                         if (lastSyncedText != trimmed || (now - lastSyncedTime > 400L)) {
-                            unblacklistSystemClip(trimmed)
                             lastSyncedText = trimmed
                             lastSyncedTime = now
                             addClipboardItem(trimmed)
@@ -1088,5 +1107,158 @@ class PreferencesManager(private val context: Context) {
     fun saveEmojiSizeScale(scale: Float) {
         prefs.edit().putFloat("emojiSizeScale", scale).apply()
     }
+
+    // "My Theme" (ثيمتي) Quick Reset and Binding
+    fun setMyThemeId(themeId: String) {
+        prefs.edit().putString("myThemeId", themeId).apply()
+        cachedSettings = cachedSettings?.copy(myThemeId = themeId)
+    }
+
+    fun getMyThemeId(): String {
+        return getStringSafe("myThemeId", "liquid_glass_blur")
+    }
+
+    fun resetToMyTheme(): KeyboardTheme {
+        val targetId = getMyThemeId()
+        val theme = getCustomThemes().find { it.id == targetId } ?: ThemePresets.getById(targetId)
+        saveActiveTheme(theme)
+        return theme
+    }
+
+    // Export a single theme to portable JSON
+    fun exportThemeJson(theme: KeyboardTheme): String {
+        val obj = JSONObject().apply {
+            put("id", theme.id)
+            put("nameAr", theme.nameAr)
+            put("nameEn", theme.nameEn)
+            put("isCustom", true)
+            put("backgroundColor", theme.backgroundColor)
+            put("keyBackgroundColor", theme.keyBackgroundColor)
+            put("keyPressedColor", theme.keyPressedColor)
+            put("keyTextColor", theme.keyTextColor)
+            put("subtextColor", theme.subtextColor)
+            put("accentColor", theme.accentColor)
+            put("enterButtonColor", theme.enterButtonColor)
+            put("toolbarColor", theme.toolbarColor)
+            put("borderColor", theme.borderColor)
+            put("cornerRadius", theme.cornerRadius)
+            put("borderAlpha", theme.borderAlpha)
+            if (theme.backgroundImageUri != null) put("backgroundImageUri", theme.backgroundImageUri)
+            put("backgroundDim", theme.backgroundDim)
+            put("keyOpacity", theme.keyOpacity)
+            put("keyStyle", theme.keyStyle)
+            put("category", theme.category)
+            put("isGlass", theme.isGlass)
+        }
+        return obj.toString(2)
+    }
+
+    // Import a single theme from portable JSON
+    fun importThemeJson(jsonString: String): KeyboardTheme? {
+        return try {
+            var cleaned = jsonString.trim()
+            if (cleaned.startsWith("```")) {
+                cleaned = cleaned.removePrefix("```json").removePrefix("```").trim()
+                if (cleaned.endsWith("```")) cleaned = cleaned.removeSuffix("```").trim()
+            }
+            val startIdx = cleaned.indexOf('{')
+            val endIdx = cleaned.lastIndexOf('}')
+            if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+                cleaned = cleaned.substring(startIdx, endIdx + 1)
+            }
+            val obj = JSONObject(cleaned)
+            val theme = KeyboardTheme(
+                id = obj.optString("id", "custom_" + System.currentTimeMillis()),
+                nameAr = obj.optString("nameAr", "ثيم مستورد"),
+                nameEn = obj.optString("nameEn", "Imported Theme"),
+                isCustom = true,
+                backgroundColor = obj.optLong("backgroundColor", 0xFF0D1117L),
+                keyBackgroundColor = obj.optLong("keyBackgroundColor", 0xFF161B22L),
+                keyPressedColor = obj.optLong("keyPressedColor", 0xFF21262DL),
+                keyTextColor = obj.optLong("keyTextColor", 0xFFF0F6FCL),
+                subtextColor = obj.optLong("subtextColor", 0xFF8B949EL),
+                accentColor = obj.optLong("accentColor", 0xFF00E5FFL),
+                enterButtonColor = obj.optLong("enterButtonColor", 0xFF00E5FFL),
+                toolbarColor = obj.optLong("toolbarColor", 0xFF0D1117L),
+                borderColor = obj.optLong("borderColor", 0xFF30363DL),
+                cornerRadius = obj.optDouble("cornerRadius", 8.0).toFloat(),
+                borderAlpha = obj.optDouble("borderAlpha", 0.5).toFloat(),
+                backgroundImageUri = if (obj.has("backgroundImageUri") && !obj.isNull("backgroundImageUri")) obj.optString("backgroundImageUri") else null,
+                backgroundDim = obj.optDouble("backgroundDim", 0.45).toFloat(),
+                keyOpacity = obj.optDouble("keyOpacity", 1.0).toFloat(),
+                keyStyle = obj.optString("keyStyle", "rounded"),
+                category = obj.optString("category", "modern"),
+                isGlass = obj.optBoolean("isGlass", false)
+            )
+            saveCustomTheme(theme)
+            theme
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    // Export / Import shortcuts
+    fun exportShortcutsJson(): String {
+        val list = getShortcuts()
+        val arr = JSONArray()
+        for (s in list) {
+            val obj = JSONObject().apply {
+                put("trigger", s.trigger)
+                put("expansion", s.expansion)
+            }
+            arr.put(obj)
+        }
+        return arr.toString(2)
+    }
+
+    fun importShortcutsJson(jsonString: String): Boolean {
+        return try {
+            var cleaned = jsonString.trim()
+            if (cleaned.startsWith("```")) {
+                cleaned = cleaned.removePrefix("```json").removePrefix("```").trim()
+                if (cleaned.endsWith("```")) cleaned = cleaned.removeSuffix("```").trim()
+            }
+            val startIdx = cleaned.indexOf('[')
+            val endIdx = cleaned.lastIndexOf(']')
+            if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+                cleaned = cleaned.substring(startIdx, endIdx + 1)
+            }
+            val arr = JSONArray(cleaned)
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val tr = obj.optString("trigger", "").trim()
+                val exp = obj.optString("expansion", "").trim()
+                if (tr.isNotEmpty() && exp.isNotEmpty()) {
+                    addShortcut(tr, exp)
+                }
+            }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    // OTP Verification Code Extraction from text / SMS / clipboard
+    fun extractOtpCode(text: String): String? {
+        if (text.isBlank() || text.length > 500) return null
+        val lower = text.lowercase()
+        val hasOtpKeyword = lower.contains("code") || lower.contains("otp") ||
+                lower.contains("verification") || lower.contains("verify") ||
+                lower.contains("رمز") || lower.contains("كود") ||
+                lower.contains("التحقق") || lower.contains("تفعيل") ||
+                lower.contains("تسجيل")
+        val digitMatch = Regex("""\b(\d{4,8})\b""").find(text)
+        if (digitMatch != null) {
+            val code = digitMatch.groupValues[1]
+            if (code != "2024" && code != "2025" && code != "2026" && (hasOtpKeyword || text.length <= 40)) {
+                return code
+            }
+        }
+        return null
+    }
+
+    fun getBrowserDomainShortcuts(): List<String> = listOf(
+        ".com", ".net", ".org", ".edu", "https://", "www."
+    )
 }
 

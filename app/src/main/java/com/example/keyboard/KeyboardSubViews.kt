@@ -1080,6 +1080,8 @@ fun ClipboardDrawer(
 fun EmojiPickerView(
     theme: KeyboardTheme,
     keyboardHeight: Dp = 265.dp,
+    hideAbcKey: Boolean = false,
+    backspaceScale: Float = 1.0f,
     onEmojiSelected: (String) -> Unit,
     onSpacePressed: () -> Unit = {},
     onDeletePressed: () -> Unit = {},
@@ -1448,23 +1450,25 @@ fun EmojiPickerView(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Return to Alphabet Keyboard button (⌨️ أحرف / ABC)
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(theme.keyBackgroundColor),
-                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
-                modifier = Modifier
-                    .weight(1.4f)
-                    .fillMaxHeight()
-                    .clickable(onClick = onClose)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "⌨️ أحرف",
-                        color = Color(theme.accentColor),
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+            // 1. Return to Alphabet Keyboard button (⌨️ أحرف / ABC) - toggleable via hideAbcKey
+            if (!hideAbcKey) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
+                    modifier = Modifier
+                        .weight(1.4f)
+                        .fillMaxHeight()
+                        .clickable(onClick = onClose)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "⌨️ أحرف",
+                            color = Color(theme.accentColor),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -1474,7 +1478,7 @@ fun EmojiPickerView(
                 color = Color(theme.keyBackgroundColor).copy(alpha = 0.8f),
                 border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
                 modifier = Modifier
-                    .weight(2.7f)
+                    .weight(if (hideAbcKey) 3.5f else 2.7f)
                     .fillMaxHeight()
                     .clickable { onSpacePressed() }
             ) {
@@ -1483,13 +1487,14 @@ fun EmojiPickerView(
                 }
             }
 
-            // 3. Delete button
+            // 3. Scalable Delete button
+            val bWeight = (1.2f * backspaceScale).coerceIn(1.0f, 2.2f)
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(theme.keyBackgroundColor),
                 border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha)),
                 modifier = Modifier
-                    .weight(1.2f)
+                    .weight(bWeight)
                     .fillMaxHeight()
                     .clickable { onDeletePressed() }
             ) {
@@ -2500,11 +2505,16 @@ fun QuickSettingsView(
     val rowBorder = if (isLight) Color(theme.borderColor).copy(alpha = 0.6f) else Color(0xFF26334A).copy(alpha = 0.4f)
     val accentCol = Color(theme.accentColor)
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val dialogHeight = if (isLandscape) (configuration.screenHeightDp * 0.88f).dp else 295.dp
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(255.dp)
+            .height(dialogHeight)
             .background(Color(theme.backgroundColor))
+            .edgeSwipeToBack(onSwipeBack = onClose)
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         // Header
@@ -2553,7 +2563,7 @@ fun QuickSettingsView(
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // 1. صوت المفاتيح ونوع الصوت
+            // 1. صوت المفاتيح ونوع الصوت ومستوى الصوت (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -2572,7 +2582,7 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.VolumeUp, contentDescription = null, tint = if (settings.soundEnabled) accentCol else subTextColor, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("أصوات المفاتيح المخصصة", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("أصوات المفاتيح المخصصة (${(settings.soundVolume * 100).toInt()}%)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                 Text("نغمة واقعية عند لمس كل حرف", color = subTextColor, fontSize = 9.sp)
                             }
                         }
@@ -2585,6 +2595,42 @@ fun QuickSettingsView(
                     }
 
                     if (settings.soundEnabled) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Slider(
+                            value = settings.soundVolume,
+                            onValueChange = { vol ->
+                                onUpdateSettings(settings.copy(soundVolume = vol))
+                            },
+                            valueRange = 0.10f..1.0f,
+                            colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                            modifier = Modifier.fillMaxWidth().height(26.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(
+                                Pair("30%", 0.30f),
+                                Pair("60%", 0.60f),
+                                Pair("85%", 0.85f),
+                                Pair("100%", 1.0f)
+                            ).forEach { (lbl, vol) ->
+                                val isSel = kotlin.math.abs(settings.soundVolume - vol) < 0.08f
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                    border = BorderStroke(if (isSel) 1.2.dp else 0.8.dp, if (isSel) accentCol else rowBorder),
+                                    modifier = Modifier.weight(1f).clickable {
+                                        onUpdateSettings(settings.copy(soundVolume = vol))
+                                        KeyboardSoundEngine.playKeySound(settings.soundProfile, vol)
+                                    }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                        Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             modifier = Modifier
@@ -2617,7 +2663,7 @@ fun QuickSettingsView(
                 }
             }
 
-            // 1.1 سرعة الكتابة واستجابة الأزرار
+            // 1.1 سرعة الكتابة واستجابة الأزرار (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -2636,7 +2682,7 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.Speed, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("سرعة وثقل استجابة المفاتيح", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("سرعة وثقل استجابة المفاتيح (${settings.keyRepeatSpeedMs}ms)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                 Text(
                                     when (settings.typingSpeedMode) {
                                         "fast" -> "⚡ فائق السرعة واستجابة فورية"
@@ -2652,15 +2698,39 @@ fun QuickSettingsView(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = settings.keyRepeatSpeedMs.toFloat(),
+                        onValueChange = { ms ->
+                            val intMs = ms.toInt()
+                            val mode = when {
+                                intMs <= 20 -> "fast"
+                                intMs <= 35 -> "smooth"
+                                intMs <= 55 -> "medium"
+                                else -> "slow"
+                            }
+                            onUpdateSettings(
+                                settings.copy(
+                                    keyRepeatSpeedMs = intMs,
+                                    typingSpeedMode = mode,
+                                    longPressDelayMs = (intMs * 7).coerceIn(180, 520)
+                                )
+                            )
+                        },
+                        valueRange = 10f..100f,
+                        colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Triple("⚡ سريع", "fast", Pair(25, 200)),
-                            Triple("👌 خفيف/ثقيل", "smooth", Pair(35, 300)),
-                            Triple("🍏 متوازن", "medium", Pair(45, 380)),
-                            Triple("🧘 هادئ", "slow", Pair(70, 520))
+                            Triple("⚡ فائق 15ms", "fast", Pair(15, 180)),
+                            Triple("👌 سريع 25ms", "fast", Pair(25, 220)),
+                            Triple("🍏 متوازن 45ms", "medium", Pair(45, 340)),
+                            Triple("🧘 هادئ 75ms", "slow", Pair(75, 480))
                         ).forEach { (lbl, mode, timings) ->
-                            val isSel = settings.typingSpeedMode == mode
+                            val isSel = kotlin.math.abs(settings.keyRepeatSpeedMs - timings.first) < 6
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
@@ -2686,7 +2756,7 @@ fun QuickSettingsView(
                 }
             }
 
-            // 2. اهتزاز المفاتيح
+            // 2. اهتزاز المفاتيح اللمسي (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -2718,19 +2788,36 @@ fun QuickSettingsView(
                     }
 
                     if (settings.vibrationEnabled) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Slider(
+                            value = settings.vibrationDurationMs.toFloat(),
+                            onValueChange = { ms ->
+                                onUpdateSettings(settings.copy(vibrationDurationMs = ms.toInt()))
+                            },
+                            valueRange = 5f..100f,
+                            colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                            modifier = Modifier.fillMaxWidth().height(26.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            listOf(Pair("خفيف", 15), Pair("متوسط آيفون 16", 30), Pair("قوي", 45)).forEach { (lbl, dur) ->
-                                val isSel = settings.vibrationDurationMs == dur
+                            listOf(
+                                Pair("خفيف 15ms", 15),
+                                Pair("متوسط 30ms", 30),
+                                Pair("قوي 55ms", 55),
+                                Pair("فائق 85ms", 85)
+                            ).forEach { (lbl, dur) ->
+                                val isSel = kotlin.math.abs(settings.vibrationDurationMs - dur) < 6
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
                                     color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                    border = BorderStroke(if (isSel) 1.2.dp else 0.8.dp, if (isSel) accentCol else rowBorder),
                                     modifier = Modifier.weight(1f).clickable {
                                         onUpdateSettings(settings.copy(vibrationDurationMs = dur))
                                     }
                                 ) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                                        Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 9.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                        Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                     }
                                 }
                             }
@@ -2767,7 +2854,65 @@ fun QuickSettingsView(
                     Slider(
                         value = settings.keyHeightFactor,
                         onValueChange = { onUpdateSettings(settings.copy(keyHeightFactor = it)) },
-                        valueRange = 0.70f..1.60f,
+                        valueRange = 0.60f..1.70f,
+                        colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            Pair("صغير 60%", 0.60f),
+                            Pair("85%", 0.85f),
+                            Pair("100%", 1.0f),
+                            Pair("130%", 1.30f),
+                            Pair("عملاق 170%", 1.70f)
+                        ).forEach { (lbl, factor) ->
+                            val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.05f
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                modifier = Modifier.weight(1f).clickable {
+                                    onUpdateSettings(settings.copy(keyHeightFactor = factor))
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2.2 حجم خط الحروف والرموز (مع شريط تحكم سلايدر مستمر)
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.FormatSize, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("حجم خط الحروف والرموز (${(settings.keyFontSizeFactor * 100).toInt()}%)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("تكبير وتصغير حجم كتابة الحروف على المفاتيح", color = subTextColor, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = settings.keyFontSizeFactor,
+                        onValueChange = { onUpdateSettings(settings.copy(keyFontSizeFactor = it)) },
+                        valueRange = 0.75f..1.35f,
                         colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
                         modifier = Modifier.fillMaxWidth().height(26.dp)
                     )
@@ -2776,15 +2921,77 @@ fun QuickSettingsView(
                         listOf(
                             Pair("صغير 85%", 0.85f),
                             Pair("طبيعي 100%", 1.0f),
-                            Pair("كبير 120%", 1.20f),
-                            Pair("عملاق 140%", 1.40f)
+                            Pair("واضح 115%", 1.15f),
+                            Pair("كبير 130%", 1.30f)
                         ).forEach { (lbl, factor) ->
-                            val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.04f
+                            val isSel = kotlin.math.abs(settings.keyFontSizeFactor - factor) < 0.04f
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                border = BorderStroke(if (isSel) 1.2.dp else 0.8.dp, if (isSel) accentCol else rowBorder),
                                 modifier = Modifier.weight(1f).clickable {
-                                    onUpdateSettings(settings.copy(keyHeightFactor = factor))
+                                    onUpdateSettings(settings.copy(keyFontSizeFactor = factor))
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2.3 سرعة سحب وتنقل الحروف العائمة (مع شريط تحكم سلايدر مستمر)
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.TouchApp, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("سرعة التنقل وسحب الحروف العائمة (${settings.floatingNavSpeed}/10)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text("التحكم بحساسية تحريك وسحب الحروف العائمة", color = subTextColor, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = settings.floatingNavSpeed.toFloat(),
+                        onValueChange = { spd ->
+                            onUpdateSettings(settings.copy(floatingNavSpeed = spd.toInt()))
+                        },
+                        valueRange = 1f..10f,
+                        steps = 8,
+                        colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            Pair("1 بطيء", 1),
+                            Pair("4 متزن", 4),
+                            Pair("7 سريع", 7),
+                            Pair("10 فائق", 10)
+                        ).forEach { (lbl, spd) ->
+                            val isSel = settings.floatingNavSpeed == spd
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) accentCol else if (isLight) Color(0xFFF1F5F9) else Color(0xFF1E2838),
+                                border = BorderStroke(if (isSel) 1.2.dp else 0.8.dp, if (isSel) accentCol else rowBorder),
+                                modifier = Modifier.weight(1f).clickable {
+                                    onUpdateSettings(settings.copy(floatingNavSpeed = spd))
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
@@ -2858,6 +3065,205 @@ fun QuickSettingsView(
                     cardBorder = rowBorder,
                     onCheckedChange = { onUpdateSettings(settings.copy(suggestionsEnabled = it)) }
                 )
+            }
+
+            // 5.1 إظهار شريط الأدوات العلوي
+            item {
+                QuickSettingToggleRow(
+                    title = "شريط الأدوات العلوي (Toolbar)",
+                    subtitle = "إظهار أو إخفاء شريط الأدوات بالكامل",
+                    icon = Icons.Outlined.Dashboard,
+                    checked = settings.toolbarEnabled,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(toolbarEnabled = it)) }
+                )
+            }
+
+            // 5.2 هوامش الكيبورد المريحة (Side & Bottom Margins)
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.AspectRatio, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("هوامش الكيبورد المريحة (جانبي: ${settings.sideMarginDp}dp، سفلي: ${settings.bottomMarginDp}dp)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("ضبط المسافة بين الكيبورد وحواف الشاشة لمنع اللمس بالخطأ", color = subTextColor, fontSize = 9.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("الهامش الجانبي (${settings.sideMarginDp}dp):", color = textColor, fontSize = 10.sp)
+                    Slider(
+                        value = settings.sideMarginDp.toFloat(),
+                        onValueChange = { onUpdateSettings(settings.copy(sideMarginDp = it.toInt())) },
+                        valueRange = 0f..32f,
+                        colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                        modifier = Modifier.fillMaxWidth().height(24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("الهامش السفلي (${settings.bottomMarginDp}dp):", color = textColor, fontSize = 10.sp)
+                    Slider(
+                        value = settings.bottomMarginDp.toFloat(),
+                        onValueChange = { onUpdateSettings(settings.copy(bottomMarginDp = it.toInt())) },
+                        valueRange = 0f..32f,
+                        colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
+                        modifier = Modifier.fillMaxWidth().height(24.dp)
+                    )
+                }
+            }
+
+            // 5.3 رموز سامسونج الثانوية
+            item {
+                QuickSettingToggleRow(
+                    title = "رموز سامسونج الثانوية على المفاتيح",
+                    subtitle = "عرض الرموز الفرعية فوق الأحرف للوصول السريع",
+                    icon = Icons.Outlined.Layers,
+                    checked = settings.samsungStyleHints,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(samsungStyleHints = it)) }
+                )
+            }
+
+            // 5.4 استبدال صف الأرقام بصف الإيموجي
+            item {
+                QuickSettingToggleRow(
+                    title = "استبدال صف الأرقام بالإيموجي",
+                    subtitle = "عرض إيموجيات سريعة بدلاً من الأرقام في الصف العلوي",
+                    icon = Icons.Outlined.EmojiEmotions,
+                    checked = settings.replaceNumberRowWithEmojis,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(replaceNumberRowWithEmojis = it)) }
+                )
+            }
+
+            // 5.5 كيبورد الأجهزة اللوحية المنقسم (Split Keyboard)
+            item {
+                QuickSettingToggleRow(
+                    title = "وضع الكيبورد المنقسم (Split)",
+                    subtitle = "تقسيم المفاتيح إلى نصفين للكتابة المريحة بالإبهامين",
+                    icon = Icons.Outlined.ViewWeek,
+                    checked = settings.isSplitKeyboard,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(isSplitKeyboard = it)) }
+                )
+            }
+
+            // 5.6 الكيبورد العائم المصغر (Floating Keyboard)
+            item {
+                QuickSettingToggleRow(
+                    title = "وضع الكيبورد العائم (Floating)",
+                    subtitle = "تصغير الكيبورد وتحريكه بحرية للشاشات الكبيرة",
+                    icon = Icons.Outlined.PictureInPicture,
+                    checked = settings.isFloatingKeyboard,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(isFloatingKeyboard = it)) }
+                )
+            }
+
+            // 5.7 لوحة الآلة الحاسبة 123
+            item {
+                QuickSettingToggleRow(
+                    title = "مصفوفة الآلة الحاسبة (123)",
+                    subtitle = "ترتيب أرقام الكيبورد مثل الآلة الحاسبة السريعة",
+                    icon = Icons.Outlined.Calculate,
+                    checked = settings.calculatorNumpadMode,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(calculatorNumpadMode = it)) }
+                )
+            }
+
+            // 5.8 النسخ الاحتياطي السحابي وتصدير/استيراد الإعدادات JSON
+            item {
+                var syncFeedbackMessage by remember { mutableStateOf("") }
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val prefs = remember { PreferencesManager(context) }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(rowBg)
+                        .border(1.dp, rowBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.CloudSync, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("النسخ الاحتياطي والمزامنة السحابية (JSON)", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("حفظ ونقل الثيمات والاختصارات والإعدادات بضغطة واحدة", color = subTextColor, fontSize = 9.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(
+                            onClick = {
+                                val json = prefs.exportShortcutsJson()
+                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                cm?.setPrimaryClip(ClipData.newPlainText("TurboKeyboardBackup", json))
+                                syncFeedbackMessage = "✓ تم نسخ بياناتك بصيغة JSON إلى الحافظة"
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentCol),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.weight(1f).height(30.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text("تصدير JSON 📤", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = {
+                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                                if (clip.startsWith("{") || clip.startsWith("[")) {
+                                    val success = prefs.importShortcutsJson(clip)
+                                    syncFeedbackMessage = if (success) "✓ تم استيراد الإعدادات بنجاح" else "صيغة JSON غير صالحة"
+                                } else {
+                                    syncFeedbackMessage = "يرجى نسخ نص JSON أولاً إلى الحافظة"
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF1E2838)),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.weight(1f).height(30.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text("استيراد JSON 📥", color = textColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (syncFeedbackMessage.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(syncFeedbackMessage, color = accentCol, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
             // 6. تخصيص شريط الأدوات العلوي

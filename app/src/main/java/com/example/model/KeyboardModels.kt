@@ -96,6 +96,14 @@ data class KeyboardSettings(
     val translationSource: String = "ar",
     val translationTarget: String = "en",
     val autoTranslateOnCopy: Boolean = false,
+    val toolbarEnabled: Boolean = true, // إظهار أو إخفاء شريط الأدوات العلوي بالكامل
+    val sideMarginDp: Int = 0, // هوامش جانبية مريحة للكيبورد (0 إلى 32 dp)
+    val bottomMarginDp: Int = 0, // هامش سفلي مخصص للكيبورد (0 إلى 32 dp)
+    val replaceNumberRowWithEmojis: Boolean = false, // استبدال صف الأرقام بصف الإيموجي أو الإجراءات السريعة
+    val samsungStyleHints: Boolean = true, // تلميحات الرموز والأرقام الثانوية بنمط سامسونج على رؤوس المفاتيح
+    val hideEmojiAbcKey: Boolean = false, // خيار إخفاء زر العودة ABC داخل واجهة الإيموجي
+    val calculatorNumpadMode: Boolean = false, // وضع الآلة الحاسبة الموسع 123
+    val myThemeId: String = "liquid_glass_blur", // المعرف الخاص بـ "ثيمتي" للاسترجاع السريع
     val visibleToolbarTools: List<String> = listOf(
         "stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings"
     )

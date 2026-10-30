@@ -54,12 +54,33 @@ object ThemePresets {
     }
 
     // =========================================================================
-    // FLAGSHIP DEFAULT THEME — Royal Crystal Luxe (Glassmorphism Minimal Light)
+    // FLAGSHIP WORLD-CLASS DEFAULT THEME — Royal Titanium & Ruby Luxe
     // =========================================================================
+    val ROYAL_TITANIUM_LUXE = KeyboardTheme(
+        id = "royal_titanium_luxe",
+        nameAr = "👑 رويال تيتانيوم لوكس (الأفضل بالعالم)",
+        nameEn = "Royal Titanium & Ruby Luxe (World Best)",
+        backgroundColor = 0xFF101216,
+        backgroundGradient = listOf(0xFF161920, 0xFF0B0D10),
+        keyBackgroundColor = 0xFF1F232D,
+        keyPressedColor = 0xFF2F3646,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFFDC2626,
+        specialKeyColor = 0xFFB91C1C,
+        toolbarColor = 0xFF13161C,
+        borderColor = 0xFF363E4E,
+        borderAlpha = 0.85f,
+        cornerRadius = 11.5f,
+        keyStyle = "neon",
+        category = "twenty_premium"
+    )
+
     val CRYSTAL_LIGHT = KeyboardTheme(
         id = "crystal_light",
-        nameAr = "كريستال رويال الفاخر (الافتراضي)",
-        nameEn = "Royal Crystal Luxe (Default)",
+        nameAr = "كريستال رويال الفاخر",
+        nameEn = "Royal Crystal Luxe",
         backgroundColor = 0xFFF4F6FB,
         keyBackgroundColor = 0xFFFFFFFF,
         keyPressedColor = 0xFFE2E8F0,

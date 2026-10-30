@@ -95,7 +95,7 @@ open class TurboKeyboardService : InputMethodService(),
                 win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                 win.setDimAmount(0f)
                 win.setGravity(android.view.Gravity.BOTTOM)
-                win.addFlags(android.view.WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
                 win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             window?.window?.decorView?.let { decorView ->
@@ -106,6 +106,31 @@ open class TurboKeyboardService : InputMethodService(),
         } catch (e: Exception) {
             // Ignore if decorView not ready
         }
+    }
+
+    // Active back navigation handler registered by the active keyboard view
+    var onBackKeyAction: (() -> Boolean)? = null
+
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+            if (event?.repeatCount == 0) {
+                if (onBackKeyAction?.invoke() == true) {
+                    return true
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+            if (event?.isTracking == true && !event.isCanceled) {
+                if (onBackKeyAction?.invoke() == true) {
+                    return true
+                }
+            }
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onCreateInputView(): View {
@@ -160,6 +185,12 @@ open class TurboKeyboardService : InputMethodService(),
                     },
                     onOpenSettingsRequested = {
                         openAppSettings()
+                    },
+                    onBackActionRegister = { action ->
+                        onBackKeyAction = action
+                    },
+                    onHideKeyboardRequested = {
+                        requestHideSelf(0)
                     },
                     prefsManager = prefs
                 )

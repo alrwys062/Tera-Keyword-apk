@@ -34,7 +34,8 @@ fun KeyboardSuggestionsBar(
     theme: KeyboardTheme,
     suggestions: List<PredictionEngine.PredictionResult>,
     onSuggestionClick: (String) -> Unit,
-    onAddWordToDictionary: ((String) -> Unit)? = null
+    onAddWordToDictionary: ((String) -> Unit)? = null,
+    onSwipeBack: (() -> Unit)? = null
 ) {
     if (suggestions.isEmpty()) return
 
@@ -47,6 +48,7 @@ fun KeyboardSuggestionsBar(
             .fillMaxWidth()
             .height(barHeight)
             .background(Color(theme.backgroundColor))
+            .edgeSwipeToBack(enabled = onSwipeBack != null, onSwipeBack = { onSwipeBack?.invoke() })
             .padding(horizontal = 6.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically

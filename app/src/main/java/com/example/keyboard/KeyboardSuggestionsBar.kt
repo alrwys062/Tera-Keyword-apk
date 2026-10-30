@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,9 +37,11 @@ fun KeyboardSuggestionsBar(
     suggestions: List<PredictionEngine.PredictionResult>,
     onSuggestionClick: (String) -> Unit,
     onAddWordToDictionary: ((String) -> Unit)? = null,
-    onSwipeBack: (() -> Unit)? = null
+    onSwipeBack: (() -> Unit)? = null,
+    detectedOtpCode: String? = null,
+    onOtpClick: ((String) -> Unit)? = null
 ) {
-    if (suggestions.isEmpty()) return
+    if (suggestions.isEmpty() && detectedOtpCode.isNullOrBlank()) return
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -53,6 +57,45 @@ fun KeyboardSuggestionsBar(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (!detectedOtpCode.isNullOrBlank()) {
+            Surface(
+                modifier = Modifier
+                    .weight(1.5f)
+                    .fillMaxHeight()
+                    .clickable { onOtpClick?.invoke(detectedOtpCode) },
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF059669),
+                border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF10B981))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "رمز التحقق",
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "رمز التحقق: $detectedOtpCode (لصق)",
+                            color = Color.White,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+
         val left = suggestions.getOrNull(0)
         val center = suggestions.getOrNull(1) ?: left
         val right = suggestions.getOrNull(2)

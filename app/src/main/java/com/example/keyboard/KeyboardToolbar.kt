@@ -47,7 +47,6 @@ fun Modifier.edgeSwipeToBack(
     awaitEachGesture {
         val down = awaitFirstDown(pass = PointerEventPass.Initial)
         val startX = down.position.x
-        val startY = down.position.y
         val edgePx = edgeThreshold.toPx()
         val dragPx = dragThreshold.toPx()
         val isNearLeftEdge = startX <= edgePx
@@ -60,17 +59,14 @@ fun Modifier.edgeSwipeToBack(
             if (!change.pressed) break
 
             val deltaX = change.position.x - startX
-            val deltaY = change.position.y - startY
             val absX = abs(deltaX)
-            val absY = abs(deltaY)
 
             if (!backTriggered) {
-                // Inward swipe from left or right edge, or downward swipe
-                val isLeftInward = isNearLeftEdge && deltaX > dragPx && absX > absY
-                val isRightInward = isNearRightEdge && deltaX < -dragPx && absX > absY
-                val isSwipeDown = deltaY > (dragPx * 1.5f) && absY > absX
+                // Only strict horizontal inward swipe from left or right edge
+                val isLeftInward = isNearLeftEdge && deltaX > dragPx && absX > dragPx
+                val isRightInward = isNearRightEdge && deltaX < -dragPx && absX > dragPx
 
-                if (isLeftInward || isRightInward || isSwipeDown) {
+                if (isLeftInward || isRightInward) {
                     backTriggered = true
                     change.consume()
                     onSwipeBack()
@@ -110,8 +106,6 @@ fun KeyboardToolbar(
     onOpenSettingsClick: () -> Unit,
     onCustomizeToolbar: () -> Unit = {},
     onSwipeBack: (() -> Unit)? = null,
-    detectedOtpCode: String? = null,
-    onOtpClick: ((String) -> Unit)? = null,
     browserShortcuts: List<String> = emptyList(),
     onBrowserShortcutClick: ((String) -> Unit)? = null,
     onMyThemeClick: (() -> Unit)? = null
@@ -132,37 +126,11 @@ fun KeyboardToolbar(
             .fillMaxWidth()
             .height(actualHeight)
             .background(Color(theme.toolbarColor))
-            .edgeSwipeToBack(enabled = onSwipeBack != null, onSwipeBack = { onSwipeBack?.invoke() })
             .horizontalScroll(scrollState)
             .padding(horizontal = 4.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 0.0 OTP Direct Auto-fill Suggestion
-        if (!detectedOtpCode.isNullOrBlank()) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF059669))
-                    .clickable { onOtpClick?.invoke(detectedOtpCode) }
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "رمز التحقق",
-                    tint = Color.White,
-                    modifier = Modifier.size(13.dp)
-                )
-                Text(
-                    text = "رمز التحقق: $detectedOtpCode (لصق)",
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
 
         // 0.1 Browser URL suggestions (.com, .org, etc.)
         if (browserShortcuts.isNotEmpty()) {

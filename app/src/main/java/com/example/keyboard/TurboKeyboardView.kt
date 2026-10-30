@@ -1158,17 +1158,15 @@ fun TurboKeyboardView(
                 isNightMode = true,
                 visibleTools = currentSettings.visibleToolbarTools,
                 isForceEnglishNumbers = currentSettings.forceEnglishNumbers,
-                detectedOtpCode = detectedOtpCode,
-                onOtpClick = { code ->
-                    sendText(code)
-                    detectedOtpCode = null
-                },
                 browserShortcuts = browserShortcuts,
                 onBrowserShortcutClick = { domain ->
                     sendText(domain)
                 },
                 onMyThemeClick = {
-                    activeTheme = prefs.resetToMyTheme()
+                    val isThemesActive = activeSubView == KeyboardSubView.THEMES
+                    activeSubView = if (isThemesActive) KeyboardSubView.NONE else KeyboardSubView.THEMES
+                    isDecorationBarOpen = false
+                    isTranslationBarOpen = false
                     performFeedback(isSpecial = true)
                 },
                 onToggleForceEnglishNumbers = {
@@ -1515,6 +1513,19 @@ fun TurboKeyboardView(
                             onClose = { activeSubView = KeyboardSubView.NONE }
                         )
                     }
+                    KeyboardSubView.THEMES -> {
+                        ThemesPickerDrawer(
+                            theme = activeTheme,
+                            prefs = prefs,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            onThemeSelected = { newTheme ->
+                                activeTheme = newTheme
+                                activeSubView = KeyboardSubView.NONE
+                                performFeedback(isSpecial = true)
+                            },
+                            onClose = { activeSubView = KeyboardSubView.NONE }
+                        )
+                    }
                     else -> {}
                 }
             }
@@ -1556,7 +1567,12 @@ fun TurboKeyboardView(
                     userWords = userDict.getUserWords()
                     performFeedback()
                 },
-                onSwipeBack = { handleBackNavigation() }
+                onSwipeBack = { handleBackNavigation() },
+                detectedOtpCode = detectedOtpCode,
+                onOtpClick = { code ->
+                    sendText(code)
+                    detectedOtpCode = null
+                }
             )
         }
 

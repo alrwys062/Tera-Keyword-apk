@@ -53,8 +53,11 @@ import com.example.data.TranslationEngine
 import com.example.model.ClipboardItem
 import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
+import com.example.model.ThemePresets
 import com.example.sound.KeyboardSoundEngine
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private fun isLightColor(colorLong: Long): Boolean {
     val r = ((colorLong shr 16) and 0xFF) / 255.0
@@ -4102,5 +4105,217 @@ fun TelegramChannelsSubView(
         }
     }
 }
+
+@Composable
+fun ThemesPickerDrawer(
+    theme: KeyboardTheme,
+    prefs: PreferencesManager,
+    keyboardHeight: Dp,
+    onThemeSelected: (KeyboardTheme) -> Unit,
+    onClose: () -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var allThemes by remember { mutableStateOf<List<KeyboardTheme>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
+    val currentThemeId = theme.id
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val custom = prefs.getCustomThemes()
+            val presets = ThemePresets.allPresets
+            val combined = (custom + presets).distinctBy { it.id }
+            withContext(Dispatchers.Main) {
+                allThemes = combined
+                isLoading = false
+            }
+        }
+    }
+
+    val filteredThemes = remember(allThemes, searchQuery) {
+        if (searchQuery.isBlank()) allThemes
+        else allThemes.filter {
+            it.nameAr.contains(searchQuery.trim(), ignoreCase = true) ||
+            it.nameEn.contains(searchQuery.trim(), ignoreCase = true)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(keyboardHeight)
+            .background(Color(theme.backgroundColor))
+            .edgeSwipeToBack(onSwipeBack = onClose)
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Palette,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "ثيمات الكيبورد (${filteredThemes.size})",
+                    color = Color(theme.keyTextColor),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("ابحث عن ستايل أو ثيم...", fontSize = 11.sp) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+            shape = RoundedCornerShape(10.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color(theme.keyBackgroundColor),
+                unfocusedContainerColor = Color(theme.keyBackgroundColor),
+                focusedBorderColor = Color(theme.accentColor),
+                unfocusedBorderColor = Color(theme.borderColor).copy(alpha = 0.5f),
+                focusedTextColor = Color(theme.keyTextColor),
+                unfocusedTextColor = Color(theme.keyTextColor)
+            )
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    color = Color(theme.accentColor)
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(bottom = 6.dp)
+            ) {
+                items(filteredThemes, key = { it.id }) { itemTheme ->
+                    val isCurrent = itemTheme.id == currentThemeId
+                    val itemKeyBg = remember(itemTheme.keyBackgroundColor, itemTheme.keyOpacity) {
+                        ThemePresets.resolveKeyColor(itemTheme.keyBackgroundColor, itemTheme.keyOpacity)
+                    }
+                    val itemAccent = Color(itemTheme.accentColor)
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    prefs.setCurrentTheme(itemTheme.id)
+                                    withContext(Dispatchers.Main) {
+                                        onThemeSelected(itemTheme)
+                                    }
+                                }
+                            },
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(itemTheme.backgroundColor),
+                        border = BorderStroke(
+                            width = if (isCurrent) 1.8.dp else 0.8.dp,
+                            color = if (isCurrent) itemAccent else Color(itemTheme.borderColor).copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(6.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = itemTheme.nameAr,
+                                    color = Color(itemTheme.keyTextColor),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isCurrent) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clip(CircleShape)
+                                            .background(itemAccent),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color.Black,
+                                            modifier = Modifier.size(9.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                repeat(5) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(14.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(itemKeyBg)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 

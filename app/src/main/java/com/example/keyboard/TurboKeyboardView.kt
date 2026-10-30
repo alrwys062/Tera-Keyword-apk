@@ -1163,6 +1163,10 @@ fun TurboKeyboardView(
                     sendText(domain)
                 },
                 onMyThemeClick = {
+                    activeTheme = prefs.resetToMyTheme()
+                    performFeedback(isSpecial = true)
+                },
+                onMyThemeLongClick = {
                     val isThemesActive = activeSubView == KeyboardSubView.THEMES
                     activeSubView = if (isThemesActive) KeyboardSubView.NONE else KeyboardSubView.THEMES
                     isDecorationBarOpen = false
@@ -1623,19 +1627,19 @@ fun TurboKeyboardView(
                     }
                 }
 
-                // Add / Customize circular floating button for the top emoji row (+)
+                // Add / Customize button for the top emoji row (+)
                 Surface(
                     modifier = Modifier
-                        .size((28 * currentSettings.emojiBarHeightFactor).dp.coerceIn(26.dp, 36.dp))
-                        .clip(CircleShape)
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(theme.cornerRadius.dp))
                         .clickable {
                             performFeedback(isSpecial = true)
                             isCustomizeTopEmojisOpen = true
                         },
-                    shape = CircleShape,
-                    color = Color(theme.accentColor).copy(alpha = 0.25f),
-                    border = BorderStroke(1.2.dp, Color(theme.accentColor).copy(alpha = 0.85f)),
-                    shadowElevation = 2.dp
+                    shape = RoundedCornerShape(theme.cornerRadius.dp),
+                    color = Color(theme.accentColor).copy(alpha = 0.22f),
+                    border = BorderStroke(1.2.dp, Color(theme.accentColor))
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(

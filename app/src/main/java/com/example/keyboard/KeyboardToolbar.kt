@@ -108,7 +108,8 @@ fun KeyboardToolbar(
     onSwipeBack: (() -> Unit)? = null,
     browserShortcuts: List<String> = emptyList(),
     onBrowserShortcutClick: ((String) -> Unit)? = null,
-    onMyThemeClick: (() -> Unit)? = null
+    onMyThemeClick: (() -> Unit)? = null,
+    onMyThemeLongClick: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
@@ -161,7 +162,9 @@ fun KeyboardToolbar(
                 label = "ثيمتي",
                 isActive = false,
                 theme = theme,
-                onClick = onMyThemeClick
+                onClick = onMyThemeClick,
+                onLongClick = onMyThemeLongClick,
+                longClickDelayMs = 600L
             )
         }
         // 0. ملصقات (Stickers & Designer)

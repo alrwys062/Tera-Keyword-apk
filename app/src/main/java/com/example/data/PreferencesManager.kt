@@ -1119,10 +1119,10 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun resetToMyTheme(): KeyboardTheme {
-        val targetId = getMyThemeId()
-        val theme = getCustomThemes().find { it.id == targetId } ?: ThemePresets.getById(targetId)
-        saveActiveTheme(theme)
-        return theme
+        val defaultTheme = ThemePresets.ROYAL_TITANIUM_LUXE
+        saveActiveTheme(defaultTheme)
+        setMyThemeId(defaultTheme.id)
+        return defaultTheme
     }
 
     // Export a single theme to portable JSON

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.rememberCoroutineScope
@@ -377,31 +378,12 @@ private fun ToolbarFixedItem(
                 color = if (isActive) activeColor else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
-            .then(
-                if (onLongClick != null) {
-                    Modifier.pointerInput(onClick, onLongClick) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            var isLong = false
-                            val job = coroutineScope.launch {
-                                delay(longClickDelayMs)
-                                isLong = true
-                                onLongClick()
-                            }
-                            try {
-                                val up = waitForUpOrCancellation()
-                                if (up != null && !isLong) {
-                                    onClick()
-                                }
-                            } finally {
-                                job.cancel()
-                            }
-                        }
-                    }
-                } else {
-                    Modifier.clickable(onClick = onClick)
-                }
-            )
+            .pointerInput(onClick, onLongClick) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onLongPress = if (onLongClick != null) { { onLongClick() } } else null
+                )
+            }
             .padding(horizontal = 2.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         contentAlignment = Alignment.Center
     ) {

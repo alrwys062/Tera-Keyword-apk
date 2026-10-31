@@ -1368,6 +1368,21 @@ fun SettingsScreen(
                         )
                     }
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("شريط الأدوات العلوي (Toolbar)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("إظهار أو إخفاء شريط الأدوات بالكامل أعلى لوحة المفاتيح", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                        }
+                        Switch(
+                            checked = settings.toolbarEnabled,
+                            onCheckedChange = { updateSettings(settings.copy(toolbarEnabled = it)) }
+                        )
+                    }
+
                     if (settings.topQuickEmojiRowEnabled) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),

@@ -45,7 +45,7 @@ fun KeyboardSuggestionsBar(
     browserShortcuts: List<String> = emptyList(),
     onBrowserShortcutClick: ((String) -> Unit)? = null
 ) {
-    if (suggestions.isEmpty() && detectedOtpCode.isNullOrBlank() && browserShortcuts.isEmpty()) return
+    if (suggestions.isEmpty() && detectedOtpCode.isNullOrBlank()) return
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -56,37 +56,10 @@ fun KeyboardSuggestionsBar(
             .fillMaxWidth()
             .height(barHeight)
             .background(Color(theme.backgroundColor))
-            .edgeSwipeToBack(enabled = onSwipeBack != null, onSwipeBack = { onSwipeBack?.invoke() })
-            .then(if (browserShortcuts.isNotEmpty() || suggestions.size > 3) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
             .padding(horizontal = 6.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (browserShortcuts.isNotEmpty()) {
-            browserShortcuts.forEach { shortcut ->
-                Surface(
-                    modifier = Modifier
-                        .height(if (isLandscape) 22.dp else 28.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onBrowserShortcutClick?.invoke(shortcut) },
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(theme.keyBackgroundColor),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.5f))
-                ) {
-                    Box(
-                        modifier = Modifier.padding(horizontal = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = shortcut,
-                            color = Color(theme.accentColor),
-                            fontSize = if (isLandscape) 10.sp else 11.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
 
         if (!detectedOtpCode.isNullOrBlank()) {
             Surface(

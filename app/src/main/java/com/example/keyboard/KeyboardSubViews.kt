@@ -2176,14 +2176,18 @@ fun VoiceInputView(
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (!hasAudioPermission) {
-            statusText = "⚠️ يرجى منح إذن الميكروفون من الإعدادات"
+            statusText = "جاري فتح الإدخال الصوتي للنظام..."
             try {
-                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (voiceLangArabic) "ar-SA" else "en-US")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "تحدث الآن للإدخال الصوتي...")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+                statusText = "⚠️ يرجى تفعيل إذن الميكروفون للكيبورد"
+            }
             return
         }
 
@@ -2262,9 +2266,7 @@ fun VoiceInputView(
     }
 
     DisposableEffect(Unit) {
-        if (hasAudioPermission) {
-            startListening()
-        }
+        startListening()
         onDispose {
             try {
                 speechRecognizer?.destroy()
@@ -2518,7 +2520,6 @@ fun QuickSettingsView(
             .fillMaxWidth()
             .height(dialogHeight)
             .background(Color(theme.backgroundColor))
-            .edgeSwipeToBack(onSwipeBack = onClose)
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         // Header
@@ -2567,6 +2568,22 @@ fun QuickSettingsView(
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            // 0. إظهار / إخفاء شريط الأدوات العلوي (Toolbar)
+            item {
+                QuickSettingToggleRow(
+                    title = "شريط الأدوات العلوي (Toolbar)",
+                    subtitle = "إظهار أو إخفاء شريط الأدوات بالكامل أعلى لوحة المفاتيح",
+                    icon = Icons.Outlined.Dashboard,
+                    checked = settings.toolbarEnabled,
+                    accentColor = accentCol,
+                    textColor = textColor,
+                    subTextColor = subTextColor,
+                    cardBg = rowBg,
+                    cardBorder = rowBorder,
+                    onCheckedChange = { onUpdateSettings(settings.copy(toolbarEnabled = it)) }
+                )
+            }
+
             // 1. صوت المفاتيح ونوع الصوت ومستوى الصوت (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
@@ -3068,22 +3085,6 @@ fun QuickSettingsView(
                     cardBg = rowBg,
                     cardBorder = rowBorder,
                     onCheckedChange = { onUpdateSettings(settings.copy(suggestionsEnabled = it)) }
-                )
-            }
-
-            // 5.1 إظهار شريط الأدوات العلوي
-            item {
-                QuickSettingToggleRow(
-                    title = "شريط الأدوات العلوي (Toolbar)",
-                    subtitle = "إظهار أو إخفاء شريط الأدوات بالكامل",
-                    icon = Icons.Outlined.Dashboard,
-                    checked = settings.toolbarEnabled,
-                    accentColor = accentCol,
-                    textColor = textColor,
-                    subTextColor = subTextColor,
-                    cardBg = rowBg,
-                    cardBorder = rowBorder,
-                    onCheckedChange = { onUpdateSettings(settings.copy(toolbarEnabled = it)) }
                 )
             }
 
@@ -4136,7 +4137,6 @@ fun ThemesPickerDrawer(
             .fillMaxWidth()
             .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .edgeSwipeToBack(onSwipeBack = onClose)
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Row(

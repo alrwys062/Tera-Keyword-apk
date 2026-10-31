@@ -351,12 +351,16 @@ fun TurboKeyboardView(
         mutableStateOf(theme)
     }
 
-    var allThemes by remember { mutableStateOf<List<KeyboardTheme>>(emptyList()) }
+    var allThemes by remember {
+        val reversedPresets = com.example.model.ThemePresets.allPresets.reversed()
+        val custom = try { prefs.getCustomThemes() } catch (_: Exception) { emptyList() }
+        mutableStateOf((custom + reversedPresets).distinctBy { it.id })
+    }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val custom = prefs.getCustomThemes()
-            val presets = com.example.model.ThemePresets.allPresets
-            val combined = (custom + presets).distinctBy { it.id }
+            val reversedPresets = com.example.model.ThemePresets.allPresets.reversed()
+            val combined = (custom + reversedPresets).distinctBy { it.id }
             withContext(Dispatchers.Main) {
                 allThemes = combined
             }
@@ -1113,22 +1117,23 @@ fun TurboKeyboardView(
         } catch (_: Exception) {}
     }
 
-    val isGlassTheme = theme.isGlass || theme.id == "liquid_glass_blur"
+    val isGlassTheme = activeTheme.isGlass || activeTheme.id == "liquid_glass_blur"
     val containerShape = if (isGlassTheme) RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp) else RoundedCornerShape(0.dp)
     val containerBorder = if (isGlassTheme) BorderStroke(1.dp, Color(0x33FFFFFF)) else null
 
-    val bgModifier = remember(theme) {
-        if (!theme.backgroundGradient.isNullOrEmpty()) {
-            Modifier.background(Brush.verticalGradient(theme.backgroundGradient.map { Color(it) }))
+    val bgModifier = remember(activeTheme) {
+        val gradient = activeTheme.backgroundGradient
+        if (!gradient.isNullOrEmpty()) {
+            Modifier.background(Brush.verticalGradient(gradient.map { Color(it) }))
         } else {
-            Modifier.background(Color(theme.backgroundColor))
+            Modifier.background(Color(activeTheme.backgroundColor))
         }
     }
 
     Box(modifier = Modifier.fillMaxWidth()) {
-        if (!theme.backgroundImageUri.isNullOrBlank()) {
+        if (!activeTheme.backgroundImageUri.isNullOrBlank()) {
             AsyncImage(
-                model = theme.backgroundImageUri,
+                model = activeTheme.backgroundImageUri,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize()
@@ -1136,7 +1141,7 @@ fun TurboKeyboardView(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.Black.copy(alpha = theme.backgroundDim))
+                    .background(Color.Black.copy(alpha = activeTheme.backgroundDim))
             )
         }
 
@@ -1196,14 +1201,14 @@ fun TurboKeyboardView(
                 )
                 .then(if (containerBorder != null) Modifier.border(containerBorder, containerShape) else Modifier)
                 .clip(containerShape)
-                .then(if (theme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
+                .then(if (activeTheme.backgroundImageUri.isNullOrBlank()) bgModifier else Modifier)
                 .windowInsetsPadding(navInsets)
         ) {
-        // 1. TOP SECTION (Suggestions or Themes Search)
+        // 1. TOP SECTION: Toolbar or Themes Row
         val isThemesMode = activeSubView == KeyboardSubView.THEMES
-        
+
         if (isThemesMode) {
-            // Search Bar for Themes (replacing suggestions bar)
+            // Search Bar for Themes
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1216,17 +1221,26 @@ fun TurboKeyboardView(
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color(activeTheme.accentColor), modifier = Modifier.size(18.dp))
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (themesSearchQuery.isEmpty()) {
-                        Text("ابحث عن ثيم بالاسم...", color = Color(activeTheme.subtextColor).copy(alpha = 0.7f), fontSize = 12.sp)
+                        Text("ابحث بالكيبورد عن ثيم بالاسم...", color = Color(activeTheme.subtextColor).copy(alpha = 0.7f), fontSize = 12.sp)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = themesSearchQuery,
+                                color = Color(activeTheme.keyTextColor),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = androidx.compose.ui.text.TextStyle(
+                                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                                )
+                            )
+                            Text(
+                                text = "|",
+                                color = Color(activeTheme.accentColor),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                    Text(
-                        text = themesSearchQuery,
-                        color = Color(activeTheme.keyTextColor),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        style = androidx.compose.ui.text.TextStyle(
-                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
-                        )
-                    )
                 }
                 if (themesSearchQuery.isNotEmpty()) {
                     IconButton(onClick = { themesSearchQuery = "" }, modifier = Modifier.size(24.dp)) {
@@ -1237,62 +1251,29 @@ fun TurboKeyboardView(
                     Text("تم", color = Color(activeTheme.accentColor), fontWeight = FontWeight.Bold)
                 }
             }
-        } else if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.suggestionsEnabled && !isCustomizeTopEmojisOpen) {
-            KeyboardSuggestionsBar(
-                theme = activeTheme,
-                suggestions = suggestions,
-                onSuggestionClick = { word ->
-                    performFeedback()
-                    val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-                    if (ic != null) {
-                        ic.beginBatchEdit()
-                        try {
-                            val textBefore = try {
-                                ic.getTextBeforeCursor(60, 0)?.toString() ?: ""
-                            } catch (_: Exception) { "" }
-                            val lastTokenMatch = Regex("""[^\s\p{Punct}]+$""").find(textBefore)
-                            val tokenLen = lastTokenMatch?.value?.length ?: currentComposingText.length
-                            val toDelete = if (tokenLen > 0) tokenLen else currentComposingText.length
-                            if (toDelete > 0) {
-                                ic.deleteSurroundingText(toDelete, 0)
-                            }
-                            ic.commitText("$word ", 1)
-                        } catch (_: Exception) {
-                            ic.commitText("$word ", 1)
-                        } finally {
-                            ic.endBatchEdit()
-                        }
-                    } else {
-                        sendText("$word ")
-                    }
-                    currentComposingText = ""
-                },
-                onAddWordToDictionary = { word ->
-                    userDict.addWord(word)
-                    userWords = userDict.getUserWords()
-                    performFeedback()
-                },
-                onSwipeBack = { handleBackNavigation() },
-                detectedOtpCode = detectedOtpCode,
-                onOtpClick = { code ->
-                    sendText(code)
-                    detectedOtpCode = null
-                },
-                browserShortcuts = browserShortcuts,
-                onBrowserShortcutClick = { domain ->
-                    sendText(domain)
-                }
-            )
-        }
 
-        // 2. MIDDLE SECTION (Toolbar or Themes Row)
-        if (isThemesMode) {
-            // Horizontal Themes Row (as requested: "add all themes to toolbar")
+            // Horizontal Themes Row (All themes immediately accessible, matching settings order)
             val filteredThemes = remember(allThemes, themesSearchQuery) {
                 if (themesSearchQuery.isBlank()) allThemes
-                else allThemes.filter { it.nameAr.contains(themesSearchQuery, true) || it.nameEn.contains(themesSearchQuery, true) }
+                else {
+                    val cleanQuery = themesSearchQuery.trim()
+                        .replace("[إأآا]".toRegex(), "ا")
+                        .replace("ى", "ي")
+                        .replace("ة", "ه")
+                        .replace("[\u064B-\u065F\u0670]".toRegex(), "")
+                        .lowercase()
+                    allThemes.filter { theme ->
+                        val cleanAr = theme.nameAr
+                            .replace("[إأآا]".toRegex(), "ا")
+                            .replace("ى", "ي")
+                            .replace("ة", "ه")
+                            .replace("[\u064B-\u065F\u0670]".toRegex(), "")
+                            .lowercase()
+                        cleanAr.contains(cleanQuery) || theme.nameEn.contains(themesSearchQuery.trim(), ignoreCase = true)
+                    }
+                }
             }
-            
+
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1320,7 +1301,6 @@ fun TurboKeyboardView(
                             }
                             .padding(4.dp)
                     ) {
-                        // Small preview squares
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             repeat(3) {
                                 Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(2.dp)).background(Color(themeItem.keyBackgroundColor)))
@@ -1353,7 +1333,7 @@ fun TurboKeyboardView(
                 onMyThemeClick = {
                     val isThemesActive = activeSubView == KeyboardSubView.THEMES
                     if (!isThemesActive) {
-                        themesSearchQuery = "" // Clear search when opening
+                        themesSearchQuery = ""
                         activeSubView = KeyboardSubView.THEMES
                         isDecorationBarOpen = false
                         isTranslationBarOpen = false
@@ -1411,6 +1391,91 @@ fun TurboKeyboardView(
                     isTranslationBarOpen = false
                 },
                 onSwipeBack = { handleBackNavigation() }
+            )
+        } else if (!currentSettings.toolbarEnabled && !isCustomizeTopEmojisOpen && activeSubView == KeyboardSubView.NONE) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 1.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(activeTheme.keyBackgroundColor).copy(alpha = 0.85f),
+                    border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.5f)),
+                    modifier = Modifier.clickable {
+                        val updated = currentSettings.copy(toolbarEnabled = true)
+                        currentSettings = updated
+                        prefs.saveSettings(updated)
+                        performFeedback(isSpecial = true)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "إظهار شريط الأدوات",
+                            tint = Color(activeTheme.accentColor),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "إظهار شريط الأدوات",
+                            color = Color(activeTheme.keyTextColor),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. SECOND SECTION: Suggestions & Candidate Bar (Below Toolbar, Above Keys/Emojis)
+        if (!isThemesMode && activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.suggestionsEnabled && !isCustomizeTopEmojisOpen) {
+            KeyboardSuggestionsBar(
+                theme = activeTheme,
+                suggestions = suggestions,
+                onSuggestionClick = { word ->
+                    performFeedback()
+                    val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                    if (ic != null) {
+                        ic.beginBatchEdit()
+                        try {
+                            val textBefore = try {
+                                ic.getTextBeforeCursor(60, 0)?.toString() ?: ""
+                            } catch (_: Exception) { "" }
+                            val lastTokenMatch = Regex("""[^\s\p{Punct}]+$""").find(textBefore)
+                            val tokenLen = lastTokenMatch?.value?.length ?: currentComposingText.length
+                            val toDelete = if (tokenLen > 0) tokenLen else currentComposingText.length
+                            if (toDelete > 0) {
+                                ic.deleteSurroundingText(toDelete, 0)
+                            }
+                            ic.commitText("$word ", 1)
+                        } catch (_: Exception) {
+                            ic.commitText("$word ", 1)
+                        } finally {
+                            ic.endBatchEdit()
+                        }
+                    } else {
+                        sendText("$word ")
+                    }
+                    currentComposingText = ""
+                },
+                onAddWordToDictionary = { word ->
+                    userDict.addWord(word)
+                    userWords = userDict.getUserWords()
+                    performFeedback()
+                },
+                onSwipeBack = { handleBackNavigation() },
+                detectedOtpCode = detectedOtpCode,
+                onOtpClick = { code ->
+                    sendText(code)
+                    detectedOtpCode = null
+                },
+                browserShortcuts = emptyList(),
+                onBrowserShortcutClick = null
             )
         }
 
@@ -1495,7 +1560,7 @@ fun TurboKeyboardView(
                     KeyboardSubView.EMOJI -> {
                         EmojiPickerView(
                             theme = activeTheme,
-                            keyboardHeight = 220.dp, // Fixed height for searchable emoji
+                            keyboardHeight = calculatedKeyboardHeight,
                             hideAbcKey = currentSettings.hideEmojiAbcKey,
                             backspaceScale = currentSettings.backspaceKeyScale,
                             searchQuery = emojiSearchQuery,
@@ -1734,13 +1799,12 @@ fun TurboKeyboardView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(dynamicRowHeight)
-                    .edgeSwipeToBack(onSwipeBack = { handleBackNavigation() })
                     .padding(horizontal = 4.dp, vertical = 1.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 customTopEmojis.forEach { char ->
-                    val quickKeyBg = ThemePresets.resolveKeyColor(theme.keyBackgroundColor, theme.keyOpacity)
+                    val quickKeyBg = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -1757,14 +1821,14 @@ fun TurboKeyboardView(
                                     }
                                 )
                             },
-                        shape = RoundedCornerShape(theme.cornerRadius.dp),
+                        shape = RoundedCornerShape(activeTheme.cornerRadius.dp),
                         color = quickKeyBg,
-                        border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f)))
+                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = char,
-                                color = Color(theme.keyTextColor),
+                                color = Color(activeTheme.keyTextColor),
                                 fontSize = (13 * currentSettings.emojiButtonSizeFactor).sp,
                                 fontWeight = FontWeight.Medium,
                                 style = androidx.compose.ui.text.TextStyle(
@@ -1776,25 +1840,26 @@ fun TurboKeyboardView(
                 }
 
                 // Add / Customize button for the top emoji row (+)
+                val addKeyBg = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity)
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(theme.cornerRadius.dp))
+                        .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                         .clickable {
                             performFeedback(isSpecial = true)
                             isCustomizeTopEmojisOpen = true
                         },
-                    shape = RoundedCornerShape(theme.cornerRadius.dp),
-                    color = Color(theme.accentColor).copy(alpha = 0.22f),
-                    border = BorderStroke(1.2.dp, Color(theme.accentColor))
+                    shape = RoundedCornerShape(activeTheme.cornerRadius.dp),
+                    color = addKeyBg,
+                    border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)))
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "تخصيص الابتسامات",
-                            tint = Color(theme.accentColor),
-                            modifier = Modifier.size(16.dp)
+                            tint = Color(activeTheme.accentColor),
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }
@@ -1853,9 +1918,9 @@ fun TurboKeyboardView(
             )
         }
 
-        // Main Keyboard Keys Section (ALWAYS VISIBLE in searchable modes)
+        // Main Keyboard Keys Section (Keys hidden when full-screen subview like EMOJI is active, matching keyboard height)
         val showKeys = activeTranslationPickerForSource == null && 
-                (activeSubView == KeyboardSubView.NONE || activeSubView == KeyboardSubView.THEMES || activeSubView == KeyboardSubView.EMOJI)
+                (activeSubView == KeyboardSubView.NONE || activeSubView == KeyboardSubView.THEMES)
         
         if (showKeys) {
             val (worldR1, worldR2, worldR3) = remember(
@@ -2353,6 +2418,10 @@ fun TurboKeyboardView(
                                                 try { ic?.finishComposingText() } catch (_: Exception) {}
                                                 currentComposingText = ""
                                                 performFeedback(isSpecial = true)
+                                            },
+                                            onLongPress = {
+                                                performFeedback(durationMs = 45L, isSpecial = true)
+                                                activeSubView = KeyboardSubView.SETTINGS
                                             }
                                         )
                                     },
@@ -2550,7 +2619,7 @@ fun TurboKeyboardView(
                                             performFeedback()
                                             var isLongPressed = false
                                             var hasDragged = false
-                                            val dotVariants = listOf("www.", "@hotmail.com", "@gmail.com", "@yahoo.com", ".com")
+                                            val dotVariants = listOf(".com", "www.", "https://", ".net", ".org", ".edu", "@gmail.com")
                                             val job = coroutineScope.launch {
                                                 delay(currentSettings.longPressDelayMs.toLong())
                                                 if (isActive && isDotPressed) {
@@ -3415,8 +3484,7 @@ fun CustomizeTopEmojisInlinePanel(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-                .edgeSwipeToBack(onSwipeBack = onDismiss),
+                .padding(horizontal = 6.dp, vertical = 2.dp),
             shape = RoundedCornerShape(14.dp),
             color = Color(theme.backgroundColor),
             border = BorderStroke(1.2.dp, Color(theme.accentColor).copy(alpha = 0.45f)),

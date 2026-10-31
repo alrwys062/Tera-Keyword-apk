@@ -1559,6 +1559,9 @@ fun GifPickerView(
         "₍ᐢ•ﻌ•ᐢ₎", "(⁠◍⁠•⁠ᴗ⁠•⁠◍⁠)", "(⁠｡⁠♡⁠‿⁠♡⁠｡⁠)", "ʕ•ᴥ•ʔ", "(>_<)"
     )
 
+    val isLight = remember(theme.backgroundColor, theme.toolbarColor) { isLightColor(theme.backgroundColor) || isLightColor(theme.toolbarColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1571,7 +1574,7 @@ fun GifPickerView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("رموز Kaomoji و GIF سريعة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text("رموز Kaomoji و GIF سريعة", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -1653,6 +1656,10 @@ fun MediaPickerView(
         "░▒▓█ شكراً لك █▓▒░"
     )
 
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1668,7 +1675,7 @@ fun MediaPickerView(
         ) {
             Text(
                 text = "الصور والملصقات والوسائط",
-                color = Color.White,
+                color = textColor,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
@@ -1746,7 +1753,7 @@ fun MediaPickerView(
                         ) {
                             Text(
                                 text = sticker,
-                                color = Color.White,
+                                color = textColor,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -1880,11 +1887,17 @@ fun AiToneDrawer(
         mutableStateOf(com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true))
     }
 
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+    val cardBg = if (isLight) Color(theme.keyBackgroundColor) else Color(0xFF161F2E)
+    val cardBorder = if (isLight) Color(theme.borderColor) else Color(0xFF2A3A54)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .height(270.dp)
-            .background(Color(0xFF0F141F))
+            .background(Color(theme.backgroundColor))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         // Header
@@ -1897,20 +1910,20 @@ fun AiToneDrawer(
                 Icon(
                     imageVector = Icons.Outlined.Spellcheck,
                     contentDescription = "Spell Check",
-                    tint = Color(0xFF00E5FF),
+                    tint = Color(theme.accentColor),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(
                         text = "التدقيق والتصحيح الإملائي للنصوص",
-                        color = Color.White,
+                        color = textColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
                     Text(
                         text = "تصحيح حروف الكلمات فقط • تطابق تام 100% لعدد الكلمات",
-                        color = Color(0xFF8E9BAE),
+                        color = subTextColor,
                         fontSize = 9.sp
                     )
                 }
@@ -1939,8 +1952,8 @@ fun AiToneDrawer(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF161F2E), RoundedCornerShape(8.dp))
-                .border(1.dp, Color(0xFF24334A), RoundedCornerShape(8.dp))
+                .background(cardBg, RoundedCornerShape(8.dp))
+                .border(1.dp, cardBorder, RoundedCornerShape(8.dp))
                 .padding(horizontal = 8.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -1948,7 +1961,7 @@ fun AiToneDrawer(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "الكلمات: ${stats.inputWordCount} مدخلة ⟵ ${stats.outputWordCount} مخرجة",
-                    color = Color(0xFF38BDF8),
+                    color = Color(theme.accentColor),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1971,7 +1984,7 @@ fun AiToneDrawer(
                 text = if (stats.correctedWordCount > 0) "تم تصحيح ${stats.correctedWordCount} كلمة"
                        else if (stats.inputWordCount > 0) "سليم إملائياً ✓"
                        else "بانتظار النص",
-                color = if (stats.correctedWordCount > 0) Color(0xFFFBBF24) else Color(0xFF94A3B8),
+                color = if (stats.correctedWordCount > 0) Color(0xFFFBBF24) else subTextColor,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -1982,8 +1995,8 @@ fun AiToneDrawer(
         // Main Content Area
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = Color(0xFF161F2E),
-            border = BorderStroke(1.dp, Color(0xFF2A3A54)),
+            color = cardBg,
+            border = BorderStroke(1.dp, cardBorder),
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -2003,7 +2016,7 @@ fun AiToneDrawer(
                     ) {
                         Text(
                             text = "اكتب أو الصق نصاً في المحادثة لتدقيقه وتصحيح حروفه إملائياً فقط بدون زيادة أو تأليف.",
-                            color = Color(0xFF8E9BAE),
+                            color = subTextColor,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
                         )
@@ -2012,7 +2025,7 @@ fun AiToneDrawer(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = correctedText,
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
                             maxLines = 3,

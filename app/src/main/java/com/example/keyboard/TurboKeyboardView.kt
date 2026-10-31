@@ -548,6 +548,24 @@ fun TurboKeyboardView(
         onBackActionRegister?.invoke(handleBackNavigation)
     }
 
+    fun commitEmojiDirectly(text: String) {
+        dismissLongPressPopup()
+        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+        if (ic != null) {
+            try {
+                ic.commitText(text, 1)
+            } catch (_: Exception) {}
+        } else {
+            onDirectClearAndReplaceText?.invoke(text)
+        }
+        val textToInsert = text
+        if (textToInsert == " " || textToInsert.contains(" ") || textToInsert in listOf("\n", "\r", ".", "!", "?", "،", "؛", "؟", ",", ";", ":")) {
+            currentComposingText = ""
+        } else {
+            currentComposingText = (currentComposingText + textToInsert).takeLast(30)
+        }
+    }
+
     fun sendText(text: String) {
         if (isCustomizeTopEmojisOpen) {
             customizerInputText = (customizerInputText + text).take(15)
@@ -1567,7 +1585,7 @@ fun TurboKeyboardView(
                             onSearchQueryChange = { emojiSearchQuery = it },
                             onEmojiSelected = {
                                 prefs.addRecentEmoji(it)
-                                sendText(it)
+                                commitEmojiDirectly(it)
                                 if (currentSettings.autoReturnAfterEmojiInsert) {
                                     activeSubView = KeyboardSubView.NONE
                                     isSymbolsMode = false

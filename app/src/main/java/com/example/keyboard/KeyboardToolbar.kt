@@ -361,8 +361,8 @@ private fun ToolbarFixedItem(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val activeColor = Color(theme.accentColor)
-    val isLight = remember(theme.toolbarColor) { isLightColor(theme.toolbarColor) }
-    val inactiveTextColor = remember(theme.toolbarColor, isLight) {
+    val isLight = remember(theme.toolbarColor, theme.backgroundColor) { isLightColor(theme.toolbarColor) || isLightColor(theme.backgroundColor) }
+    val inactiveTextColor = remember(theme.toolbarColor, theme.backgroundColor, isLight) {
         if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     }
     val coroutineScope = rememberCoroutineScope()
@@ -378,12 +378,7 @@ private fun ToolbarFixedItem(
                 color = if (isActive) activeColor else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
-            .pointerInput(onClick, onLongClick) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onLongPress = if (onLongClick != null) { { onLongClick() } } else null
-                )
-            }
+            .clickable(onClick = onClick)
             .padding(horizontal = 2.dp, vertical = if (isLandscape) 1.dp else 2.dp),
         contentAlignment = Alignment.Center
     ) {

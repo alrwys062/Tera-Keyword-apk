@@ -96,6 +96,46 @@ object ThemePresets {
         category = "twenty_premium"
     )
 
+    val GOOGLE_GBOARD_DYNAMIC = KeyboardTheme(
+        id = "google_gboard_dynamic",
+        nameAr = "ثيم قوقل Gboard الأصلي",
+        nameEn = "Google Gboard Material You",
+        backgroundColor = 0xFFF1F3F4,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyPressedColor = 0xFFE8EAED,
+        keyTextColor = 0xFF202124,
+        subtextColor = 0xFF5F6368,
+        accentColor = 0xFF1A73E8,
+        enterButtonColor = 0xFF1A73E8,
+        toolbarColor = 0xFFE8EAED,
+        borderColor = 0xFFDADCE0,
+        borderAlpha = 0.7f,
+        cornerRadius = 10f,
+        keyStyle = "rounded",
+        category = "twenty_premium"
+    )
+
+    val PHOTO_CUSTOM_THEME = KeyboardTheme(
+        id = "photo_custom_theme",
+        nameAr = "ثيم من صورتك 📸",
+        nameEn = "Custom Photo Theme",
+        isCustom = true,
+        backgroundColor = 0xFF111827,
+        keyBackgroundColor = 0xFF1E293B,
+        keyPressedColor = 0xFF334155,
+        keyTextColor = 0xFFFFFFFF,
+        subtextColor = 0xFF94A3B8,
+        accentColor = 0xFF38BDF8,
+        enterButtonColor = 0xFF0284C7,
+        toolbarColor = 0xFF0F172A,
+        borderColor = 0xFF334155,
+        borderAlpha = 0.5f,
+        cornerRadius = 10f,
+        keyOpacity = 0.78f,
+        keyStyle = "glass",
+        category = "twenty_premium"
+    )
+
     // =========================================================================
     // 20 PREMIUM KEYBOARD THEMES (Inspired by Facemoji & Modern Flagships)
     // =========================================================================
@@ -500,6 +540,8 @@ object ThemePresets {
     // List of featured premium themes with Crystal Light Royal at the top
     val twentyPremiumThemes: List<KeyboardTheme> = listOf(
         CRYSTAL_LIGHT,
+        GOOGLE_GBOARD_DYNAMIC,
+        PHOTO_CUSTOM_THEME,
         FACEMOJI_CLASSIC,
         DARK_NEON,
         GRADIENT_DREAM,

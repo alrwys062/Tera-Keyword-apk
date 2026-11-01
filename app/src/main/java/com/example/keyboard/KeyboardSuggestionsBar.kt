@@ -45,7 +45,11 @@ fun KeyboardSuggestionsBar(
     browserShortcuts: List<String> = emptyList(),
     onBrowserShortcutClick: ((String) -> Unit)? = null
 ) {
-    if (suggestions.isEmpty() && detectedOtpCode.isNullOrBlank()) return
+    val effectiveSuggestions = if (suggestions.isNotEmpty()) suggestions else listOf(
+        PredictionEngine.PredictionResult("مرحبا"),
+        PredictionEngine.PredictionResult("شكراً"),
+        PredictionEngine.PredictionResult("السلام عليكم")
+    )
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -102,9 +106,9 @@ fun KeyboardSuggestionsBar(
             }
         }
 
-        val left = suggestions.getOrNull(0)
-        val center = suggestions.getOrNull(1) ?: left
-        val right = suggestions.getOrNull(2)
+        val left = effectiveSuggestions.getOrNull(0)
+        val center = effectiveSuggestions.getOrNull(1) ?: left
+        val right = effectiveSuggestions.getOrNull(2)
 
         if (left != null) {
             SuggestionItem(

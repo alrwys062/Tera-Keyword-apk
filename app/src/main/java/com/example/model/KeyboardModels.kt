@@ -104,8 +104,15 @@ data class KeyboardSettings(
     val hideEmojiAbcKey: Boolean = false, // خيار إخفاء زر العودة ABC داخل واجهة الإيموجي
     val calculatorNumpadMode: Boolean = false, // وضع الآلة الحاسبة الموسع 123
     val myThemeId: String = "liquid_glass_blur", // المعرف الخاص بـ "ثيمتي" للاسترجاع السريع
+    val spacebarWidthMode: String = "standard", // "compact" (ضيق), "standard" (عادي), "wide" (عريض)
+    val showTashkeelKeyNextToDot: Boolean = true, // زر التشكيل بجانب النقطة
+    val showQuickActionsRow: Boolean = true, // سطر إجراءات سريعة
+    val arabicKeyTextScale: Float = 1.18f, // تكبير الحروف العربية
+    val landscapeCompactMode: Boolean = true, // الكيبورد الأفقي أصغر مع تخطيط جديد
+    val recentEmojisAboveSymbols: Boolean = true, // الإيموجي الأخيرة فوق الرموز
+    val autoCheckProofreading: Boolean = false, // تدقيق تلقائي
     val visibleToolbarTools: List<String> = listOf(
-        "stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings"
+        "stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "tts", "pass", "settings"
     )
 )
 
@@ -131,5 +138,8 @@ enum class KeyboardSubView {
     SETTINGS,
     CUSTOMIZE_TOOLBAR,
     TELEGRAM_CHANNELS,
-    THEMES
+    THEMES,
+    TTS_SPEECH,
+    PASSWORD_MANAGER,
+    MY_STICKERS
 }

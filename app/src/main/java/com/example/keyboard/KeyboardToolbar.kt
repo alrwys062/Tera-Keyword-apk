@@ -137,7 +137,7 @@ fun KeyboardToolbar(
             ToolbarFixedItem(
                 icon = Icons.Outlined.Palette,
                 label = "ثيماتي",
-                isActive = false,
+                isActive = activeSubView == KeyboardSubView.THEMES,
                 theme = theme,
                 onClick = onMyThemeClick,
                 onLongClick = onMyThemeLongClick,
@@ -154,6 +154,20 @@ fun KeyboardToolbar(
                 theme = theme,
                 onClick = {
                     onSubViewSelected(if (isStickersActive) KeyboardSubView.NONE else KeyboardSubView.STICKERS)
+                }
+            )
+        }
+
+        // 0.1 ملصقاتي الخاصة (My Stickers)
+        if ("my_stickers" in toolsToShow) {
+            val isMyStickersActive = activeSubView == KeyboardSubView.MY_STICKERS
+            ToolbarFixedItem(
+                icon = Icons.Outlined.PhotoFilter,
+                label = "ملصقاتي",
+                isActive = isMyStickersActive,
+                theme = theme,
+                onClick = {
+                    onSubViewSelected(if (isMyStickersActive) KeyboardSubView.NONE else KeyboardSubView.MY_STICKERS)
                 }
             )
         }
@@ -268,16 +282,44 @@ fun KeyboardToolbar(
             )
         }
 
-        // 8. تدقيق وتصحيح إملائي صارم
+        // 8. AI Keyboard: صحّح وأعد الصياغة وترجم واكتب
         if ("ai" in toolsToShow) {
             val isAiActive = activeSubView == KeyboardSubView.AI_ASSISTANT
             ToolbarFixedItem(
-                icon = Icons.Outlined.Spellcheck,
-                label = "تدقيق",
+                icon = Icons.Outlined.AutoFixHigh,
+                label = "AI ذكي",
                 isActive = isAiActive,
                 theme = theme,
                 onClick = {
                     onSubViewSelected(if (isAiActive) KeyboardSubView.NONE else KeyboardSubView.AI_ASSISTANT)
+                }
+            )
+        }
+
+        // 8.1 اقرأ النص بصوت الجوال (TTS Speech Reader)
+        if ("tts" in toolsToShow) {
+            val isTtsActive = activeSubView == KeyboardSubView.TTS_SPEECH
+            ToolbarFixedItem(
+                icon = Icons.Outlined.VolumeUp,
+                label = "قراءة",
+                isActive = isTtsActive,
+                theme = theme,
+                onClick = {
+                    onSubViewSelected(if (isTtsActive) KeyboardSubView.NONE else KeyboardSubView.TTS_SPEECH)
+                }
+            )
+        }
+
+        // 8.2 Keyboard Pass: كلمات المرور والبطاقات والآيبان
+        if ("pass" in toolsToShow) {
+            val isPassActive = activeSubView == KeyboardSubView.PASSWORD_MANAGER
+            ToolbarFixedItem(
+                icon = Icons.Outlined.Password,
+                label = "Pass",
+                isActive = isPassActive,
+                theme = theme,
+                onClick = {
+                    onSubViewSelected(if (isPassActive) KeyboardSubView.NONE else KeyboardSubView.PASSWORD_MANAGER)
                 }
             )
         }
@@ -360,26 +402,52 @@ private fun ToolbarFixedItem(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val activeColor = Color(theme.accentColor)
-    val isLight = remember(theme.toolbarColor, theme.backgroundColor) { isLightColor(theme.toolbarColor) || isLightColor(theme.backgroundColor) }
-    val inactiveTextColor = remember(theme.toolbarColor, theme.backgroundColor, isLight) {
-        if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val isToolbarLight = remember(theme.toolbarColor) { isLightColor(theme.toolbarColor) }
+    
+    val effectiveActiveColor = remember(theme.accentColor, isToolbarLight) {
+        if (isToolbarLight && isLightColor(theme.accentColor)) {
+            Color(0xFF1E40AF)
+        } else if (!isToolbarLight && !isLightColor(theme.accentColor)) {
+            Color(0xFF38BDF8)
+        } else {
+            Color(theme.accentColor)
+        }
     }
-    val coroutineScope = rememberCoroutineScope()
+    
+    val inactiveTextColor = remember(theme.toolbarColor, theme.keyTextColor, isToolbarLight) {
+        if (isToolbarLight) {
+            Color(0xFF0F172A)
+        } else {
+            Color(0xFFF8FAFC)
+        }
+    }
+
+    val itemModifier = Modifier
+        .widthIn(min = if (isLandscape) 38.dp else 46.dp, max = if (isLandscape) 48.dp else 56.dp)
+        .height(if (isLandscape) 28.dp else 46.dp)
+        .clip(RoundedCornerShape(8.dp))
+        .background(if (isActive) effectiveActiveColor.copy(alpha = if (isToolbarLight) 0.18f else 0.28f) else Color.Transparent)
+        .border(
+            width = if (isActive) 1.2.dp else 0.dp,
+            color = if (isActive) effectiveActiveColor else Color.Transparent,
+            shape = RoundedCornerShape(8.dp)
+        )
+        .then(
+            if (onLongClick != null) {
+                Modifier.pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { onLongClick() },
+                        onTap = { onClick() }
+                    )
+                }
+            } else {
+                Modifier.clickable(onClick = onClick)
+            }
+        )
+        .padding(horizontal = 2.dp, vertical = if (isLandscape) 1.dp else 2.dp)
 
     Box(
-        modifier = Modifier
-            .widthIn(min = if (isLandscape) 38.dp else 46.dp, max = if (isLandscape) 48.dp else 56.dp)
-            .height(if (isLandscape) 28.dp else 46.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) activeColor.copy(alpha = 0.22f) else Color.Transparent)
-            .border(
-                width = if (isActive) 1.2.dp else 0.dp,
-                color = if (isActive) activeColor else Color.Transparent,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 2.dp, vertical = if (isLandscape) 1.dp else 2.dp),
+        modifier = itemModifier,
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -389,13 +457,13 @@ private fun ToolbarFixedItem(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isActive) activeColor else inactiveTextColor.copy(alpha = 0.90f),
+                tint = if (isActive) effectiveActiveColor else inactiveTextColor.copy(alpha = 0.92f),
                 modifier = Modifier.size(if (isLandscape) 14.dp else 19.dp)
             )
             Spacer(modifier = Modifier.height(if (isLandscape) 0.dp else 1.dp))
             Text(
                 text = label,
-                color = if (isActive) activeColor else inactiveTextColor,
+                color = if (isActive) effectiveActiveColor else inactiveTextColor,
                 fontSize = if (isLandscape) 7.5.sp else 9.5.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,

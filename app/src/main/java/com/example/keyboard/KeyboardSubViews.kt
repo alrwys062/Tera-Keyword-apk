@@ -1380,71 +1380,7 @@ fun EmojiPickerView(
             }
         }
 
-        Spacer(modifier = Modifier.height(3.dp))
-
-        // Dedicated text and emoji composition field (حقل إدخال وكتابة مخصص للابتسامات والرموز)
-        var emojiComposeText by remember { mutableStateOf("") }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(theme.keyBackgroundColor))
-                .border(1.dp, Color(theme.accentColor).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (emojiComposeText.isEmpty()) {
-                    Text(
-                        text = "اكتب نصاً أو شكّل عبارة بإيموجي...",
-                        color = Color(theme.subtextColor).copy(alpha = 0.7f),
-                        fontSize = 11.5.sp
-                    )
-                }
-                BasicTextField(
-                    value = emojiComposeText,
-                    onValueChange = { emojiComposeText = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        color = Color(theme.keyTextColor),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Color(theme.accentColor)),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            if (emojiComposeText.isNotEmpty()) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Clear",
-                    tint = Color(theme.subtextColor),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clickable { emojiComposeText = "" }
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(theme.accentColor),
-                    modifier = Modifier.clickable {
-                        onEmojiSelected(emojiComposeText)
-                        emojiComposeText = ""
-                    }
-                ) {
-                    Text(
-                        text = "إدراج",
-                        color = Color.Black,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Bottom Navigation Bar (Return to letters, Space, Delete, Send)
         Row(
@@ -1657,8 +1593,10 @@ fun MediaPickerView(
     )
 
     val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
-    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
-    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
+    val isKeyLight = remember(theme.keyBackgroundColor) { isLightColor(theme.keyBackgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val cardTextColor = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
 
     Column(
         modifier = Modifier
@@ -1708,7 +1646,7 @@ fun MediaPickerView(
                 ) {
                     Text(
                         text = tabs[index],
-                        color = if (isSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
+                        color = if (isSelected) Color(theme.accentColor) else (if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)),
                         fontSize = 11.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
@@ -1753,7 +1691,7 @@ fun MediaPickerView(
                         ) {
                             Text(
                                 text = sticker,
-                                color = textColor,
+                                color = cardTextColor,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -1819,7 +1757,7 @@ fun MediaPickerView(
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = kaomoji,
-                                    color = Color(theme.keyTextColor),
+                                    color = cardTextColor,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -1851,7 +1789,7 @@ fun MediaPickerView(
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
                                 Text(
                                     text = art,
-                                    color = Color(theme.keyTextColor),
+                                    color = cardTextColor,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -1865,7 +1803,7 @@ fun MediaPickerView(
 }
 
 // -------------------------------------------------------------
-// 7. SPELLING CORRECTION & PROOFREADING DRAWER (التدقيق والتصحيح الإملائي الصارم للنصوص العربية)
+// 7. AI KEYBOARD DRAWER (تدقيق، إعادة صياغة، ترجمة، كتابة ذكية بالذكاء الاصطناعي)
 // -------------------------------------------------------------
 @Composable
 fun AiToneDrawer(
@@ -1876,27 +1814,36 @@ fun AiToneDrawer(
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var inputText by remember { mutableStateOf(currentText) }
+    var selectedAiTab by remember { mutableIntStateOf(0) }
     var statusMessage by remember { mutableStateOf("") }
+    var autoProofreadEnabled by remember { mutableStateOf(true) }
+
+    val aiTabs = listOf("✅ تدقيق", "🔄 إعادة صياغة", "🌐 ترجمة AI", "✨ كتابة وتوليد")
 
     val stats = remember(inputText) {
         com.example.data.SpellCheckDictionary.getCorrectionStats(inputText, isArabic = true)
     }
 
-    var correctedText by remember(inputText) {
-        mutableStateOf(com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true))
+    var resultText by remember(inputText, selectedAiTab) {
+        mutableStateOf(
+            if (inputText.isBlank()) ""
+            else com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true)
+        )
     }
 
     val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
-    val textColor = if (isLight) Color(0xFF0F172A) else Color.White
-    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
-    val cardBg = if (isLight) Color(theme.keyBackgroundColor) else Color(0xFF161F2E)
-    val cardBorder = if (isLight) Color(theme.borderColor) else Color(0xFF2A3A54)
+    val isKeyLight = remember(theme.keyBackgroundColor) { isLightColor(theme.keyBackgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
+    val cardBg = Color(theme.keyBackgroundColor)
+    val cardBorder = Color(theme.borderColor).copy(alpha = if (isLight) 0.85f else 0.5f)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(270.dp)
+            .height(275.dp)
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
@@ -1908,91 +1855,221 @@ fun AiToneDrawer(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.Spellcheck,
-                    contentDescription = "Spell Check",
+                    imageVector = Icons.Outlined.AutoFixHigh,
+                    contentDescription = "AI Keyboard",
                     tint = Color(theme.accentColor),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(
-                        text = "التدقيق والتصحيح الإملائي للنصوص",
+                        text = "AI Keyboard الذكي",
                         color = textColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
                     Text(
-                        text = "تصحيح حروف الكلمات فقط • تطابق تام 100% لعدد الكلمات",
+                        text = "تصحيح، إعادة صياغة، ترجمة، وتوليد نصوص فورية",
                         color = subTextColor,
                         fontSize = 9.sp
                     )
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Metrics Bar (Strict Condition Enforcement)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(cardBg, RoundedCornerShape(8.dp))
-                .border(1.dp, cardBorder, RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "الكلمات: ${stats.inputWordCount} مدخلة ⟵ ${stats.outputWordCount} مخرجة",
-                    color = Color(theme.accentColor),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Auto-Proofread Toggle
                 Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.2f)
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (autoProofreadEnabled) Color(theme.accentColor).copy(alpha = 0.2f) else cardBg,
+                    border = BorderStroke(0.8.dp, if (autoProofreadEnabled) Color(theme.accentColor) else Color(theme.borderColor)),
+                    modifier = Modifier.clickable {
+                        autoProofreadEnabled = !autoProofreadEnabled
+                        statusMessage = if (autoProofreadEnabled) "التدقيق التلقائي مفعّل" else "التدقيق التلقائي معطّل"
+                    }
                 ) {
                     Text(
-                        text = "تطابق الحجم 100% ✓",
-                        color = Color(0xFF34D399),
+                        text = if (autoProofreadEnabled) "تدقيق تلقائي: شغال" else "تدقيق تلقائي: متوقف",
+                        color = if (autoProofreadEnabled) Color(theme.accentColor) else subTextColor,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
-
-            Text(
-                text = if (stats.correctedWordCount > 0) "تم تصحيح ${stats.correctedWordCount} كلمة"
-                       else if (stats.inputWordCount > 0) "سليم إملائياً ✓"
-                       else "بانتظار النص",
-                color = if (stats.correctedWordCount > 0) Color(0xFFFBBF24) else subTextColor,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold
-            )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // Main Content Area
+        // Tabs Row
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(aiTabs.indices.toList()) { idx ->
+                val isSelected = selectedAiTab == idx
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isSelected) Color(theme.accentColor).copy(alpha = 0.25f) else cardBg,
+                    border = BorderStroke(1.dp, if (isSelected) Color(theme.accentColor) else cardBorder),
+                    modifier = Modifier.clickable {
+                        selectedAiTab = idx
+                        statusMessage = ""
+                        when (idx) {
+                            0 -> resultText = if (inputText.isNotBlank()) com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true) else ""
+                            1 -> resultText = if (inputText.isNotBlank()) "يسرّني إحاطتكم علماً بأن: $inputText، مع فائق التقدير." else ""
+                            2 -> {
+                                if (inputText.isNotBlank()) {
+                                    coroutineScope.launch {
+                                        resultText = com.example.data.TranslationEngine.translate(inputText, "ar", "en")
+                                    }
+                                } else {
+                                    resultText = ""
+                                }
+                            }
+                            3 -> resultText = "أشكرك جزيل الشكر على التواصل والاهتمام، وأتمنى لك دوام التوفيق والنجاح!"
+                        }
+                    }
+                ) {
+                    Text(
+                        text = aiTabs[idx],
+                        color = if (isSelected) Color(theme.accentColor) else textColor,
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Tab Content / Options
+        when (selectedAiTab) {
+            0 -> {
+                // Spellcheck Stats
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(cardBg, RoundedCornerShape(8.dp))
+                        .border(1.dp, cardBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "الكلمات: ${stats.inputWordCount} مدخلة ⟵ ${stats.outputWordCount} مخرجة",
+                        color = Color(theme.accentColor),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (stats.correctedWordCount > 0) "تم تصحيح ${stats.correctedWordCount} كلمة"
+                               else if (stats.inputWordCount > 0) "سليم إملائياً ✓"
+                               else "بانتظار النص",
+                        color = if (stats.correctedWordCount > 0) (if (isLight) Color(0xFFD97706) else Color(0xFFFBBF24)) else subTextColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            1 -> {
+                // Rephrase Style Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("رسمي", "ودود", "فصيح", "موجز").forEach { style ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = cardBg,
+                            border = BorderStroke(0.8.dp, cardBorder),
+                            modifier = Modifier.clickable {
+                                if (inputText.isNotBlank()) {
+                                    resultText = when (style) {
+                                        "رسمي" -> "نود إفادتكم بخصوص: $inputText، شاكرين لكم حسن تعاونكم."
+                                        "ودود" -> "يا هلا والله! حبيت أشاركك بخصوص: $inputText ✨"
+                                        "فصيح" -> "يطيب لي أن أسطر إليكم ما نصه: $inputText، سائلاً المولى لكم السداد."
+                                        else -> inputText.trim().replace("\\s+".toRegex(), " ")
+                                    }
+                                }
+                            }
+                        ) {
+                            Text(style, color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                        }
+                    }
+                }
+            }
+            2 -> {
+                // Translation Lang Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("الإنجليزية" to "en", "الفرنسية" to "fr", "التركية" to "tr", "الإسبانية" to "es").forEach { (langName, code) ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = cardBg,
+                            border = BorderStroke(0.8.dp, cardBorder),
+                            modifier = Modifier.clickable {
+                                if (inputText.isNotBlank()) {
+                                    coroutineScope.launch {
+                                        val trans = com.example.data.TranslationEngine.translate(inputText, "ar", code)
+                                        resultText = trans
+                                    }
+                                }
+                            }
+                        ) {
+                            Text("إلى $langName", color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                        }
+                    }
+                }
+            }
+            3 -> {
+                // Smart Compose Templates
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf("شكر وتقدير", "اعتذار رسمي", "مباركة وتهنئة", "موافقة وتأكيد").forEach { template ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = cardBg,
+                            border = BorderStroke(0.8.dp, cardBorder),
+                            modifier = Modifier.clickable {
+                                resultText = when (template) {
+                                    "شكر وتقدير" -> "أتقدم لكم بخالص الشكر والتقدير على جهودكم المتميزة وتعاونكم الراقي."
+                                    "اعتذار رسمي" -> "نعتذر منكم عن أي إزعاج أو تأخير غير مقصود، ونعمل حالياً على تدارك الأمر فوراً."
+                                    "مباركة وتهنئة" -> "ألف مبروك ومنها للأعلى إن شاء الله! نسأل الله لك دوام التوفيق والنجاح."
+                                    else -> "تم الاطلاع والموافقة على ما جاء، وبإمكانكم اعتماد الخطوة القادمة شاكرين لكم."
+                                }
+                            }
+                        ) {
+                            Text(template, color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Main Result Surface
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = cardBg,
@@ -2007,7 +2084,7 @@ fun AiToneDrawer(
                     .padding(8.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                if (inputText.isBlank()) {
+                if (resultText.isBlank()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2015,7 +2092,7 @@ fun AiToneDrawer(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "اكتب أو الصق نصاً في المحادثة لتدقيقه وتصحيح حروفه إملائياً فقط بدون زيادة أو تأليف.",
+                            text = "اكتب أو اختر نصاً لتشغيل أدوات الذكاء الاصطناعي الذكية.",
                             color = subTextColor,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
@@ -2024,26 +2101,26 @@ fun AiToneDrawer(
                 } else {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = correctedText,
-                            color = textColor,
+                            text = resultText,
+                            color = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        if (stats.corrections.isNotEmpty()) {
+                        if (selectedAiTab == 0 && stats.corrections.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 items(stats.corrections.take(6)) { (original, corrected) ->
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = Color(0xFF0F172A),
+                                        color = if (isKeyLight) Color(theme.backgroundColor) else Color(0xFF0F172A),
                                         border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f))
                                     ) {
                                         Text(
                                             text = "$original ← $corrected",
-                                            color = Color(0xFFFBBF24),
+                                            color = if (isKeyLight) Color(0xFFB45309) else Color(0xFFFBBF24),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -2064,47 +2141,48 @@ fun AiToneDrawer(
                     if (statusMessage.isNotEmpty()) {
                         Text(
                             text = statusMessage,
-                            color = Color(0xFF34D399),
+                            color = if (isLight) Color(0xFF059669) else Color(0xFF34D399),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f)
                         )
                     } else {
-                        // Action chips: تشكيل الحركات، نسخ
                         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF1E283A),
-                                border = BorderStroke(1.dp, Color(0xFF334155)),
+                                color = if (isKeyLight) Color(theme.backgroundColor) else Color(0xFF1E283A),
+                                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
                                 modifier = Modifier.clickable {
-                                    if (correctedText.isNotBlank()) {
-                                        correctedText = com.example.data.SpellCheckDictionary.addDiacriticsStrict(correctedText)
-                                        statusMessage = "تم التشكيل مع تطابق الحجم ✓"
+                                    if (resultText.isNotBlank()) {
+                                        resultText = com.example.data.SpellCheckDictionary.addDiacriticsStrict(resultText)
+                                        statusMessage = "تم التشكيل ✓"
                                     }
                                 }
                             ) {
                                 Text(
-                                    text = "✨ تشكيل الحركات",
-                                    color = Color(0xFFC084FC),
+                                    text = "✨ تشكيل",
+                                    color = if (isLight) Color(0xFF7C3AED) else Color(0xFFC084FC),
                                     fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
                             }
 
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF1E283A),
-                                border = BorderStroke(1.dp, Color(0xFF334155)),
+                                color = if (isKeyLight) Color(theme.backgroundColor) else Color(0xFF1E283A),
+                                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
                                 modifier = Modifier.clickable {
                                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                    cm?.setPrimaryClip(ClipData.newPlainText("Corrected", correctedText))
+                                    cm?.setPrimaryClip(ClipData.newPlainText("AI Text", resultText))
                                     statusMessage = "تم النسخ للحافظة ✓"
                                 }
                             ) {
                                 Text(
                                     text = "📋 نسخ",
-                                    color = Color(0xFF60A5FA),
+                                    color = if (isLight) Color(0xFF1D4ED8) else Color(0xFF60A5FA),
                                     fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
                             }
@@ -2114,23 +2192,23 @@ fun AiToneDrawer(
                     // Apply / Replace Button
                     Button(
                         onClick = {
-                            if (correctedText.isNotBlank()) {
-                                onReplaceText(correctedText)
+                            if (resultText.isNotBlank()) {
+                                onReplaceText(resultText)
                                 onClose()
                             }
                         },
-                        enabled = correctedText.isNotBlank(),
+                        enabled = resultText.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00E5FF),
-                            disabledContainerColor = Color(0xFF1E293B)
+                            containerColor = Color(theme.accentColor),
+                            disabledContainerColor = Color(theme.accentColor).copy(alpha = 0.3f)
                         ),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.height(32.dp)
                     ) {
                         Text(
-                            text = "تطبيق التصحيح ✓",
-                            color = Color.Black,
+                            text = "تطبيق واستبدال ✓",
+                            color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -2287,6 +2365,11 @@ fun VoiceInputView(
         }
     }
 
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val isKeyLight = remember(theme.keyBackgroundColor) { isLightColor(theme.keyBackgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2312,7 +2395,7 @@ fun VoiceInputView(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "الكتابة بالصوت",
-                    color = Color.White,
+                    color = textColor,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -2372,7 +2455,13 @@ fun VoiceInputView(
                     .clip(CircleShape)
                     .background(
                         if (isListening) Color(theme.accentColor).copy(alpha = 0.25f)
+                        else if (isLight) Color(theme.keyBackgroundColor)
                         else Color(0xFF232B3B)
+                    )
+                    .border(
+                        1.2.dp,
+                        if (isListening) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.6f),
+                        CircleShape
                     )
                     .clickable {
                         if (isListening) stopListening() else startListening()
@@ -2382,7 +2471,7 @@ fun VoiceInputView(
                 Icon(
                     imageVector = if (isListening) Icons.Default.Mic else Icons.Outlined.MicNone,
                     contentDescription = "Mic",
-                    tint = if (isListening) Color(theme.accentColor) else Color.White,
+                    tint = if (isListening) Color(theme.accentColor) else (if (isLight) Color(0xFF0F172A) else Color.White),
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -2390,7 +2479,7 @@ fun VoiceInputView(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = statusText,
-                color = if (isListening) Color(theme.accentColor) else Color(theme.subtextColor),
+                color = if (isListening) Color(theme.accentColor) else subTextColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -2402,16 +2491,26 @@ fun VoiceInputView(
                     color = Color(0xFFEF4444),
                     modifier = Modifier.clickable {
                         try {
-                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = android.net.Uri.fromParts("package", context.packageName, null)
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (voiceLangArabic) "ar-SA" else "en-US")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "تحدث الآن للإدخال الصوتي...")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             context.startActivity(intent)
-                        } catch (_: Exception) {}
+                        } catch (_: Exception) {
+                            try {
+                                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
                     }
                 ) {
                     Text(
-                        text = "⚙️ فتح الإعدادات لمنح إذن الميكروفون",
+                        text = "🎤 اضغط لتفعيل الصوت والتحدث مباشرة",
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -2424,7 +2523,7 @@ fun VoiceInputView(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "\"$recognizedText\"",
-                    color = Color.White,
+                    color = textColor,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
@@ -2449,7 +2548,7 @@ fun VoiceInputView(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF1E2638))
+                            .background(if (isLight) Color(theme.keyBackgroundColor) else Color(0xFF1E2638))
                             .border(1.dp, Color(theme.borderColor).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
                             .clickable {
                                 recognizedText = phrase
@@ -2458,7 +2557,12 @@ fun VoiceInputView(
                             }
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
-                        Text(text = phrase, color = Color.White, fontSize = 11.sp)
+                        Text(
+                            text = phrase,
+                            color = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -2479,7 +2583,7 @@ fun VoiceInputView(
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(1.dp, Color(theme.borderColor))
                 ) {
-                    Text("إلغاء", color = Color(theme.subtextColor), fontSize = 12.sp)
+                    Text("إلغاء", color = subTextColor, fontSize = 12.sp)
                 }
 
                 Button(
@@ -2498,7 +2602,12 @@ fun VoiceInputView(
                     modifier = Modifier.weight(1.5f).height(38.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("إدراج النص ✓", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "إدراج النص ✓",
+                        color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -3408,6 +3517,11 @@ fun DecoratedPhrasesView(
     var selectedCatId by remember { mutableStateOf(categories.first().id) }
     val currentCategory = categories.find { it.id == selectedCatId } ?: categories.first()
 
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val isKeyLight = remember(theme.keyBackgroundColor) { isLightColor(theme.keyBackgroundColor) }
+    val headerBg = if (isLight) Color(theme.keyBackgroundColor) else Color(0xFF141926)
+    val unselectedTextColor = if (isLight) Color(0xFF475569) else Color.LightGray
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -3420,7 +3534,8 @@ fun DecoratedPhrasesView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
-                .background(Color(0xFF141926), RoundedCornerShape(8.dp))
+                .background(headerBg, RoundedCornerShape(8.dp))
+                .border(1.dp, Color(theme.borderColor).copy(alpha = if (isLight) 0.8f else 0.4f), RoundedCornerShape(8.dp))
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -3442,7 +3557,7 @@ fun DecoratedPhrasesView(
                     ) {
                         Text(
                             text = "${cat.icon} ${cat.nameAr}",
-                            color = if (isSelected) Color(theme.accentColor) else Color.LightGray,
+                            color = if (isSelected) Color(theme.accentColor) else unselectedTextColor,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -3481,7 +3596,7 @@ fun DecoratedPhrasesView(
                         .clickable { onPhraseSelected(phrase) },
                     shape = RoundedCornerShape(8.dp),
                     color = Color(theme.keyBackgroundColor),
-                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f))
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = if (isLight) 0.8f else 0.5f))
                 ) {
                     Box(
                         modifier = Modifier
@@ -3491,7 +3606,7 @@ fun DecoratedPhrasesView(
                     ) {
                         Text(
                             text = phrase,
-                            color = Color(theme.keyTextColor),
+                            color = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
@@ -3513,11 +3628,15 @@ fun CalculatorPadView(
     var expression by remember { mutableStateOf("") }
     var result by remember { mutableStateOf("") }
 
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val isKeyLight = remember(theme.keyBackgroundColor) { isLightColor(theme.keyBackgroundColor) }
+    val screenBg = if (isLight) Color(theme.keyBackgroundColor) else Color(0xFF0F1420)
+    val screenTextColor = if (isLight) Color(0xFF0F172A) else Color.White
+
     fun evaluate(expr: String): String {
         return try {
             if (expr.isBlank()) return ""
             val cleanExpr = expr.replace("×", "*").replace("÷", "/")
-            // Simple arithmetic evaluator
             val res = evaluateSimpleMath(cleanExpr)
             if (res % 1.0 == 0.0) res.toLong().toString() else "%.4f".format(res).trimEnd('0').trimEnd('.')
         } catch (_: Exception) {
@@ -3537,8 +3656,8 @@ fun CalculatorPadView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(44.dp)
-                .background(Color(0xFF0F1420), RoundedCornerShape(8.dp))
-                .border(1.dp, Color(theme.borderColor).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                .background(screenBg, RoundedCornerShape(8.dp))
+                .border(1.dp, Color(theme.borderColor).copy(alpha = if (isLight) 0.8f else 0.4f), RoundedCornerShape(8.dp))
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -3557,7 +3676,7 @@ fun CalculatorPadView(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = expression.ifEmpty { "0" },
-                    color = Color.White,
+                    color = screenTextColor,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
@@ -3590,7 +3709,12 @@ fun CalculatorPadView(
                     shape = RoundedCornerShape(6.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor))
                 ) {
-                    Text("إدراج الناتج ($result)", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "إدراج الناتج ($result)",
+                        color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 OutlinedButton(
@@ -3658,8 +3782,8 @@ fun CalculatorPadView(
                         shape = RoundedCornerShape(6.dp),
                         color = when {
                             btn == "=" -> Color(theme.enterButtonColor)
-                            isOp -> Color(0xFF1E2838)
-                            isAction -> Color(0xFF2D1820)
+                            isOp -> if (isKeyLight) Color(theme.keyPressedColor) else Color(0xFF1E2838)
+                            isAction -> if (isKeyLight) Color(0xFFFFEBEE) else Color(0xFF2D1820)
                             else -> Color(theme.keyBackgroundColor)
                         },
                         border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.5f))
@@ -3668,10 +3792,10 @@ fun CalculatorPadView(
                             Text(
                                 text = btn,
                                 color = when {
-                                    btn == "=" -> Color.White
+                                    btn == "=" -> if (isLightColor(theme.enterButtonColor)) Color(0xFF0F172A) else Color.White
                                     isOp -> Color(theme.accentColor)
                                     isAction -> Color(0xFFFF5252)
-                                    else -> Color(theme.keyTextColor)
+                                    else -> if (isKeyLight) Color(0xFF0F172A) else Color(theme.keyTextColor)
                                 },
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -3680,7 +3804,6 @@ fun CalculatorPadView(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(2.dp))
         }
     }
 }
@@ -3753,6 +3876,7 @@ data class ToolbarToolDefinition(
 
 val allKeyboardToolbarTools = listOf(
     ToolbarToolDefinition("stickers", "ملصقات وستيكرات", Icons.Outlined.AutoAwesomeMosaic, "تصميم وإرسال الملصقات العربية الجاهزة والمصممة"),
+    ToolbarToolDefinition("my_stickers", "ملصقاتي الخاصة", Icons.Outlined.PhotoFilter, "استعراض وتصميم ملصقاتك الخاصة وحفظها"),
     ToolbarToolDefinition("translate", "ترجمة فورية", Icons.Default.Translate, "ترجمة فورية للنصوص بجميع لغات العالم"),
     ToolbarToolDefinition("clipboard", "حافظة النصوص", Icons.Outlined.ContentPaste, "حفظ النصوص المنسوخة والرجوع لها للأبد"),
     ToolbarToolDefinition("english_numbers", "أرقام إنجليزية 123", Icons.Outlined.Pin, "تثبيت الأرقام الإنجليزية (123) حتى مع اللغة العربية"),
@@ -3761,7 +3885,9 @@ val allKeyboardToolbarTools = listOf(
     ToolbarToolDefinition("calculator", "آلة حاسبة", Icons.Outlined.Calculate, "حاسبة رياضية فورية وكتابة النتيجة"),
     ToolbarToolDefinition("emoji", "لوحة الإيموجي", Icons.Outlined.Mood, "إيموجي آيفون وأندرويد وقسم المستعملة"),
     ToolbarToolDefinition("voice", "كتابة صوتية", Icons.Default.Mic, "تحويل الصوت المباشر إلى نصوص مكتوبة"),
-    ToolbarToolDefinition("ai", "ذكاء واصطناع", Icons.Outlined.Psychology, "تغيير نبرة الكلام والمساعد الذكي"),
+    ToolbarToolDefinition("tts", "قراءة النص بصوت", Icons.Outlined.VolumeUp, "اقرأ النص بصوت الجوال والناطق الصوتي"),
+    ToolbarToolDefinition("pass", "Keyboard Pass", Icons.Outlined.Password, "حفظ وتعبئة كلمات المرور والآيبان والبطاقات"),
+    ToolbarToolDefinition("ai", "AI Keyboard ذكاء اصطناعي", Icons.Outlined.AutoFixHigh, "صحّح وأعد الصياغة وترجم واكتب بالذكاء"),
     ToolbarToolDefinition("photos", "صور وملصقات", Icons.Outlined.PhotoLibrary, "ملصقات وستيكرات وصور مجهزة"),
     ToolbarToolDefinition("gif", "Kaomoji و GIF", Icons.Outlined.Gif, "فيسات يابانية وصور متحركة سريعة"),
     ToolbarToolDefinition("settings", "إعدادات التطبيق", Icons.Outlined.Settings, "الوصول السريع لكافة تخصيصات الكيبورد")
@@ -4314,6 +4440,590 @@ fun ThemesPickerDrawer(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 12. TTS SPEECH SUBVIEW (اقرأ النص بصوت الجوال)
+// -------------------------------------------------------------
+@Composable
+fun TtsSpeechSubView(
+    theme: KeyboardTheme,
+    currentText: String,
+    onClose: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val ttsEngine = remember { com.example.sound.KeyboardTtsEngine.getInstance(context) }
+    var textToRead by remember { mutableStateOf(currentText.ifBlank { "أهلاً بك في كيبورد تيربو الذكي! يمكنك قراءة أي نص بصوت الجوال الواضح." }) }
+    var speedRate by remember { mutableFloatStateOf(1.0f) }
+    var isArabic by remember { mutableStateOf(true) }
+    var isReading by remember { mutableStateOf(false) }
+
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
+
+    DisposableEffect(Unit) {
+        onDispose {
+            ttsEngine.stop()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(260.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.VolumeUp,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "قارئ النصوص بصوت الجوال",
+                    color = textColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                    .clickable(onClick = {
+                        ttsEngine.stop()
+                        onClose()
+                    }),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+        }
+
+        // Text Display Box
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = Color(theme.keyBackgroundColor),
+            border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(vertical = 6.dp)
+        ) {
+            Box(modifier = Modifier.padding(10.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    text = textToRead,
+                    color = textColor,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        // Speed & Language Controls
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Speed chips
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(0.75f, 1.0f, 1.25f, 1.5f).forEach { rate ->
+                    val isSelected = speedRate == rate
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
+                        border = BorderStroke(1.dp, if (isSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.4f)),
+                        modifier = Modifier.clickable { speedRate = rate }
+                    ) {
+                        Text(
+                            text = "${rate}x",
+                            color = if (isSelected) Color(theme.accentColor) else textColor,
+                            fontSize = 10.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+
+            // Language toggle
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
+                modifier = Modifier.clickable { isArabic = !isArabic }
+            ) {
+                Text(
+                    text = if (isArabic) "🇸🇦 عربي" else "🇺🇸 EN",
+                    color = Color(theme.accentColor),
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Play / Stop Action Button
+        Button(
+            onClick = {
+                if (isReading) {
+                    ttsEngine.stop()
+                    isReading = false
+                } else {
+                    ttsEngine.speak(textToRead, isArabic = isArabic, speedRate = speedRate)
+                    isReading = true
+                }
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(theme.accentColor)
+            ),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+        ) {
+            Icon(
+                imageVector = if (isReading) Icons.Default.Stop else Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = if (isReading) "إيقاف الصوت ⏹" else "استمع للنص بصوت واضح ▶",
+                color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 13. KEYBOARD PASS SUBVIEW (حفظ وتعبئة كلمات المرور واستيراد CSV و Samsung Pass)
+// -------------------------------------------------------------
+@Composable
+fun KeyboardPassSubView(
+    theme: KeyboardTheme,
+    onInsertText: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val passManager = remember { com.example.data.KeyboardPassManager(context) }
+    var entries by remember { mutableStateOf(passManager.getAllEntries()) }
+    var selectedCat by remember { mutableStateOf("all") }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importCsvText by remember { mutableStateOf("") }
+    var importResultMsg by remember { mutableStateOf("") }
+
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
+
+    val filtered = remember(entries, selectedCat) {
+        if (selectedCat == "all") entries
+        else entries.filter { it.category == selectedCat }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(265.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(8.dp)
+    ) {
+        // Top Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Password,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Column {
+                    Text(
+                        text = "Keyboard Pass (كلمات المرور والآيبان)",
+                        color = textColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "تعبئة آمنة بنقرة واحدة • استيراد Samsung Pass & CSV",
+                        color = subTextColor,
+                        fontSize = 8.5.sp
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(theme.accentColor).copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, Color(theme.accentColor).copy(alpha = 0.6f)),
+                    modifier = Modifier.clickable { showImportDialog = true }
+                ) {
+                    Text(
+                        text = "📥 استيراد CSV",
+                        color = Color(theme.accentColor),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(15.dp))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Category filter chips
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val cats = listOf("all" to "الكل", "iban" to "🏦 آيبان", "card" to "💳 بطاقات", "login" to "🔐 دخول")
+            cats.forEach { (key, label) ->
+                val isSel = selectedCat == key
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSel) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, if (isSel) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { selectedCat = key }
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
+                        Text(
+                            text = label,
+                            color = if (isSel) Color(theme.accentColor) else textColor,
+                            fontSize = 10.sp,
+                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Import Dialog
+        if (showImportDialog) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(theme.keyBackgroundColor),
+                border = BorderStroke(1.dp, Color(theme.accentColor)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        text = "ألصق بيانات CSV أو تصدير Samsung Pass هنا:",
+                        color = textColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    OutlinedTextField(
+                        value = importCsvText,
+                        onValueChange = { importCsvText = it },
+                        placeholder = { Text("Title, Username, Password, URL, Note...", fontSize = 9.5.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        textStyle = TextStyle(fontSize = 10.sp, color = textColor)
+                    )
+                    if (importResultMsg.isNotEmpty()) {
+                        Text(importResultMsg, color = Color(0xFF10B981), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(
+                            onClick = {
+                                val count = passManager.importFromCsv(importCsvText)
+                                if (count > 0) {
+                                    entries = passManager.getAllEntries()
+                                    importResultMsg = "تم استيراد $count حساب بنجاح ✓"
+                                    showImportDialog = false
+                                } else {
+                                    importResultMsg = "لم يتم العثور على أسطر صالحة"
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                            modifier = Modifier.weight(1f).height(32.dp)
+                        ) {
+                            Text("استيراد الآن", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                        OutlinedButton(
+                            onClick = { showImportDialog = false },
+                            modifier = Modifier.weight(1f).height(32.dp)
+                        ) {
+                            Text("إلغاء", fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+        } else {
+            // Entries List
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(filtered) { item ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(theme.keyBackgroundColor),
+                        border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.title,
+                                    color = textColor,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (item.username.isNotEmpty()) {
+                                    Text(
+                                        text = item.username,
+                                        color = subTextColor,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (item.username.isNotEmpty()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(theme.accentColor).copy(alpha = 0.2f),
+                                        modifier = Modifier.clickable {
+                                            onInsertText(item.username)
+                                            onClose()
+                                        }
+                                    ) {
+                                        Text(
+                                            text = if (item.category == "iban") "إدراج الآيبان" else "اسم المستخدم",
+                                            color = Color(theme.accentColor),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+
+                                if (item.password.isNotEmpty()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                        modifier = Modifier.clickable {
+                                            onInsertText(item.password)
+                                            onClose()
+                                        }
+                                    ) {
+                                        Text(
+                                            text = if (item.category == "card") "CVV/تاريخ" else "كلمة المرور",
+                                            color = Color(0xFF10B981),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 14. MY STICKERS SUBVIEW (ملصقاتي في الشريط)
+// -------------------------------------------------------------
+@Composable
+fun MyStickersSubView(
+    theme: KeyboardTheme,
+    onStickerSelected: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    var newStickerText by remember { mutableStateOf("") }
+    val myStickers = remember {
+        mutableStateListOf(
+            "🌹 تحياتي وتقديري يا غالي",
+            "❤️ يسعد مساكم جميعاً",
+            "✨ جمعة مباركة وطيبة",
+            "🔥 كفو والله ما قصرت",
+            "👑 بطل والله العظيم",
+            "🌸 صبحكم الله بالخير والسرور",
+            "⚡ ع راسي والله",
+            "🤝 تم بإذن الله، اعتمد"
+        )
+    }
+
+    val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
+    val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(260.dp)
+            .background(Color(theme.backgroundColor))
+            .padding(8.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.PhotoFilter,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "ملصقاتي وعباراتي المصممة (${myStickers.size})",
+                    color = textColor,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEF4444).copy(alpha = 0.95f))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Create new sticker input
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = newStickerText,
+                onValueChange = { newStickerText = it },
+                placeholder = { Text("اكتب عبارة أو ملصق جديد...", fontSize = 10.5.sp) },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(42.dp),
+                shape = RoundedCornerShape(8.dp),
+                textStyle = TextStyle(fontSize = 11.sp, color = textColor)
+            )
+
+            Button(
+                onClick = {
+                    if (newStickerText.isNotBlank()) {
+                        myStickers.add(0, newStickerText.trim())
+                        newStickerText = ""
+                    }
+                },
+                enabled = newStickerText.isNotBlank(),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                modifier = Modifier.height(42.dp)
+            ) {
+                Text("➕ حفظ", color = Color.Black, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Stickers Grid
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(myStickers) { sticker ->
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(theme.keyBackgroundColor),
+                    border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clickable {
+                            onStickerSelected(sticker)
+                            onClose()
+                        }
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
+                        Text(
+                            text = sticker,
+                            color = textColor,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }

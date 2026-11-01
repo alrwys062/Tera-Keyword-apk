@@ -343,6 +343,7 @@ fun TurboKeyboardView(
     var isTranslateButtonHolding by remember { mutableStateOf(false) }
     var translateHoldProgress by remember { mutableFloatStateOf(0f) }
     var translateHoldMessage by remember { mutableStateOf("") }
+    var lastDeletedText by remember { mutableStateOf("") }
 
     val userDict = remember { com.example.data.UserDictionaryManager(context) }
     var userWords by remember { mutableStateOf(userDict.getUserWords()) }
@@ -371,9 +372,11 @@ fun TurboKeyboardView(
     var prevComposingLength by remember { mutableIntStateOf(0) }
     LaunchedEffect(currentComposingText) {
         if (prevComposingLength > 0 && currentComposingText.isEmpty()) {
-            activeSubView = KeyboardSubView.NONE
-            isSymbolsMode = false
-            isMoreSymbolsMode = false
+            if (activeSubView != KeyboardSubView.EMOJI) {
+                activeSubView = KeyboardSubView.NONE
+                isSymbolsMode = false
+                isMoreSymbolsMode = false
+            }
         }
         prevComposingLength = currentComposingText.length
     }
@@ -381,11 +384,13 @@ fun TurboKeyboardView(
     LaunchedEffect(Unit) {
         TurboKeyboardService.resetToLettersSignal.collect { timestamp ->
             if (timestamp > 0) {
-                activeSubView = KeyboardSubView.NONE
-                isSymbolsMode = false
-                isMoreSymbolsMode = false
-                isDecorationBarOpen = false
-                isTranslationBarOpen = false
+                if (activeSubView != KeyboardSubView.EMOJI) {
+                    activeSubView = KeyboardSubView.NONE
+                    isSymbolsMode = false
+                    isMoreSymbolsMode = false
+                    isDecorationBarOpen = false
+                    isTranslationBarOpen = false
+                }
             }
         }
     }
@@ -558,12 +563,7 @@ fun TurboKeyboardView(
         } else {
             onDirectClearAndReplaceText?.invoke(text)
         }
-        val textToInsert = text
-        if (textToInsert == " " || textToInsert.contains(" ") || textToInsert in listOf("\n", "\r", ".", "!", "?", "،", "؛", "؟", ",", ";", ":")) {
-            currentComposingText = ""
-        } else {
-            currentComposingText = (currentComposingText + textToInsert).takeLast(30)
-        }
+        currentComposingText = (currentComposingText + text).takeLast(30)
     }
 
     fun sendText(text: String) {
@@ -703,12 +703,16 @@ fun TurboKeyboardView(
             return
         }
         if (activeSubView == KeyboardSubView.EMOJI) {
-            if (emojiSearchQuery.isNotEmpty()) emojiSearchQuery = emojiSearchQuery.dropLast(1)
-            return
+            if (emojiSearchQuery.isNotEmpty()) {
+                emojiSearchQuery = emojiSearchQuery.dropLast(1)
+                return
+            }
         }
         if (activeSubView == KeyboardSubView.THEMES) {
-            if (themesSearchQuery.isNotEmpty()) themesSearchQuery = themesSearchQuery.dropLast(1)
-            return
+            if (themesSearchQuery.isNotEmpty()) {
+                themesSearchQuery = themesSearchQuery.dropLast(1)
+                return
+            }
         }
         dismissLongPressPopup()
         performFeedback(isDelete = true)
@@ -723,8 +727,13 @@ fun TurboKeyboardView(
                 try {
                     val selected = ic.getSelectedText(0)
                     if (!selected.isNullOrEmpty()) {
+                        lastDeletedText = selected.toString()
                         ic.commitText("", 1)
                     } else {
+                        val before = ic.getTextBeforeCursor(1, 0)
+                        if (!before.isNullOrEmpty()) {
+                            lastDeletedText = before.toString()
+                        }
                         val deleted = ic.deleteSurroundingText(1, 0)
                         if (!deleted) {
                             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
@@ -1339,7 +1348,7 @@ fun TurboKeyboardView(
                     }
                 }
             }
-        } else if (currentSettings.toolbarEnabled && !isCustomizeTopEmojisOpen && activeSubView != KeyboardSubView.EMOJI) {
+        } else if (currentSettings.toolbarEnabled && !isCustomizeTopEmojisOpen) {
             KeyboardToolbar(
                 theme = activeTheme,
                 activeSubView = activeSubView,
@@ -1583,17 +1592,37 @@ fun TurboKeyboardView(
                             backspaceScale = currentSettings.backspaceKeyScale,
                             searchQuery = emojiSearchQuery,
                             onSearchQueryChange = { emojiSearchQuery = it },
-                            onEmojiSelected = {
-                                prefs.addRecentEmoji(it)
-                                commitEmojiDirectly(it)
-                                if (currentSettings.autoReturnAfterEmojiInsert) {
-                                    activeSubView = KeyboardSubView.NONE
-                                    isSymbolsMode = false
-                                    isMoreSymbolsMode = false
-                                }
+                            onEmojiSelected = { emoji ->
+                                prefs.addRecentEmoji(emoji)
+                                commitEmojiDirectly(emoji)
+                                performFeedback()
                             },
-                            onSpacePressed = { sendText(" ") },
-                            onDeletePressed = { sendDelete() },
+                            onSpacePressed = {
+                                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                if (ic != null) {
+                                    ic.commitText(" ", 1)
+                                } else {
+                                    onDirectInsertText?.invoke(" ")
+                                }
+                                performFeedback(isSpace = true)
+                            },
+                            onDeletePressed = {
+                                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                if (ic != null) {
+                                    try {
+                                        val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+                                        val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                                        if (!down || !up) {
+                                            ic.deleteSurroundingText(1, 0)
+                                        }
+                                    } catch (_: Exception) {
+                                        try { ic.deleteSurroundingText(1, 0) } catch (_: Exception) {}
+                                    }
+                                } else {
+                                    onDirectDeleteLastChar?.invoke()
+                                }
+                                performFeedback(isDelete = true)
+                            },
                             onEnterPressed = {
                                 sendEnter()
                                 activeSubView = KeyboardSubView.NONE
@@ -1800,6 +1829,53 @@ fun TurboKeyboardView(
                             onClose = { activeSubView = KeyboardSubView.NONE }
                         )
                     }
+                    KeyboardSubView.TTS_SPEECH -> {
+                        TtsSpeechSubView(
+                            theme = activeTheme,
+                            currentText = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText,
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
+                        )
+                    }
+                    KeyboardSubView.PASSWORD_MANAGER -> {
+                        KeyboardPassSubView(
+                            theme = activeTheme,
+                            onInsertText = { textToInsert ->
+                                sendText(textToInsert)
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
+                            },
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
+                        )
+                    }
+                    KeyboardSubView.MY_STICKERS -> {
+                        MyStickersSubView(
+                            theme = activeTheme,
+                            onStickerSelected = { sticker ->
+                                sendText(sticker)
+                                if (currentSettings.autoReturnToLettersOnShortcut) {
+                                    activeSubView = KeyboardSubView.NONE
+                                    isSymbolsMode = false
+                                    isMoreSymbolsMode = false
+                                }
+                            },
+                            onClose = {
+                                activeSubView = KeyboardSubView.NONE
+                                isSymbolsMode = false
+                                isMoreSymbolsMode = false
+                            }
+                        )
+                    }
 
                     else -> {}
                 }
@@ -2004,6 +2080,135 @@ fun TurboKeyboardView(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(if (isPortrait) 3.5.dp else 2.dp)
                     ) {
+                        // 0. Quick Actions Row & Undo / Restore Chip
+                        val hasUndo = lastDeletedText.isNotEmpty()
+                        if (hasUndo || currentSettings.showQuickActionsRow) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(26.dp)
+                                    .padding(horizontal = 4.dp, vertical = 1.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (hasUndo) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFF10B981).copy(alpha = 0.22f),
+                                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.8f)),
+                                        modifier = Modifier.clickable {
+                                            sendText(lastDeletedText)
+                                            lastDeletedText = ""
+                                            performFeedback(isSpecial = true)
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Undo, contentDescription = "استعادة", tint = Color(0xFF10B981), modifier = Modifier.size(13.dp))
+                                            Text(
+                                                text = "استعادة: $lastDeletedText",
+                                                color = Color(activeTheme.keyTextColor),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                                if (currentSettings.showQuickActionsRow) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(activeTheme.keyBackgroundColor),
+                                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                        modifier = Modifier.clickable {
+                                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                            val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                                            if (clip.isNotBlank()) sendText(clip)
+                                            performFeedback(isSpecial = true)
+                                        }
+                                    ) {
+                                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.ContentPaste, contentDescription = "لصق", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                            Spacer(Modifier.width(2.dp))
+                                            Text("لصق", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                        }
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(activeTheme.keyBackgroundColor),
+                                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                        modifier = Modifier.clickable {
+                                            val text = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText
+                                            if (text.isNotBlank()) {
+                                                com.example.sound.KeyboardTtsEngine.getInstance(context).speak(text)
+                                                performFeedback(isSpecial = true)
+                                            }
+                                        }
+                                    ) {
+                                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.VolumeUp, contentDescription = "قراءة", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                            Spacer(Modifier.width(2.dp))
+                                            Text("قراءة", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                        }
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(activeTheme.keyBackgroundColor),
+                                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                        modifier = Modifier.clickable {
+                                            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                            val all = ic?.getTextBeforeCursor(2000, 0)?.toString() ?: ""
+                                            if (all.isNotBlank()) {
+                                                lastDeletedText = all
+                                                ic?.deleteSurroundingText(all.length, 0)
+                                                performFeedback(isDelete = true)
+                                            }
+                                        }
+                                    ) {
+                                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.DeleteSweep, contentDescription = "مسح الكل", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                            Spacer(Modifier.width(2.dp))
+                                            Text("مسح الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Recent Emojis Row Above Symbols
+                        if (isSymbolsMode && currentSettings.recentEmojisAboveSymbols) {
+                            val recentEmojis = remember { prefs.getRecentEmojis().take(8) }
+                            if (recentEmojis.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height((calculatedNumberKeyHeight * 0.9f).coerceIn(24.dp, 36.dp))
+                                        .padding(horizontal = 2.dp, vertical = 1.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    recentEmojis.forEach { em ->
+                                        Surface(
+                                            modifier = Modifier.weight(1f).fillMaxHeight().clickable {
+                                                performFeedback()
+                                                sendText(em)
+                                            },
+                                            shape = RoundedCornerShape(activeTheme.cornerRadius.dp),
+                                            color = ThemePresets.resolveKeyColor(activeTheme.keyBackgroundColor, activeTheme.keyOpacity),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.35f))
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(text = em, fontSize = 13.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // Optional Number Row or Custom Emojis Row
                         if (currentSettings.numberRowEnabled) {
                             if (currentSettings.replaceNumberRowWithEmojis) {
@@ -2116,7 +2321,7 @@ fun TurboKeyboardView(
                                         isArabicLayout = isArabic,
                                         showKeyPopup = currentSettings.keyPopupEnabled,
                                         keyHeight = calculatedKeyHeight,
-                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor * (if (isArabic) currentSettings.arabicKeyTextScale else 1.0f),
                                         keyButtonScale = currentSettings.keyButtonScale,
                                         longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                         onPerformFeedback = {
@@ -2168,7 +2373,7 @@ fun TurboKeyboardView(
                                         isArabicLayout = isArabic,
                                         showKeyPopup = currentSettings.keyPopupEnabled,
                                         keyHeight = calculatedKeyHeight,
-                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                        keyFontSizeFactor = currentSettings.keyFontSizeFactor * (if (isArabic) currentSettings.arabicKeyTextScale else 1.0f),
                                         keyButtonScale = currentSettings.keyButtonScale,
                                         longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                         onPerformFeedback = {
@@ -2302,7 +2507,7 @@ fun TurboKeyboardView(
                                                     isArabicLayout = isArabic,
                                                     showKeyPopup = currentSettings.keyPopupEnabled,
                                                     keyHeight = calculatedKeyHeight,
-                                                    keyFontSizeFactor = currentSettings.keyFontSizeFactor,
+                                                    keyFontSizeFactor = currentSettings.keyFontSizeFactor * (if (isArabic) currentSettings.arabicKeyTextScale else 1.0f),
                                                     keyButtonScale = currentSettings.keyButtonScale,
                                                     longPressDelayMs = currentSettings.longPressDelayMs.toLong(),
                                                     onPerformFeedback = {
@@ -2498,26 +2703,34 @@ fun TurboKeyboardView(
                             val spaceBg = if (isSpacePressed) bottomKeyPressedBg else bottomKeyBg
                             val spaceScale = if (isSpacePressed) 0.97f else 1.0f
                             val currentSwipeEnabled by rememberUpdatedState(currentSettings.swipeSpaceSwitchLanguage)
+                            val spacebarWeight = when (currentSettings.spacebarWidthMode) {
+                                "compact" -> 2.2f
+                                "wide" -> 4.2f
+                                else -> 3.2f
+                            }
 
                             Box(
                                 modifier = Modifier
-                                    .weight(3.2f)
+                                    .weight(spacebarWeight)
                                     .fillMaxHeight()
                                     .graphicsLayer { scaleX = spaceScale; scaleY = spaceScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(spaceBg)
                                     .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(currentLangCode, currentSwipeEnabled) {
+                                    .pointerInput(currentLangCode, currentSwipeEnabled, currentSettings.numberRowEnabled) {
                                         awaitEachGesture {
                                             val down = awaitFirstDown(requireUnconsumed = false)
                                             isSpacePressed = true
                                             val pressStartTime = System.currentTimeMillis()
-                                            var totalDrag = 0f
+                                            var totalDragX = 0f
+                                            var totalDragY = 0f
                                             var hasSwitchedLanguage = false
+                                            var hasSwitchedNumberRow = false
                                             var isDragGesture = false
                                             var isTrackpadMode = false
                                             var accumulatedTrackpadX = 0f
-                                            val swipeThreshold = 18.dp.toPx()
+                                            val swipeThresholdX = 20.dp.toPx()
+                                            val swipeThresholdY = 22.dp.toPx()
                                             val trackpadStepPx = 13.dp.toPx()
 
                                             try {
@@ -2525,8 +2738,13 @@ fun TurboKeyboardView(
                                                     val event = awaitPointerEvent()
                                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
+                                                    val deltaX = change.position.x - down.position.x
+                                                    val deltaY = change.position.y - down.position.y
+                                                    totalDragX = deltaX
+                                                    totalDragY = deltaY
+
                                                     val downDuration = System.currentTimeMillis() - pressStartTime
-                                                    if (!isTrackpadMode && !hasSwitchedLanguage && downDuration >= 360L) {
+                                                    if (!isTrackpadMode && !hasSwitchedLanguage && !hasSwitchedNumberRow && downDuration >= 360L && kotlin.math.abs(totalDragY) < 14.dp.toPx()) {
                                                         isTrackpadMode = true
                                                         isCursorTrackpadActive = true
                                                         performFeedback(durationMs = 25L, isSpecial = true)
@@ -2535,15 +2753,12 @@ fun TurboKeyboardView(
                                                     if (!change.pressed) {
                                                         // Pointer lifted
                                                         change.consume()
-                                                        if (!isDragGesture && !hasSwitchedLanguage && !isTrackpadMode) {
+                                                        if (!isDragGesture && !hasSwitchedLanguage && !hasSwitchedNumberRow && !isTrackpadMode) {
                                                             performFeedback(isSpace = true)
                                                             sendText(" ")
                                                         }
                                                         break
                                                     }
-
-                                                    val deltaX = change.position.x - down.position.x
-                                                    totalDrag = deltaX
 
                                                     if (isTrackpadMode) {
                                                         val diff = deltaX - accumulatedTrackpadX
@@ -2554,15 +2769,27 @@ fun TurboKeyboardView(
                                                         }
                                                         change.consume()
                                                     } else {
-                                                        if (kotlin.math.abs(totalDrag) > 8.dp.toPx()) {
+                                                        if (kotlin.math.abs(totalDragX) > 8.dp.toPx() || kotlin.math.abs(totalDragY) > 8.dp.toPx()) {
                                                             isDragGesture = true
                                                         }
 
-                                                        if (currentSwipeEnabled && !hasSwitchedLanguage && kotlin.math.abs(totalDrag) >= swipeThreshold) {
+                                                        // 1. Vertical Swipe: Swipe UP (deltaY < 0) shows number row, Swipe DOWN (deltaY > 0) hides number row
+                                                        if (!hasSwitchedNumberRow && !hasSwitchedLanguage && kotlin.math.abs(totalDragY) >= swipeThresholdY && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.15f) {
+                                                            hasSwitchedNumberRow = true
+                                                            change.consume()
+                                                            performFeedback(isSpecial = true)
+                                                            val shouldEnable = totalDragY < 0
+                                                            val updated = currentSettings.copy(numberRowEnabled = shouldEnable)
+                                                            currentSettings = updated
+                                                            prefs.saveSettings(updated)
+                                                        }
+
+                                                        // 2. Horizontal Swipe: Switches keyboard language
+                                                        else if (currentSwipeEnabled && !hasSwitchedLanguage && !hasSwitchedNumberRow && kotlin.math.abs(totalDragX) >= swipeThresholdX && kotlin.math.abs(totalDragX) > kotlin.math.abs(totalDragY) * 1.15f) {
                                                             hasSwitchedLanguage = true
                                                             change.consume()
                                                             performFeedback(isSpecial = true)
-                                                            val nextLang = if (totalDrag > 0) {
+                                                            val nextLang = if (totalDragX > 0) {
                                                                 InputLanguagesManager.getNextActiveLanguage(context, currentLangCode)
                                                             } else {
                                                                 InputLanguagesManager.getPreviousActiveLanguage(context, currentLangCode)
@@ -2680,6 +2907,53 @@ fun TurboKeyboardView(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(".", color = Color(activeTheme.keyTextColor), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // 5b. Tashkeel / Harakat Key next to Dot
+                            if (isArabic && currentSettings.showTashkeelKeyNextToDot) {
+                                var isTashkeelPressed by remember { mutableStateOf(false) }
+                                val tashkeelBg by animateColorAsState(
+                                    targetValue = if (isTashkeelPressed) bottomKeyPressedBg else bottomKeyBg,
+                                    animationSpec = tween(durationMillis = if (isTashkeelPressed) 20 else 90),
+                                    label = "tashkeel_bg"
+                                )
+                                val tashkeelScale by animateFloatAsState(
+                                    targetValue = if (isTashkeelPressed) 0.95f else 1.0f,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                    label = "tashkeel_scale"
+                                )
+                                val harakatVariants = listOf("َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ّ", "ْ", "ـ", "ٰ")
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.65f)
+                                        .fillMaxHeight()
+                                        .graphicsLayer { scaleX = tashkeelScale; scaleY = tashkeelScale }
+                                        .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                        .background(tashkeelBg)
+                                        .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    isTashkeelPressed = true
+                                                    performFeedback()
+                                                    tryAwaitRelease()
+                                                    isTashkeelPressed = false
+                                                },
+                                                onTap = {
+                                                    sendText("َ")
+                                                },
+                                                onLongPress = {
+                                                    performFeedback(25L, isSpecial = true)
+                                                    longPressChar = "َ"
+                                                    longPressVariants = harakatVariants
+                                                    selectedVariantIndex = 0
+                                                }
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("ـَ", color = Color(activeTheme.accentColor), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
 
                             // 6. Right slot button (Emoji or Clipboard - Swappable!)

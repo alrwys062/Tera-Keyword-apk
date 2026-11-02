@@ -25,6 +25,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
@@ -43,10 +44,12 @@ import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -313,6 +316,8 @@ fun TurboKeyboardView(
     var customTopEmojis by remember { mutableStateOf(prefs.getCustomTopEmojis()) }
     var isCustomizeTopEmojisOpen by remember { mutableStateOf(false) }
     var customizerInputText by remember { mutableStateOf("") }
+    var isManageQuickActionsOpen by remember { mutableStateOf(false) }
+    var quickActionItemForOptions by remember { mutableStateOf<String?>(null) }
 
     // Search queries for sub-drawers (lifted up for sendText redirection)
     var emojiSearchQuery by remember { mutableStateOf("") }
@@ -344,6 +349,15 @@ fun TurboKeyboardView(
     var translateHoldProgress by remember { mutableFloatStateOf(0f) }
     var translateHoldMessage by remember { mutableStateOf("") }
     var lastDeletedText by remember { mutableStateOf("") }
+    var showResetSettingsDialog by remember { mutableStateOf(false) }
+    var resetSuccessToast by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(resetSuccessToast) {
+        if (resetSuccessToast != null) {
+            delay(2600)
+            resetSuccessToast = null
+        }
+    }
 
     val userDict = remember { com.example.data.UserDictionaryManager(context) }
     var userWords by remember { mutableStateOf(userDict.getUserWords()) }
@@ -1209,6 +1223,121 @@ fun TurboKeyboardView(
             }
         }
 
+        // Reset Settings Confirmation Dialog Modal
+        if (showResetSettingsDialog) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.78f))
+                    .zIndex(999998f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {},
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF141923),
+                    border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.45f)),
+                    shadowElevation = 12.dp,
+                    modifier = Modifier
+                        .fillMaxWidth(0.92f)
+                        .padding(14.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RestartAlt,
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Text(
+                            text = "استعادة إعدادات الكيبورد الأصلية",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "هل تريد استعادة إعدادات الكيبورد الأصلية؟\nسيتم إعادة الثيم والتخطيط والألوان وحجم الأزرار وشريط الأدوات إلى الوضع الافتراضي كما كان عند التثبيت لأول مرة.\n\n✓ لن يتم حذف كلماتك الشخصية أو نصوص الحافظة.",
+                            color = Color(0xFFCAD5E2),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showResetSettingsDialog = false },
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, Color(0xFF334155)),
+                                modifier = Modifier.weight(1f).height(42.dp)
+                            ) {
+                                Text("إلغاء", color = Color(0xFF94A3B8), fontSize = 13.sp)
+                            }
+                            Button(
+                                onClick = {
+                                    val (newSettings, newTheme) = prefs.resetToFactoryDefaults()
+                                    currentSettings = newSettings
+                                    activeTheme = newTheme
+                                    onThemeChanged?.invoke(newTheme)
+                                    showResetSettingsDialog = false
+                                    resetSuccessToast = "تمت استعادة الإعدادات الأصلية بنجاح ✓"
+                                    performFeedback(isSpecial = true)
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
+                                modifier = Modifier.weight(1f).height(42.dp)
+                            ) {
+                                Text("استعادة", color = Color(0xFF090D15), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Success Toast Notification Banner
+        AnimatedVisibility(
+            visible = resetSuccessToast != null,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .zIndex(999999f)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF10B981),
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = resetSuccessToast ?: "",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
         val navInsets = if (isPortrait) {
             WindowInsets.navigationBars
         } else {
@@ -1417,7 +1546,19 @@ fun TurboKeyboardView(
                     isDecorationBarOpen = false
                     isTranslationBarOpen = false
                 },
-                onSwipeBack = { handleBackNavigation() }
+                onSwipeBack = { handleBackNavigation() },
+                onResetSettingsClick = {
+                    showResetSettingsDialog = true
+                    performFeedback(isSpecial = true)
+                },
+                isQuickActionsEnabled = currentSettings.showQuickActionsRow,
+                onToggleQuickActions = {
+                    val updated = currentSettings.copy(showQuickActionsRow = !currentSettings.showQuickActionsRow)
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                    resetSuccessToast = if (updated.showQuickActionsRow) "تم إظهار شريط الأدوات فوق الأحرف ✓" else "تم إخفاء وحذف شريط الأدوات فوق الأحرف ✓"
+                    performFeedback(isSpecial = true)
+                }
             )
         } else if (!currentSettings.toolbarEnabled && !isCustomizeTopEmojisOpen && activeSubView == KeyboardSubView.NONE) {
             Box(
@@ -1592,10 +1733,30 @@ fun TurboKeyboardView(
                             backspaceScale = currentSettings.backspaceKeyScale,
                             searchQuery = emojiSearchQuery,
                             onSearchQueryChange = { emojiSearchQuery = it },
+                            isCustomizeMode = isCustomizeTopEmojisOpen,
                             onEmojiSelected = { emoji ->
-                                prefs.addRecentEmoji(emoji)
-                                commitEmojiDirectly(emoji)
-                                performFeedback()
+                                if (isCustomizeTopEmojisOpen) {
+                                    val trimmed = emoji.trim()
+                                    if (!customTopEmojis.contains(trimmed)) {
+                                        customTopEmojis = (customTopEmojis + trimmed)
+                                        prefs.saveCustomTopEmojis(customTopEmojis)
+                                    }
+                                    customizerInputText = trimmed
+                                    performFeedback(isSpecial = true)
+                                } else {
+                                    prefs.addRecentEmoji(emoji)
+                                    commitEmojiDirectly(emoji)
+                                    performFeedback()
+                                }
+                            },
+                            onEmojiLongPress = { emoji ->
+                                val trimmed = emoji.trim()
+                                if (!customTopEmojis.contains(trimmed)) {
+                                    customTopEmojis = (customTopEmojis + trimmed)
+                                    prefs.saveCustomTopEmojis(customTopEmojis)
+                                    android.widget.Toast.makeText(context, "تمت إضافة $trimmed لشريط الابتسامات العلوي ✨", android.widget.Toast.LENGTH_SHORT).show()
+                                    performFeedback(isSpecial = true)
+                                }
                             },
                             onSpacePressed = {
                                 val ic = getCurrentInputConnection?.invoke() ?: inputConnection
@@ -1607,21 +1768,31 @@ fun TurboKeyboardView(
                                 performFeedback(isSpace = true)
                             },
                             onDeletePressed = {
-                                val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-                                if (ic != null) {
-                                    try {
-                                        val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
-                                        val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
-                                        if (!down || !up) {
-                                            ic.deleteSurroundingText(1, 0)
-                                        }
-                                    } catch (_: Exception) {
-                                        try { ic.deleteSurroundingText(1, 0) } catch (_: Exception) {}
+                                if (isCustomizeTopEmojisOpen) {
+                                    if (customizerInputText.isNotEmpty()) {
+                                        customizerInputText = customizerInputText.dropLast(1)
+                                    } else if (customTopEmojis.isNotEmpty()) {
+                                        customTopEmojis = customTopEmojis.dropLast(1)
+                                        prefs.saveCustomTopEmojis(customTopEmojis)
                                     }
+                                    performFeedback(isDelete = true)
                                 } else {
-                                    onDirectDeleteLastChar?.invoke()
+                                    val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                    if (ic != null) {
+                                        try {
+                                            val down = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+                                            val up = ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                                            if (!down || !up) {
+                                                ic.deleteSurroundingText(1, 0)
+                                            }
+                                        } catch (_: Exception) {
+                                            try { ic.deleteSurroundingText(1, 0) } catch (_: Exception) {}
+                                        }
+                                    } else {
+                                        onDirectDeleteLastChar?.invoke()
+                                    }
+                                    performFeedback(isDelete = true)
                                 }
-                                performFeedback(isDelete = true)
                             },
                             onEnterPressed = {
                                 sendEnter()
@@ -1642,11 +1813,22 @@ fun TurboKeyboardView(
                             theme = activeTheme,
                             prefs = prefs,
                             onStickerSelected = { sticker ->
-                                sendText(" $sticker ")
-                                if (currentSettings.autoReturnToLettersOnShortcut) {
-                                    activeSubView = KeyboardSubView.NONE
-                                    isSymbolsMode = false
-                                    isMoreSymbolsMode = false
+                                if (isCustomizeTopEmojisOpen) {
+                                    val trimmed = sticker.trim()
+                                    if (!customTopEmojis.contains(trimmed)) {
+                                        customTopEmojis = (customTopEmojis + trimmed)
+                                        prefs.saveCustomTopEmojis(customTopEmojis)
+                                    }
+                                    customizerInputText = trimmed
+                                    android.widget.Toast.makeText(context, "تمت إضافة $trimmed لشريط الابتسامات العلوي ✨", android.widget.Toast.LENGTH_SHORT).show()
+                                    performFeedback(isSpecial = true)
+                                } else {
+                                    sendText(" $sticker ")
+                                    if (currentSettings.autoReturnToLettersOnShortcut) {
+                                        activeSubView = KeyboardSubView.NONE
+                                        isSymbolsMode = false
+                                        isMoreSymbolsMode = false
+                                    }
                                 }
                             },
                             onClose = {
@@ -1970,10 +2152,39 @@ fun TurboKeyboardView(
                 onAddEmoji = { emoji ->
                     if (emoji.isNotBlank()) {
                         val trimmed = emoji.trim()
-                        if (!customTopEmojis.contains(trimmed)) {
-                            customTopEmojis = (customTopEmojis + trimmed)
-                            prefs.saveCustomTopEmojis(customTopEmojis)
+                        val itemsToAdd = if (trimmed.contains(" ")) {
+                            trimmed.split("\\s+".toRegex()).filter { it.isNotBlank() }
+                        } else {
+                            val list = mutableListOf<String>()
+                            var i = 0
+                            while (i < trimmed.length) {
+                                val cp = trimmed.codePointAt(i)
+                                val charCount = Character.charCount(cp)
+                                var end = i + charCount
+                                while (end < trimmed.length) {
+                                    val nextCp = trimmed.codePointAt(end)
+                                    if (nextCp == 0xFE0F || nextCp == 0x200D || (nextCp in 0x1F3FB..0x1F3FF)) {
+                                        end += Character.charCount(nextCp)
+                                        if (nextCp == 0x200D && end < trimmed.length) {
+                                            end += Character.charCount(trimmed.codePointAt(end))
+                                        }
+                                    } else {
+                                        break
+                                    }
+                                }
+                                list.add(trimmed.substring(i, end))
+                                i = end
+                            }
+                            if (list.size > 1 && list.all { it.length <= 4 }) list else listOf(trimmed)
                         }
+                        var updated = customTopEmojis
+                        for (item in itemsToAdd) {
+                            if (!updated.contains(item)) {
+                                updated = updated + item
+                            }
+                        }
+                        customTopEmojis = updated
+                        prefs.saveCustomTopEmojis(updated)
                     }
                 },
                 onRemoveEmoji = { emoji ->
@@ -2008,8 +2219,119 @@ fun TurboKeyboardView(
                 onDismiss = {
                     isCustomizeTopEmojisOpen = false
                     customizerInputText = ""
+                },
+                onOpenEmojiPicker = {
+                    activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
                 }
             )
+        }
+
+        // Panel to Manage & Delete Quick Actions Above Keys (مسح الكل، قراءة، لصق، الحافظة...)
+        if (isManageQuickActionsOpen) {
+            QuickActionsManagerInlinePanel(
+                theme = activeTheme,
+                settings = currentSettings,
+                onUpdateSettings = { updated ->
+                    currentSettings = updated
+                    prefs.saveSettings(updated)
+                },
+                onDismiss = { isManageQuickActionsOpen = false }
+            )
+        }
+
+        // Quick Options Popup for specific clicked tool
+        if (quickActionItemForOptions != null) {
+            val (actionTitle, actionIcon) = when (quickActionItemForOptions) {
+                "clear_all" -> "مسح الكل" to Icons.Default.DeleteSweep
+                "read_text" -> "قراءة النص" to Icons.Default.VolumeUp
+                "paste" -> "لصق" to Icons.Default.ContentPaste
+                "clipboard" -> "الحافظة" to Icons.Default.ContentPaste
+                "copy" -> "نسخ" to Icons.Default.ContentCopy
+                "cut" -> "قص" to Icons.Default.ContentCut
+                "select_all" -> "تحديد الكل" to Icons.Default.SelectAll
+                "undo_redo" -> "استعادة بعد الحذف" to Icons.Default.Undo
+                else -> "أداة" to Icons.Default.Tune
+            }
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                AlertDialog(
+                    onDismissRequest = { quickActionItemForOptions = null },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(actionIcon, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
+                            Text("خيارات أداة: $actionTitle", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("تحكم في هذا الزر أو في شريط الأدوات فوق الأحرف بالكامل:", fontSize = 12.sp, color = Color.Gray)
+                            
+                            // 1. حذف هذا الزر فقط
+                            Button(
+                                onClick = {
+                                    val updated = when (quickActionItemForOptions) {
+                                        "clear_all" -> currentSettings.copy(showQuickActionClearAll = false)
+                                        "read_text" -> currentSettings.copy(showQuickActionReadText = false)
+                                        "paste" -> currentSettings.copy(showQuickActionPaste = false)
+                                        "clipboard" -> currentSettings.copy(showQuickActionClipboard = false)
+                                        "copy" -> currentSettings.copy(showQuickActionCopy = false)
+                                        "cut" -> currentSettings.copy(showQuickActionCut = false)
+                                        "select_all" -> currentSettings.copy(showQuickActionSelectAll = false)
+                                        "undo_redo" -> currentSettings.copy(showQuickActionUndoRedo = false)
+                                        else -> currentSettings
+                                    }
+                                    currentSettings = updated
+                                    prefs.saveSettings(updated)
+                                    resetSuccessToast = "تم حذف زر $actionTitle من الشريط ✓"
+                                    quickActionItemForOptions = null
+                                    performFeedback(isSpecial = true)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("حذف زر $actionTitle من الشريط", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+
+                            // 2. إخفاء وحذف الشريط بالكامل
+                            OutlinedButton(
+                                onClick = {
+                                    val updated = currentSettings.copy(showQuickActionsRow = false)
+                                    currentSettings = updated
+                                    prefs.saveSettings(updated)
+                                    resetSuccessToast = "تم إخفاء وحذف شريط الأدوات بالكامل ✓"
+                                    quickActionItemForOptions = null
+                                    performFeedback(isSpecial = true)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.VisibilityOff, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("إخفاء وحذف شريط الأدوات بالكامل", color = Color(0xFFEF4444), fontSize = 12.sp)
+                            }
+
+                            // 3. إدارة وتخصيص كل الأدوات
+                            TextButton(
+                                onClick = {
+                                    quickActionItemForOptions = null
+                                    isManageQuickActionsOpen = true
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Tune, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("إدارة وتخصيص جميع الأدوات...", color = Color(0xFF0084FF), fontSize = 12.sp)
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = { quickActionItemForOptions = null }) {
+                            Text("إلغاء", color = Color.Gray)
+                        }
+                    }
+                )
+            }
         }
 
         // Main Keyboard Keys Section (Keys hidden when full-screen subview like EMOJI is active, matching keyboard height)
@@ -2082,24 +2404,86 @@ fun TurboKeyboardView(
                     ) {
                         // 0. Quick Actions Row & Undo / Restore Chip
                         val hasUndo = lastDeletedText.isNotEmpty()
-                        if (hasUndo || currentSettings.showQuickActionsRow) {
+                        val hasActiveActions = currentSettings.showQuickActionsRow && (
+                            currentSettings.showQuickActionClearAll ||
+                            currentSettings.showQuickActionReadText ||
+                            currentSettings.showQuickActionPaste ||
+                            currentSettings.showQuickActionCopy ||
+                            currentSettings.showQuickActionCut ||
+                            currentSettings.showQuickActionSelectAll ||
+                            currentSettings.showQuickActionClipboard
+                        )
+                        if ((hasUndo && currentSettings.showQuickActionUndoRedo) || hasActiveActions) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(26.dp)
+                                    .height(28.dp)
+                                    .horizontalScroll(rememberScrollState())
                                     .padding(horizontal = 4.dp, vertical = 1.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (hasUndo) {
+                                // زر إخفاء وحذف شريط الأدوات بالكامل بلمسة واحدة
+                                Surface(
+                                    shape = RoundedCornerShape(7.dp),
+                                    color = Color(0xFFEF4444).copy(alpha = 0.15f),
+                                    border = BorderStroke(0.8.dp, Color(0xFFEF4444).copy(alpha = 0.4f)),
+                                    modifier = Modifier.clickable {
+                                        val updated = currentSettings.copy(showQuickActionsRow = false)
+                                        currentSettings = updated
+                                        prefs.saveSettings(updated)
+                                        resetSuccessToast = "تم إخفاء شريط الأدوات فوق الأحرف ✓ (يمكنك إعادته من الإعدادات)"
+                                        performFeedback(isSpecial = true)
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "إخفاء الشريط", tint = Color(0xFFEF4444), modifier = Modifier.size(11.dp))
+                                        Text("إخفاء الشريط", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                // زر تخصيص وحذف عناصر محددة من الشريط
+                                Surface(
+                                    shape = RoundedCornerShape(7.dp),
+                                    color = Color(activeTheme.keyBackgroundColor),
+                                    border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                    modifier = Modifier.clickable {
+                                        isManageQuickActionsOpen = true
+                                        performFeedback(isSpecial = true)
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(Icons.Default.Tune, contentDescription = "تخصيص", tint = Color(activeTheme.accentColor), modifier = Modifier.size(11.dp))
+                                        Text("تخصيص", color = Color(activeTheme.keyTextColor), fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                }
+
+                                // 1. استعادة بعد الحذف (Undo / Restore)
+                                if (hasUndo && currentSettings.showQuickActionUndoRedo) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
                                         color = Color(0xFF10B981).copy(alpha = 0.22f),
                                         border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.8f)),
-                                        modifier = Modifier.clickable {
-                                            sendText(lastDeletedText)
-                                            lastDeletedText = ""
-                                            performFeedback(isSpecial = true)
+                                        modifier = Modifier.pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onLongPress = {
+                                                    quickActionItemForOptions = "undo_redo"
+                                                    performFeedback(isSpecial = true)
+                                                },
+                                                onTap = {
+                                                    sendText(lastDeletedText)
+                                                    lastDeletedText = ""
+                                                    performFeedback(isSpecial = true)
+                                                }
+                                            )
                                         }
                                     ) {
                                         Row(
@@ -2119,60 +2503,232 @@ fun TurboKeyboardView(
                                         }
                                     }
                                 }
+
                                 if (currentSettings.showQuickActionsRow) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(activeTheme.keyBackgroundColor),
-                                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
-                                        modifier = Modifier.clickable {
-                                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                                            val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                                            if (clip.isNotBlank()) sendText(clip)
-                                            performFeedback(isSpecial = true)
-                                        }
-                                    ) {
-                                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.ContentPaste, contentDescription = "لصق", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
-                                            Spacer(Modifier.width(2.dp))
-                                            Text("لصق", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                                        }
-                                    }
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(activeTheme.keyBackgroundColor),
-                                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
-                                        modifier = Modifier.clickable {
-                                            val text = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText
-                                            if (text.isNotBlank()) {
-                                                com.example.sound.KeyboardTtsEngine.getInstance(context).speak(text)
-                                                performFeedback(isSpecial = true)
+                                    // 2. مسح الكل (Clear All)
+                                    if (currentSettings.showQuickActionClearAll) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "clear_all"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        val all = ic?.getTextBeforeCursor(2000, 0)?.toString() ?: ""
+                                                        if (all.isNotBlank()) {
+                                                            lastDeletedText = all
+                                                            ic?.deleteSurroundingText(all.length, 0)
+                                                            performFeedback(isDelete = true)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.DeleteSweep, contentDescription = "مسح الكل", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("مسح الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
-                                    ) {
-                                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.VolumeUp, contentDescription = "قراءة", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
-                                            Spacer(Modifier.width(2.dp))
-                                            Text("قراءة", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                                        }
                                     }
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(activeTheme.keyBackgroundColor),
-                                        border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
-                                        modifier = Modifier.clickable {
-                                            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
-                                            val all = ic?.getTextBeforeCursor(2000, 0)?.toString() ?: ""
-                                            if (all.isNotBlank()) {
-                                                lastDeletedText = all
-                                                ic?.deleteSurroundingText(all.length, 0)
-                                                performFeedback(isDelete = true)
+
+                                    // 3. قراءة النص (Read Text)
+                                    if (currentSettings.showQuickActionReadText) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "read_text"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        val text = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText
+                                                        if (text.isNotBlank()) {
+                                                            com.example.sound.KeyboardTtsEngine.getInstance(context).speak(text)
+                                                            performFeedback(isSpecial = true)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.VolumeUp, contentDescription = "قراءة", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("قراءة", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
-                                    ) {
-                                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.DeleteSweep, contentDescription = "مسح الكل", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
-                                            Spacer(Modifier.width(2.dp))
-                                            Text("مسح الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                    }
+
+                                    // 4. لصق (Paste)
+                                    if (currentSettings.showQuickActionPaste) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "paste"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                        val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                                                        if (clip.isNotBlank()) sendText(clip)
+                                                        performFeedback(isSpecial = true)
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.ContentPaste, contentDescription = "لصق", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("لصق", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+                                    }
+
+                                    // 5. أيقونة الحافظة السريعة (Clipboard)
+                                    if (currentSettings.showQuickActionClipboard) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "clipboard"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                                        isDecorationBarOpen = false
+                                                        isTranslationBarOpen = false
+                                                        performFeedback(isSpecial = true)
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.ContentPaste, contentDescription = "الحافظة", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("الحافظة", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+                                    }
+
+                                    // 6. نسخ (Copy)
+                                    if (currentSettings.showQuickActionCopy) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "copy"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        val sel = ic?.getSelectedText(0)?.toString()
+                                                        val textToCopy = if (!sel.isNullOrBlank()) sel else (ic?.getTextBeforeCursor(2000, 0)?.toString() ?: "")
+                                                        if (textToCopy.isNotBlank()) {
+                                                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                            cm?.setPrimaryClip(android.content.ClipData.newPlainText("text", textToCopy))
+                                                            resetSuccessToast = "تم نسخ النص ✓"
+                                                            performFeedback(isSpecial = true)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.ContentCopy, contentDescription = "نسخ", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("نسخ", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+                                    }
+
+                                    // 7. قص (Cut)
+                                    if (currentSettings.showQuickActionCut) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "cut"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        val sel = ic?.getSelectedText(0)?.toString()
+                                                        if (!sel.isNullOrBlank()) {
+                                                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                            cm?.setPrimaryClip(android.content.ClipData.newPlainText("text", sel))
+                                                            lastDeletedText = sel
+                                                            ic?.commitText("", 1)
+                                                            resetSuccessToast = "تم قص النص ✓"
+                                                            performFeedback(isDelete = true)
+                                                        } else {
+                                                            val before = ic?.getTextBeforeCursor(2000, 0)?.toString() ?: ""
+                                                            if (before.isNotBlank()) {
+                                                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                                cm?.setPrimaryClip(android.content.ClipData.newPlainText("text", before))
+                                                                lastDeletedText = before
+                                                                ic?.deleteSurroundingText(before.length, 0)
+                                                                resetSuccessToast = "تم قص النص ✓"
+                                                                performFeedback(isDelete = true)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.ContentCut, contentDescription = "قص", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("قص", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+                                    }
+
+                                    // 8. تحديد الكل (Select All)
+                                    if (currentSettings.showQuickActionSelectAll) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(activeTheme.keyBackgroundColor),
+                                            border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                            modifier = Modifier.pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        quickActionItemForOptions = "select_all"
+                                                        performFeedback(isSpecial = true)
+                                                    },
+                                                    onTap = {
+                                                        val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                        ic?.performContextMenuAction(android.R.id.selectAll)
+                                                        performFeedback(isSpecial = true)
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.SelectAll, contentDescription = "تحديد الكل", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Spacer(Modifier.width(2.dp))
+                                                Text("تحديد الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                            }
                                         }
                                     }
                                 }
@@ -3292,11 +3848,11 @@ fun TurboKeyboardView(
                             }
                         }
                     }
-                }
             }
         }
     }
     Spacer(modifier = Modifier.height(4.dp))
+}
 }
 }
 }
@@ -3758,17 +4314,21 @@ fun CustomizeTopEmojisInlinePanel(
     onButtonSizeFactorChange: (Float) -> Unit,
     onResetDefaults: () -> Unit,
     onSaveAndClose: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenEmojiPicker: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     var showSliders by remember { mutableStateOf(false) }
     var activeEmojiCat by remember { mutableIntStateOf(0) }
     val emojiCategories = remember {
         listOf(
-            "😊 فيسات" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
-            "❤️ قلوب" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
-            "🔥 تفاعلات" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
-            "🔣 رموز" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓", "«", "»", "±", "×", "÷"),
-            "🔤 حروف" to listOf("أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي")
+            "فيسات 😊" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
+            "قلوب ❤️" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
+            "تفاعلات 🔥" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
+            "رموز 🔣" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓", "«", "»", "±", "×", "÷"),
+            "حروف 🔤" to listOf("أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي"),
+            "ملصقات 🎨" to listOf("صباح الخير 🌸", "مساء الورد 🌹", "شكراً جزيلاً ✨", "جزاك الله خيراً 🤲", "ما شاء الله 💫", "بالتوفيق يا رب 🤍", "الحمد لله 🤲", "كل عام وأنتم بخير 🎉", "ʕ•́ᴥ•̀ʔ", "(•‿•)", "¯\\_(ツ)_/¯", "(｡♥‿♥｡)")
         )
     }
 
@@ -3776,36 +4336,36 @@ fun CustomizeTopEmojisInlinePanel(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-            shape = RoundedCornerShape(14.dp),
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 8.dp, bottomEnd = 8.dp),
             color = Color(theme.backgroundColor),
-            border = BorderStroke(1.2.dp, Color(theme.accentColor).copy(alpha = 0.45f)),
-            shadowElevation = 4.dp
+            border = BorderStroke(1.2.dp, Color(0xFF0084FF).copy(alpha = 0.35f)),
+            shadowElevation = 6.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Header: Close on Right, Title & Subtitle in Center, Settings/Sliders on Left (RTL)
+                // Header: Close on Right, Title & Subtitle in Center, Tune/Sliders on Left (RTL matching screenshot)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Close button (X)
+                    // Close button (X) in round gray background
                     Box(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color(theme.borderColor).copy(alpha = 0.25f))
+                            .background(Color(0xFFE2E8F0).copy(alpha = 0.7f))
                             .clickable { onDismiss() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إلغاء",
+                            contentDescription = "إغلاق",
                             tint = Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -3819,7 +4379,7 @@ fun CustomizeTopEmojisInlinePanel(
                         Text(
                             text = "تخصيص شريط الابتسامات العلوي",
                             color = Color(theme.keyTextColor),
-                            fontSize = 13.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -3829,98 +4389,68 @@ fun CustomizeTopEmojisInlinePanel(
                         )
                     }
 
-                    // Slider / Settings toggle button (Height & Size)
-                    Surface(
-                        shape = CircleShape,
-                        color = if (showSliders) Color(theme.accentColor).copy(alpha = 0.25f) else Color(theme.borderColor).copy(alpha = 0.2f),
+                    // Tune / Sliders toggle button
+                    Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .clickable { showSliders = !showSliders }
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(if (showSliders) Color(0xFF0084FF).copy(alpha = 0.2f) else Color(0xFFE2E8F0).copy(alpha = 0.7f))
+                            .clickable { showSliders = !showSliders },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Tune,
-                                contentDescription = "الحجم والارتفاع",
-                                tint = if (showSliders) Color(theme.accentColor) else Color(theme.keyTextColor),
-                                modifier = Modifier.size(15.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "الحجم والارتفاع",
+                            tint = if (showSliders) Color(0xFF0084FF) else Color(theme.keyTextColor),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
 
-                // Current emojis chips with '×' to remove
+                // Current emojis chips with '×' on left and emoji on right (Matching Screenshot)
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(theme.toolbarColor).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                        .background(Color(theme.toolbarColor).copy(alpha = 0.6f), RoundedCornerShape(9.dp))
+                        .padding(horizontal = 6.dp, vertical = 5.dp),
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(workingList) { item ->
                         Surface(
-                            shape = RoundedCornerShape(7.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = Color(theme.keyBackgroundColor),
-                            border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.35f)),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1).copy(alpha = 0.8f)),
                             modifier = Modifier.clickable { onRemoveEmoji(item) }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(text = item, color = Color(theme.keyTextColor), fontSize = 14.sp)
-                                Icon(Icons.Default.Close, contentDescription = "حذف", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "حذف",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = item,
+                                    color = Color(theme.keyTextColor),
+                                    fontSize = 14.sp
+                                )
                             }
                         }
                     }
                 }
 
-                // Input Row: Text Field + Clear + Add Button
+                // Input Row: Add Button (Left in RTL) + Real Input Field with Paste & Clear (Right in RTL)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Text Display / Input Field (keyboard keys type directly into here!)
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(theme.keyBackgroundColor),
-                        border = BorderStroke(1.dp, if (inputText.isNotEmpty()) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.5f)),
-                        modifier = Modifier.weight(1f).height(34.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                        Text(
-                            text = inputText.ifEmpty { "اكتب بالكيبورد أو اختر من الرموز أدناه..." },
-                            color = if (inputText.isEmpty()) Color(theme.subtextColor) else Color(theme.keyTextColor),
-                            fontSize = if (inputText.isEmpty()) 10.5.sp else 13.5.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                            style = androidx.compose.ui.text.TextStyle(
-                                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
-                            )
-                        )
-                            if (inputText.isNotEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .clickable { onInputTextChange("") },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Close, contentDescription = "مسح", tint = Color(theme.subtextColor), modifier = Modifier.size(13.dp))
-                                }
-                            }
-                        }
-                    }
-
-                    // Add button
+                    // 1. Add button (Solid primary blue)
                     Button(
                         onClick = {
                             if (inputText.isNotBlank()) {
@@ -3929,11 +4459,100 @@ fun CustomizeTopEmojisInlinePanel(
                             }
                         },
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084FF)),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        modifier = Modifier.height(34.dp)
+                        modifier = Modifier.height(36.dp)
                     ) {
-                        Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                        Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+
+                    // 2. Input Box with Direct Paste & Clear
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(theme.keyBackgroundColor),
+                        border = BorderStroke(1.dp, if (inputText.isNotEmpty()) Color(0xFF0084FF) else Color(theme.borderColor).copy(alpha = 0.6f)),
+                        modifier = Modifier.weight(1f).height(36.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            // Text input area (supports real typing & cursor & system copy/paste)
+                            Box(
+                                modifier = Modifier.weight(1f),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (inputText.isEmpty()) {
+                                    Text(
+                                        text = "اكتب بالكيبورد أو اختر من الرموز أدناه...",
+                                        color = Color(theme.subtextColor).copy(alpha = 0.75f),
+                                        fontSize = 10.5.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                BasicTextField(
+                                    value = inputText,
+                                    onValueChange = onInputTextChange,
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        color = Color(theme.keyTextColor),
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Color(0xFF0084FF)),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            // Paste button (زر لصق من الحافظة مباشرة)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF0084FF).copy(alpha = 0.12f),
+                                border = BorderStroke(0.8.dp, Color(0xFF0084FF).copy(alpha = 0.35f)),
+                                modifier = Modifier.clickable {
+                                    val clip = clipboardManager.getText()?.text?.toString()?.trim()
+                                    if (!clip.isNullOrEmpty()) {
+                                        onInputTextChange(clip)
+                                        onAddEmoji(clip)
+                                        android.widget.Toast.makeText(context, "تم لصق وإضافة: $clip", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, "الحافظة فارغة", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentPaste,
+                                        contentDescription = "لصق",
+                                        tint = Color(0xFF0084FF),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text("لصق", color = Color(0xFF0084FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            // Clear button (X) when input is not empty
+                            if (inputText.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(theme.borderColor).copy(alpha = 0.25f))
+                                        .clickable { onInputTextChange("") },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "مسح", tint = Color(theme.subtextColor), modifier = Modifier.size(12.dp))
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -3945,9 +4564,9 @@ fun CustomizeTopEmojisInlinePanel(
                     emojiCategories.indices.forEach { idx ->
                         val isCatSelected = activeEmojiCat == idx
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (isCatSelected) Color(theme.accentColor) else Color(theme.keyBackgroundColor),
-                            border = BorderStroke(0.8.dp, if (isCatSelected) Color(theme.accentColor) else Color(theme.borderColor).copy(alpha = 0.35f)),
+                            shape = RoundedCornerShape(7.dp),
+                            color = if (isCatSelected) Color(0xFF0084FF) else Color(theme.keyBackgroundColor),
+                            border = BorderStroke(0.8.dp, if (isCatSelected) Color(0xFF0084FF) else Color(theme.borderColor).copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable { activeEmojiCat = idx }
@@ -3958,7 +4577,7 @@ fun CustomizeTopEmojisInlinePanel(
                                 fontSize = 9.5.sp,
                                 fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 3.dp)
+                                modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
                     }
@@ -3969,25 +4588,46 @@ fun CustomizeTopEmojisInlinePanel(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(theme.toolbarColor).copy(alpha = 0.5f), RoundedCornerShape(7.dp))
-                        .padding(vertical = 3.dp, horizontal = 3.dp),
+                        .background(Color(theme.toolbarColor).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(vertical = 4.dp, horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(currentCategoryItems) { item ->
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(7.dp),
                             color = Color(theme.keyBackgroundColor),
-                            border = BorderStroke(0.7.dp, Color(theme.borderColor).copy(alpha = 0.4f)),
+                            border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.45f)),
                             modifier = Modifier.clickable {
                                 onAddEmoji(item)
                             }
                         ) {
                             Text(
                                 text = item,
-                                fontSize = 15.sp,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                fontSize = 15.5.sp,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                             )
+                        }
+                    }
+
+                    // Extra shortcut item at the end of the row: Browse full emojis/stickers
+                    if (onOpenEmojiPicker != null) {
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(7.dp),
+                                color = Color(0xFF0084FF).copy(alpha = 0.15f),
+                                border = BorderStroke(0.8.dp, Color(0xFF0084FF).copy(alpha = 0.4f)),
+                                modifier = Modifier.clickable { onOpenEmojiPicker() }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(13.dp))
+                                    Text("لوحة الإيموجي", color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 }
@@ -4007,26 +4647,26 @@ fun CustomizeTopEmojisInlinePanel(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("ارتفاع الشريط: ${(heightFactor * 100).toInt()}%", color = Color(theme.keyTextColor), fontSize = 10.sp)
-                            Text("حجم الأيقونات: ${(buttonSizeFactor * 100).toInt()}%", color = Color(theme.accentColor), fontSize = 10.sp)
+                            Text("حجم الأيقونات: ${(buttonSizeFactor * 100).toInt()}%", color = Color(0xFF0084FF), fontSize = 10.sp)
                         }
                         Slider(
                             value = heightFactor,
                             onValueChange = onHeightFactorChange,
                             valueRange = 0.7f..1.6f,
-                            colors = SliderDefaults.colors(thumbColor = Color(theme.accentColor), activeTrackColor = Color(theme.accentColor)),
+                            colors = SliderDefaults.colors(thumbColor = Color(0xFF0084FF), activeTrackColor = Color(0xFF0084FF)),
                             modifier = Modifier.fillMaxWidth().height(22.dp)
                         )
                         Slider(
                             value = buttonSizeFactor,
                             onValueChange = onButtonSizeFactorChange,
                             valueRange = 0.7f..1.6f,
-                            colors = SliderDefaults.colors(thumbColor = Color(theme.accentColor), activeTrackColor = Color(theme.accentColor)),
+                            colors = SliderDefaults.colors(thumbColor = Color(0xFF0084FF), activeTrackColor = Color(0xFF0084FF)),
                             modifier = Modifier.fillMaxWidth().height(22.dp)
                         )
                     }
                 }
 
-                // Bottom Actions Row matching Image 1: Reset Defaults on right, Save button on left
+                // Bottom Actions Row matching Screenshot: Save button on left, Restore Default on right
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4041,18 +4681,33 @@ fun CustomizeTopEmojisInlinePanel(
                         Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
                     }
 
+                    if (onOpenEmojiPicker != null) {
+                        TextButton(
+                            onClick = { onOpenEmojiPicker() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(Icons.Outlined.Mood, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(14.dp))
+                                Text("إضافة من الإيموجي", color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
                     Button(
                         onClick = { onSaveAndClose() },
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084FF)),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(34.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                             Text("حفظ الابتسامات", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                         }
                     }
@@ -4061,3 +4716,288 @@ fun CustomizeTopEmojisInlinePanel(
         }
     }
 }
+
+@Composable
+fun QuickActionsManagerInlinePanel(
+    theme: KeyboardTheme,
+    settings: KeyboardSettings,
+    onUpdateSettings: (KeyboardSettings) -> Unit,
+    onDismiss: () -> Unit
+) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = Color(theme.backgroundColor),
+            border = BorderStroke(1.2.dp, Color(0xFFEF4444).copy(alpha = 0.45f)),
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Header: Close Button, Title & Subtitle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE2E8F0).copy(alpha = 0.7f))
+                            .clickable { onDismiss() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "إغلاق",
+                            tint = Color(theme.keyTextColor),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "حذف وإدارة شريط الأدوات فوق الأحرف",
+                            color = Color(theme.keyTextColor),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "مسح الكل، قراءة، لصق، الحافظة، نسخ، قص، تحديد الكل",
+                            color = Color(theme.subtextColor),
+                            fontSize = 9.sp
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                            .clickable {
+                                onUpdateSettings(settings.copy(showQuickActionsRow = !settings.showQuickActionsRow))
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (settings.showQuickActionsRow) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // Prominent Direct Action Button: Delete or Restore Entire Bar
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (settings.showQuickActionsRow) Color(0xFFEF4444).copy(alpha = 0.15f) else Color(0xFF10B981).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, if (settings.showQuickActionsRow) Color(0xFFEF4444).copy(alpha = 0.6f) else Color(0xFF10B981).copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onUpdateSettings(settings.copy(showQuickActionsRow = !settings.showQuickActionsRow))
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (settings.showQuickActionsRow) Icons.Default.Delete else Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = if (settings.showQuickActionsRow) Color(0xFFEF4444) else Color(0xFF10B981),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = if (settings.showQuickActionsRow) "حذف وإخفاء شريط الأدوات بالكامل" else "إظهار شريط الأدوات فوق الأحرف",
+                                    color = if (settings.showQuickActionsRow) Color(0xFFEF4444) else Color(0xFF10B981),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp
+                                )
+                                Text(
+                                    text = if (settings.showQuickActionsRow) "اضغط هنا لإزالة الشريط بالكامل فوراً" else "الشريط مخفي حالياً، اضغط لتفعيله",
+                                    color = Color(theme.subtextColor),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = settings.showQuickActionsRow,
+                            onCheckedChange = { onUpdateSettings(settings.copy(showQuickActionsRow = it)) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF10B981), checkedTrackColor = Color(0xFF10B981).copy(alpha = 0.5f)),
+                            modifier = Modifier.scale(0.75f)
+                        )
+                    }
+                }
+
+                // Grid / List of Individual Action Buttons for Deletion / Toggle
+                val items = listOf(
+                    Triple("مسح الكل", Icons.Default.DeleteSweep, settings.showQuickActionClearAll) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionClearAll = enabled))
+                    },
+                    Triple("قراءة النص", Icons.Default.VolumeUp, settings.showQuickActionReadText) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionReadText = enabled))
+                    },
+                    Triple("لصق", Icons.Default.ContentPaste, settings.showQuickActionPaste) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionPaste = enabled))
+                    },
+                    Triple("الحافظة", Icons.Default.ContentPaste, settings.showQuickActionClipboard) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionClipboard = enabled))
+                    },
+                    Triple("نسخ", Icons.Default.ContentCopy, settings.showQuickActionCopy) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionCopy = enabled))
+                    },
+                    Triple("قص", Icons.Default.ContentCut, settings.showQuickActionCut) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionCut = enabled))
+                    },
+                    Triple("تحديد الكل", Icons.Default.SelectAll, settings.showQuickActionSelectAll) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionSelectAll = enabled))
+                    },
+                    Triple("استعادة بعد الحذف", Icons.Default.Undo, settings.showQuickActionUndoRedo) to { enabled: Boolean ->
+                        onUpdateSettings(settings.copy(showQuickActionUndoRedo = enabled))
+                    }
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 140.dp)
+                        .background(Color(theme.toolbarColor).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    items(items) { (info, toggle) ->
+                        val (name, icon, isEnabled) = info
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(theme.keyBackgroundColor),
+                            border = BorderStroke(0.7.dp, if (isEnabled) Color(theme.borderColor).copy(alpha = 0.5f) else Color(0xFFEF4444).copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isEnabled) Color(theme.accentColor) else Color.Gray,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = name,
+                                        color = if (isEnabled) Color(theme.keyTextColor) else Color.Gray,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isEnabled) FontWeight.Medium else FontWeight.Normal
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (isEnabled) {
+                                        // Quick Delete Button (Red Trash Icon)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                                                .clickable { toggle(false) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "حذف من الشريط",
+                                                tint = Color(0xFFEF4444),
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                        }
+                                    }
+                                    Switch(
+                                        checked = isEnabled,
+                                        onCheckedChange = { toggle(it) },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color(0xFF0084FF),
+                                            checkedTrackColor = Color(0xFF0084FF).copy(alpha = 0.4f)
+                                        ),
+                                        modifier = Modifier.scale(0.65f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Bottom row: Restore defaults & Close
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            onUpdateSettings(
+                                settings.copy(
+                                    showQuickActionsRow = true,
+                                    showQuickActionClearAll = true,
+                                    showQuickActionReadText = true,
+                                    showQuickActionPaste = true,
+                                    showQuickActionCopy = true,
+                                    showQuickActionCut = true,
+                                    showQuickActionSelectAll = true,
+                                    showQuickActionUndoRedo = true,
+                                    showQuickActionClipboard = true
+                                )
+                            )
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = { onDismiss() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084FF)),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Text("تم وحفظ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

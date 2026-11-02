@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -292,6 +293,16 @@ fun SettingsScreen(
                 )
             }
 
+            // 10.2 إدارة وحذف شريط الأدوات فوق الأحرف
+            item {
+                TransboardSettingsRow(
+                    title = "حذف وإدارة شريط الأدوات فوق الأحرف (مسح الكل، قراءة، لصق، الحافظة)",
+                    subtitle = "حذف أو إخفاء شريط الأدوات بالكامل أو إزالة وتخصيص أزرار مسح الكل وقراءة ولصق والحافظة وغيرها",
+                    icon = Icons.Outlined.FormatListBulleted,
+                    onClick = { activeDialog = "MANAGE_KEYBOARD_MENUS" }
+                )
+            }
+
             // 11. الصوت والإهتزاز (Screenshot 2 & 12)
             item {
                 TransboardSettingsRow(
@@ -339,6 +350,16 @@ fun SettingsScreen(
                     subtitle = "النسخ الإحتياطي للحافظة والإختصارات واستعادتها",
                     icon = Icons.Outlined.CloudUpload,
                     onClick = { activeDialog = "BACKUP" }
+                )
+            }
+
+            // 13.1 استعادة الإعدادات الافتراضية
+            item {
+                TransboardSettingsRow(
+                    title = "استعادة الإعدادات الافتراضية",
+                    subtitle = "إعادة جميع خيارات وثيمات وتخطيط وأزرار الكيبورد إلى الوضع الافتراضي الأصلي",
+                    icon = Icons.Outlined.RestartAlt,
+                    onClick = { activeDialog = "RESET_DEFAULTS_CONFIRM" }
                 )
             }
 
@@ -3385,6 +3406,385 @@ fun SettingsScreen(
             },
             containerColor = Color(0xFF141A28)
         )
+    }
+
+    if (activeDialog == "RESET_DEFAULTS_CONFIRM") {
+        AlertDialog(
+            onDismissRequest = { activeDialog = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.RestartAlt,
+                    contentDescription = null,
+                    tint = Color(0xFF00E5FF),
+                    modifier = Modifier.size(38.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "استعادة إعدادات الكيبورد الأصلية",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Text(
+                    text = "هل تريد استعادة إعدادات الكيبورد الأصلية؟\n\nسيتم إعادة الثيم والخلفية والألوان وحجم الأزرار وارتفاع الكيبورد واللغة والتخطيط وشريط الأدوات وإعدادات التصحيح التلقائي وجميع خيارات التخصيص إلى الوضع الافتراضي كما كان عند التثبيت.\n\n✓ لن يتم حذف نصوص الحافظة المحفوظة أو كلماتك الشخصية أو اختصاراتك دون إذنك.",
+                    color = Color(0xFFCAD5E2),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val (newSettings, _) = prefs.resetToFactoryDefaults()
+                        updateSettings(newSettings)
+                        activeDialog = null
+                        Toast.makeText(context, "تمت استعادة الإعدادات الأصلية بنجاح ✓", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("استعادة", color = Color(0xFF090D15), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { activeDialog = null },
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Color(0xFF334155))
+                ) {
+                    Text("إلغاء", color = Color(0xFF94A3B8))
+                }
+            },
+            containerColor = Color(0xFF141A28)
+        )
+    }
+
+    if (activeDialog == "MANAGE_KEYBOARD_MENUS") {
+        AlertDialog(
+            onDismissRequest = { activeDialog = null },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Outlined.FormatListBulleted, contentDescription = null, tint = Color(0xFF00E5FF))
+                    Text("إدارة قوائم وأزرار الكيبورد", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                ) {
+                    Text(
+                        text = "تحكم في إظهار وإخفاء قوائم وأزرار الكيبورد بشكل مستقل. يتم حفظ خياراتك تلقائياً وبشكل فوري دون فراغات.",
+                        color = Color(0xFF8E9BAE),
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Live Preview of the Quick Actions Row
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF0D121D),
+                        border = BorderStroke(1.dp, Color(0xFF1E283A)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                text = "معاينة حية لشريط الإجراءات السريعة:",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (settings.showQuickActionUndoRedo) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF10B981).copy(alpha = 0.2f), border = BorderStroke(0.8.dp, Color(0xFF10B981))) {
+                                        Text("استعادة", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionPaste) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("لصق", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionCopy) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("نسخ", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionCut) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("قص", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionSelectAll) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("تحديد الكل", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionReadText) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("قراءة", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionClearAll) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("مسح الكل", color = Color(0xFFEF4444), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                                if (settings.showQuickActionClipboard) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
+                                        Text("الحافظة", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Presets buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                updateSettings(settings.copy(
+                                    showQuickActionsRow = true,
+                                    showQuickActionClearAll = true,
+                                    showQuickActionReadText = true,
+                                    showQuickActionPaste = true,
+                                    showQuickActionCopy = true,
+                                    showQuickActionCut = true,
+                                    showQuickActionSelectAll = true,
+                                    showQuickActionUndoRedo = true,
+                                    showQuickActionClipboard = true
+                                ))
+                            },
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E283A)),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("تفعيل الكل", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                updateSettings(settings.copy(
+                                    showQuickActionClearAll = false,
+                                    showQuickActionReadText = false,
+                                    showQuickActionPaste = false,
+                                    showQuickActionCopy = false,
+                                    showQuickActionCut = false,
+                                    showQuickActionSelectAll = false,
+                                    showQuickActionUndoRedo = false,
+                                    showQuickActionClipboard = false
+                                ))
+                            },
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E283A)),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("تعطيل الكل", color = Color(0xFFEF4444), fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                updateSettings(settings.copy(
+                                    showQuickActionsRow = true,
+                                    showQuickActionClearAll = true,
+                                    showQuickActionReadText = true,
+                                    showQuickActionPaste = true,
+                                    showQuickActionCopy = true,
+                                    showQuickActionCut = true,
+                                    showQuickActionSelectAll = true,
+                                    showQuickActionUndoRedo = true,
+                                    showQuickActionClipboard = true
+                                ))
+                            },
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E283A)),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("الافتراضي", color = Color.White, fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        item {
+                            MenuToggleItem(
+                                title = "شريط الإجراءات السريعة بالكامل",
+                                subtitle = "إظهار أو إخفاء سطر القوائم السريعة فوق الأزرار",
+                                icon = Icons.Outlined.ViewStream,
+                                isChecked = settings.showQuickActionsRow,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionsRow = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر مسح الكل",
+                                subtitle = "مسح جميع النصوص المكتوبة دفعة واحدة بنقرة",
+                                icon = Icons.Default.DeleteSweep,
+                                isChecked = settings.showQuickActionClearAll,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionClearAll = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر قراءة النص (الناطق الصوتي)",
+                                subtitle = "قراءة النص المكتوب بصوت الجوال عالي الجودة",
+                                icon = Icons.Default.VolumeUp,
+                                isChecked = settings.showQuickActionReadText,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionReadText = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر لصق",
+                                subtitle = "لصق النص الأخير من الحافظة مباشرة",
+                                icon = Icons.Default.ContentPaste,
+                                isChecked = settings.showQuickActionPaste,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionPaste = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر نسخ",
+                                subtitle = "نسخ النص المحدد أو كل النص بنقرة واحدة",
+                                icon = Icons.Outlined.ContentCopy,
+                                isChecked = settings.showQuickActionCopy,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionCopy = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر قص",
+                                subtitle = "قص النص إلى الحافظة وحذفه من حقل الإدخال",
+                                icon = Icons.Outlined.ContentCut,
+                                isChecked = settings.showQuickActionCut,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionCut = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر تحديد الكل",
+                                subtitle = "تحديد كافة النصوص في حقل الإدخال بنقرة واحدة",
+                                icon = Icons.Outlined.SelectAll,
+                                isChecked = settings.showQuickActionSelectAll,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionSelectAll = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "زر استعادة بعد الحذف (تراجع)",
+                                subtitle = "إظهار زر التراجع والاستعادة فوراً عند مسح أي نص",
+                                icon = Icons.Default.Undo,
+                                isChecked = settings.showQuickActionUndoRedo,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionUndoRedo = it)) }
+                            )
+                        }
+                        item {
+                            MenuToggleItem(
+                                title = "أيقونة الحافظة السريعة",
+                                subtitle = "زر سريع في الشريط لفتح حافظة النصوص ومحتوياتها",
+                                icon = Icons.Outlined.ContentPasteGo,
+                                isChecked = settings.showQuickActionClipboard,
+                                onCheckedChange = { updateSettings(settings.copy(showQuickActionClipboard = it)) }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { activeDialog = null }) {
+                    Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = Color(0xFF141A28)
+        )
+    }
+}
+
+@Composable
+private fun MenuToggleItem(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isChecked) Color(0xFF1E283A) else Color(0xFF101520),
+        border = BorderStroke(1.dp, if (isChecked) Color(0xFF00E5FF).copy(alpha = 0.35f) else Color(0xFF26334A).copy(alpha = 0.3f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!isChecked) }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isChecked) Color(0xFF00E5FF) else Color(0xFF8E9BAE),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = title,
+                        color = if (isChecked) Color.White else Color(0xFF8E9BAE),
+                        fontSize = 12.sp,
+                        fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
+                    )
+                    Text(
+                        text = subtitle,
+                        color = Color(0xFF64748B),
+                        fontSize = 9.5.sp
+                    )
+                }
+            }
+
+            Switch(
+                checked = isChecked,
+                onCheckedChange = onCheckedChange
+            )
+        }
     }
 }
 

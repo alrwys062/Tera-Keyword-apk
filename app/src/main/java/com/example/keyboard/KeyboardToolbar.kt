@@ -108,7 +108,10 @@ fun KeyboardToolbar(
     onCustomizeToolbar: () -> Unit = {},
     onSwipeBack: (() -> Unit)? = null,
     onMyThemeClick: (() -> Unit)? = null,
-    onMyThemeLongClick: (() -> Unit)? = null
+    onMyThemeLongClick: (() -> Unit)? = null,
+    onResetSettingsClick: (() -> Unit)? = null,
+    isQuickActionsEnabled: Boolean = false,
+    onToggleQuickActions: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
@@ -352,6 +355,19 @@ fun KeyboardToolbar(
             )
         }
 
+        // 11. أدوات الأحرف فوق الكيبورد (Quick Actions)
+        if ("quick_actions" in toolsToShow) {
+            ToolbarFixedItem(
+                icon = Icons.Outlined.FormatListBulleted,
+                label = "أدوات الأحرف",
+                isActive = isQuickActionsEnabled,
+                theme = theme,
+                onClick = {
+                    onToggleQuickActions?.invoke()
+                }
+            )
+        }
+
         // 12. إعدادات (Settings)
         if ("settings" in toolsToShow) {
             val isSettingsActive = activeSubView == KeyboardSubView.SETTINGS
@@ -362,6 +378,19 @@ fun KeyboardToolbar(
                 theme = theme,
                 onClick = {
                     onSubViewSelected(if (isSettingsActive) KeyboardSubView.NONE else KeyboardSubView.SETTINGS)
+                }
+            )
+        }
+
+        // 12.1 استعادة الإعدادات الأصلية (Reset Settings)
+        if ("reset_settings" in toolsToShow) {
+            ToolbarFixedItem(
+                icon = Icons.Outlined.RestartAlt,
+                label = "استعادة",
+                isActive = false,
+                theme = theme,
+                onClick = {
+                    onResetSettingsClick?.invoke()
                 }
             )
         }

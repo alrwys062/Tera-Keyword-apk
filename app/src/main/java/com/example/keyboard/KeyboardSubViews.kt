@@ -1087,7 +1087,9 @@ fun EmojiPickerView(
     backspaceScale: Float = 1.0f,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
+    isCustomizeMode: Boolean = false,
     onEmojiSelected: (String) -> Unit,
+    onEmojiLongPress: ((String) -> Unit)? = null,
     onSpacePressed: () -> Unit = {},
     onDeletePressed: () -> Unit = {},
     onEnterPressed: () -> Unit = {},
@@ -1288,6 +1290,38 @@ fun EmojiPickerView(
         Spacer(modifier = Modifier.height(3.dp))
 
         // Categories Tab: 🕒 Recent first, then normal categories
+        if (isCustomizeMode) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF0084FF).copy(alpha = 0.14f),
+                border = BorderStroke(1.dp, Color(0xFF0084FF).copy(alpha = 0.45f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircleOutline,
+                        contentDescription = null,
+                        tint = Color(0xFF0084FF),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = "وضع التخصيص نشط: اضغط أي إيموجي لإضافته مباشرة للشريط العلوي ✨",
+                        color = Color(0xFF0084FF),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -1367,10 +1401,17 @@ fun EmojiPickerView(
                             .height(itemWidth.coerceIn(34.dp, 44.dp))
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .clickable {
-                                recentEmojiManager.addEmoji(emoji)
-                                recentEmojisList = recentEmojiManager.getRecentEmojis()
-                                onEmojiSelected(emoji)
+                            .pointerInput(emoji) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        onEmojiLongPress?.invoke(emoji)
+                                    },
+                                    onTap = {
+                                        recentEmojiManager.addEmoji(emoji)
+                                        recentEmojisList = recentEmojiManager.getRecentEmojis()
+                                        onEmojiSelected(emoji)
+                                    }
+                                )
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -3890,6 +3931,8 @@ val allKeyboardToolbarTools = listOf(
     ToolbarToolDefinition("ai", "AI Keyboard ذكاء اصطناعي", Icons.Outlined.AutoFixHigh, "صحّح وأعد الصياغة وترجم واكتب بالذكاء"),
     ToolbarToolDefinition("photos", "صور وملصقات", Icons.Outlined.PhotoLibrary, "ملصقات وستيكرات وصور مجهزة"),
     ToolbarToolDefinition("gif", "Kaomoji و GIF", Icons.Outlined.Gif, "فيسات يابانية وصور متحركة سريعة"),
+    ToolbarToolDefinition("quick_actions", "أدوات الأحرف (مسح، قراءة، لصق)", Icons.Outlined.FormatListBulleted, "إظهار أو حذف شريط الأدوات فوق الأحرف مباشرة"),
+    ToolbarToolDefinition("reset_settings", "استعادة الإعدادات الأصلية", Icons.Outlined.RestartAlt, "استعادة الإعدادات الافتراضية للكيبورد بضغطة واحدة"),
     ToolbarToolDefinition("settings", "إعدادات التطبيق", Icons.Outlined.Settings, "الوصول السريع لكافة تخصيصات الكيبورد")
 )
 

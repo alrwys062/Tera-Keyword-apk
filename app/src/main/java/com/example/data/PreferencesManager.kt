@@ -35,7 +35,10 @@ class PreferencesManager(private val context: Context) {
             "isFloatingKeyboard", "isSplitKeyboard",
             "enterKeyOnLeft", "isNightModeEnabled", "forceEnglishNumbers", "autoTranslateOnCopy",
             "toolbarEnabled", "replaceNumberRowWithEmojis", "samsungStyleHints",
-            "hideEmojiAbcKey", "calculatorNumpadMode"
+            "hideEmojiAbcKey", "calculatorNumpadMode", "showQuickActionsRow", "autoCheckProofreading",
+            "showQuickActionClearAll", "showQuickActionReadText", "showQuickActionPaste",
+            "showQuickActionCopy", "showQuickActionCut", "showQuickActionSelectAll",
+            "showQuickActionUndoRedo", "showQuickActionClipboard"
         )
         val STRING_KEYS = setOf(
             "soundProfile", "keyPressTimingStyle", "typingSpeedMode", "currentThemeId",
@@ -275,6 +278,16 @@ class PreferencesManager(private val context: Context) {
                 hideEmojiAbcKey = getBooleanSafe("hideEmojiAbcKey", false),
                 calculatorNumpadMode = getBooleanSafe("calculatorNumpadMode", false),
                 myThemeId = getStringSafe("myThemeId", "crystal_light"),
+                showQuickActionsRow = getBooleanSafe("showQuickActionsRow", true),
+                autoCheckProofreading = getBooleanSafe("autoCheckProofreading", false),
+                showQuickActionClearAll = getBooleanSafe("showQuickActionClearAll", true),
+                showQuickActionReadText = getBooleanSafe("showQuickActionReadText", true),
+                showQuickActionPaste = getBooleanSafe("showQuickActionPaste", true),
+                showQuickActionCopy = getBooleanSafe("showQuickActionCopy", true),
+                showQuickActionCut = getBooleanSafe("showQuickActionCut", true),
+                showQuickActionSelectAll = getBooleanSafe("showQuickActionSelectAll", true),
+                showQuickActionUndoRedo = getBooleanSafe("showQuickActionUndoRedo", true),
+                showQuickActionClipboard = getBooleanSafe("showQuickActionClipboard", true),
                 visibleToolbarTools = getVisibleToolbarTools()
             )
         } catch (e: Exception) {
@@ -287,7 +300,7 @@ class PreferencesManager(private val context: Context) {
     fun getVisibleToolbarTools(): List<String> {
         val raw = getStringSafe("visibleToolbarTools", "")
         return if (raw.isBlank()) {
-            listOf("stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
+            listOf("stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "tts", "pass", "reset_settings", "settings")
         } else {
             raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         }
@@ -295,6 +308,30 @@ class PreferencesManager(private val context: Context) {
 
     fun saveVisibleToolbarTools(tools: List<String>) {
         prefs.edit().putString("visibleToolbarTools", tools.joinToString(",")).apply()
+    }
+
+    fun resetToFactoryDefaults(): Pair<KeyboardSettings, KeyboardTheme> {
+        val defaultSettings = KeyboardSettings()
+        cachedSettings = defaultSettings
+        saveSettings(defaultSettings)
+        saveVisibleToolbarTools(defaultSettings.visibleToolbarTools)
+
+        val defaultTheme = ThemePresets.allPresets.find { it.id == "crystal_light" } ?: ThemePresets.allPresets.first()
+        setCurrentTheme(defaultTheme.id)
+        cachedActiveTheme = defaultTheme
+
+        prefs.edit()
+            .putString("currentThemeId", defaultTheme.id)
+            .putString("myThemeId", defaultTheme.id)
+            .putString("customArabicRow1", "")
+            .putString("customArabicRow2", "")
+            .putString("customArabicRow3", "")
+            .putString("activeDecorationStyle", "none")
+            .putInt("arabicColumnsCount", 11)
+            .putString("keyboardLayoutStyle", "11_columns")
+            .apply()
+
+        return Pair(defaultSettings, defaultTheme)
     }
 
     fun saveSettings(settings: KeyboardSettings) {
@@ -363,6 +400,16 @@ class PreferencesManager(private val context: Context) {
             .putBoolean("hideEmojiAbcKey", settings.hideEmojiAbcKey)
             .putBoolean("calculatorNumpadMode", settings.calculatorNumpadMode)
             .putString("myThemeId", settings.myThemeId)
+            .putBoolean("showQuickActionsRow", settings.showQuickActionsRow)
+            .putBoolean("autoCheckProofreading", settings.autoCheckProofreading)
+            .putBoolean("showQuickActionClearAll", settings.showQuickActionClearAll)
+            .putBoolean("showQuickActionReadText", settings.showQuickActionReadText)
+            .putBoolean("showQuickActionPaste", settings.showQuickActionPaste)
+            .putBoolean("showQuickActionCopy", settings.showQuickActionCopy)
+            .putBoolean("showQuickActionCut", settings.showQuickActionCut)
+            .putBoolean("showQuickActionSelectAll", settings.showQuickActionSelectAll)
+            .putBoolean("showQuickActionUndoRedo", settings.showQuickActionUndoRedo)
+            .putBoolean("showQuickActionClipboard", settings.showQuickActionClipboard)
             .apply()
     }
 

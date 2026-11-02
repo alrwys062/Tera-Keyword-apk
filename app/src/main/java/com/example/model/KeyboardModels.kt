@@ -111,8 +111,16 @@ data class KeyboardSettings(
     val landscapeCompactMode: Boolean = true, // الكيبورد الأفقي أصغر مع تخطيط جديد
     val recentEmojisAboveSymbols: Boolean = true, // الإيموجي الأخيرة فوق الرموز
     val autoCheckProofreading: Boolean = false, // تدقيق تلقائي
+    val showQuickActionClearAll: Boolean = true, // مسح الكل
+    val showQuickActionReadText: Boolean = true, // قراءة النص
+    val showQuickActionPaste: Boolean = true, // لصق
+    val showQuickActionCopy: Boolean = true, // نسخ
+    val showQuickActionCut: Boolean = true, // قص
+    val showQuickActionSelectAll: Boolean = true, // تحديد الكل
+    val showQuickActionUndoRedo: Boolean = true, // تراجع وإعادة
+    val showQuickActionClipboard: Boolean = true, // أيقونة الحافظة
     val visibleToolbarTools: List<String> = listOf(
-        "stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "tts", "pass", "settings"
+        "stickers", "translate", "clipboard", "english_numbers", "decoration", "phrases", "calculator", "emoji", "voice", "ai", "photos", "gif", "tts", "pass", "reset_settings", "settings"
     )
 )
 

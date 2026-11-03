@@ -62,6 +62,8 @@ fun SettingsScreen(
     var settings by remember { mutableStateOf(prefs.getSettings()) }
     var searchQuery by remember { mutableStateOf("") }
     var showLanguagesScreen by remember { mutableStateOf(false) }
+    var appLanguageCode by remember { mutableStateOf(com.example.util.LocaleHelper.getAppLanguageCode(context)) }
+    var appLanguageSearchQuery by remember { mutableStateOf("") }
 
     if (showLanguagesScreen) {
         InputLanguagesScreen(
@@ -163,11 +165,25 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
+            // 0. لغة التطبيق والإعدادات (App UI Language)
+            item {
+                val currentLangName = remember(appLanguageCode) {
+                    val found = com.example.util.LocaleHelper.supportedLanguages.find { it.code == appLanguageCode }
+                    if (found != null) "${found.flag} ${found.nameNative} (${found.nameAr})" else "🌐 تلقائي (لغة الجوال)"
+                }
+                TransboardSettingsRow(
+                    title = "لغة التطبيق والإعدادات / App Language",
+                    subtitle = "اللغة الحالية: $currentLangName - اضغط لتغيير لغة التطبيق لجميع لغات العالم أو كشف لغة الجوال تلقائياً",
+                    icon = Icons.Outlined.Public,
+                    onClick = { activeDialog = "APP_UI_LANGUAGE" }
+                )
+            }
+
             // 1. لغات الإدخال (Screenshots 1, 3, SettingsInputKeyboards)
             item {
                 TransboardSettingsRow(
-                    title = "لغات الإدخال",
-                    subtitle = "تحميل وتطبيق جميع لغات العالم (مرر على المسافة للتبديل)",
+                    title = "لغات الإدخال والكتابة",
+                    subtitle = "تحميل وتطبيق جميع لغات العالم (البرتغالية ABNT2، الإنجليزية، الفرنسية...) مرر على المسافة للتبديل",
                     icon = Icons.Outlined.Language,
                     onClick = { showLanguagesScreen = true }
                 )
@@ -425,6 +441,130 @@ fun SettingsScreen(
                 }
             },
             containerColor = Color(0xFF141A28)
+        )
+    }
+
+    // 0. APP UI LANGUAGE DIALOG (All World Languages + Auto System Detection)
+    if (activeDialog == "APP_UI_LANGUAGE") {
+        AlertDialog(
+            onDismissRequest = { activeDialog = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.Public, contentDescription = null, tint = Color(0xFF00E5FF))
+                    Text("لغة التطبيق والإعدادات", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(380.dp)
+                ) {
+                    Text(
+                        text = "اختر لغة واجهة التطبيق والإعدادات. يمكنك اختيار الكشف التلقائي لمطابقة لغة هاتفك، أو اختيار أي لغة من لغات العالم:",
+                        color = Color(0xFF8E9BAE),
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = appLanguageSearchQuery,
+                        onValueChange = { appLanguageSearchQuery = it },
+                        placeholder = { Text("ابحث عن أي لغة بالعالم...", fontSize = 11.sp, color = Color(0xFF8E9BAE)) },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00E5FF),
+                            unfocusedBorderColor = Color(0xFF28364F),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF8E9BAE), modifier = Modifier.size(16.dp))
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val filteredLangs = remember(appLanguageSearchQuery) {
+                        if (appLanguageSearchQuery.isBlank()) com.example.util.LocaleHelper.supportedLanguages
+                        else {
+                            val q = appLanguageSearchQuery.trim()
+                            com.example.util.LocaleHelper.supportedLanguages.filter {
+                                it.nameNative.contains(q, ignoreCase = true) ||
+                                it.nameAr.contains(q, ignoreCase = true) ||
+                                it.nameEn.contains(q, ignoreCase = true) ||
+                                it.code.contains(q, ignoreCase = true)
+                            }
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(filteredLangs, key = { it.code }) { lang ->
+                            val isSelected = lang.code == appLanguageCode
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f) else Color(0xFF141A28),
+                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E5FF) else Color(0xFF1E283A)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        appLanguageCode = lang.code
+                                        com.example.util.LocaleHelper.setAppLanguageCode(context, lang.code)
+                                        com.example.util.LocaleHelper.applyLocale(context)
+                                        Toast.makeText(context, "تم ضبط لغة التطبيق: ${lang.nameNative} بنجاح!", Toast.LENGTH_SHORT).show()
+                                        activeDialog = null
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(lang.flag, fontSize = 20.sp)
+                                        Column {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(lang.nameNative, color = Color.White, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                                                if (lang.code == "auto") {
+                                                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF00E5FF).copy(alpha = 0.2f)) {
+                                                        Text("موصى به", color = Color(0xFF00E5FF), fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                                    }
+                                                }
+                                            }
+                                            Text(
+                                                text = if (lang.code == "auto") "يكتشف لغة الجوال تلقائياً بدون تدخل" else "${lang.nameAr} (${lang.nameEn})",
+                                                color = Color(0xFF8E9BAE),
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                    if (isSelected) {
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { activeDialog = null }) {
+                    Text("إغلاق", color = Color(0xFF00E5FF))
+                }
+            },
+            containerColor = Color(0xFF0D121D)
         )
     }
 

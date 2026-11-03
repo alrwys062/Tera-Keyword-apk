@@ -318,6 +318,11 @@ fun TurboKeyboardView(
     var customizerInputText by remember { mutableStateOf("") }
     var isManageQuickActionsOpen by remember { mutableStateOf(false) }
     var quickActionItemForOptions by remember { mutableStateOf<String?>(null) }
+    var lastSwipeDownTime by remember { mutableStateOf(0L) }
+    var lastSwipeUpTime by remember { mutableStateOf(0L) }
+    var pendingSwipeDownJob by remember { mutableStateOf<Job?>(null) }
+    var pendingSwipeUpJob by remember { mutableStateOf<Job?>(null) }
+    var spacePressCountForProactivePrediction by remember { mutableIntStateOf(0) }
 
     // Search queries for sub-drawers (lifted up for sendText redirection)
     var emojiSearchQuery by remember { mutableStateOf("") }
@@ -428,34 +433,64 @@ fun TurboKeyboardView(
         )
     }
 
-    LaunchedEffect(currentComposingText, currentWorldLang, userWords, shortcuts, currentSettings.suggestionsEnabled) {
+    LaunchedEffect(currentComposingText, currentWorldLang, userWords, shortcuts, currentSettings.suggestionsEnabled, spacePressCountForProactivePrediction) {
         if (!currentSettings.suggestionsEnabled) {
             suggestions = emptyList()
             return@LaunchedEffect
         }
         val computed = withContext(Dispatchers.Default) {
             val lastWord = currentComposingText.trim().split(" ").lastOrNull() ?: ""
+            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+            val textBefore = try {
+                ic?.getTextBeforeCursor(80, 0)?.toString() ?: ""
+            } catch (_: Exception) { "" }
+            val tokens = textBefore.trimEnd().split("\\s+".toRegex()).filter { it.isNotBlank() }
+
             if (lastWord.isNotBlank()) {
                 val shortcutMatch = shortcuts.find { it.trigger.equals(lastWord, ignoreCase = true) }
-                val baseList = PredictionEngine.getPredictionsWithCorrection(lastWord, isArabic, userWords)
+                val prevToken = if (tokens.size >= 2) tokens[tokens.size - 2] else null
+                val baseList = PredictionEngine.getPredictionsWithCorrection(
+                    prefix = lastWord,
+                    isArabic = isArabic,
+                    userWords = userWords,
+                    prevWord = prevToken,
+                    userDict = userDict
+                )
                 if (shortcutMatch != null) {
                     listOf(PredictionEngine.PredictionResult(shortcutMatch.expansion)) + baseList.take(2)
                 } else {
                     baseList
                 }
             } else {
-                if (isArabic) {
-                    listOf(
-                        PredictionEngine.PredictionResult("مرحبا"),
-                        PredictionEngine.PredictionResult("السلام عليكم"),
-                        PredictionEngine.PredictionResult("صباح الخير")
+                // Proactive Next-Word Prediction: Immediately when Spacebar is pressed, predict next word based on preceding word!
+                val prevToken = tokens.lastOrNull() ?: ""
+                if (prevToken.isNotBlank()) {
+                    PredictionEngine.getNextWordPredictions(
+                        prevWord = prevToken,
+                        isArabic = isArabic,
+                        userDict = userDict,
+                        langCode = currentLangCode
                     )
                 } else {
-                    listOf(
-                        PredictionEngine.PredictionResult("Hello"),
-                        PredictionEngine.PredictionResult("Thanks"),
-                        PredictionEngine.PredictionResult("Good")
-                    )
+                    if (isArabic) {
+                        listOf(
+                            PredictionEngine.PredictionResult("السلام عليكم"),
+                            PredictionEngine.PredictionResult("مرحبا"),
+                            PredictionEngine.PredictionResult("صباح الخير")
+                        )
+                    } else if (currentLangCode.startsWith("pt")) {
+                        listOf(
+                            PredictionEngine.PredictionResult("olá"),
+                            PredictionEngine.PredictionResult("bom dia"),
+                            PredictionEngine.PredictionResult("obrigado")
+                        )
+                    } else {
+                        listOf(
+                            PredictionEngine.PredictionResult("Hello"),
+                            PredictionEngine.PredictionResult("Thanks"),
+                            PredictionEngine.PredictionResult("Good")
+                        )
+                    }
                 }
             }
         }
@@ -1629,7 +1664,12 @@ fun TurboKeyboardView(
                     } else {
                         sendText("$word ")
                     }
+                    val textBf = try { ic?.getTextBeforeCursor(60, 0)?.toString() ?: "" } catch (_: Exception) { "" }
+                    val prevTokens = textBf.trimEnd().split("\\s+".toRegex()).filter { it.isNotBlank() }
+                    val previousToken = if (prevTokens.size >= 2) prevTokens[prevTokens.size - 2] else null
+                    userDict.recordWord(word, previousToken)
                     currentComposingText = ""
+                    spacePressCountForProactivePrediction++
                 },
                 onAddWordToDictionary = { word ->
                     userDict.addWord(word)
@@ -3312,6 +3352,7 @@ fun TurboKeyboardView(
                                                         if (!isDragGesture && !hasSwitchedLanguage && !hasSwitchedNumberRow && !isTrackpadMode) {
                                                             performFeedback(isSpace = true)
                                                             sendText(" ")
+                                                            spacePressCountForProactivePrediction++
                                                         }
                                                         break
                                                     }
@@ -3329,15 +3370,66 @@ fun TurboKeyboardView(
                                                             isDragGesture = true
                                                         }
 
-                                                        // 1. Vertical Swipe: Swipe UP (deltaY < 0) shows number row, Swipe DOWN (deltaY > 0) hides number row
+                                                        // 1. Vertical Swipe on Spacebar:
+                                                        // - Swipe DOWN: 1 swipe -> hide number row, 2 swipes (within 280-320ms) -> hide emoji row
+                                                        // - Swipe UP: 1 swipe -> show emoji row, 2 swipes (within 280-320ms) -> show number row
                                                         if (!hasSwitchedNumberRow && !hasSwitchedLanguage && kotlin.math.abs(totalDragY) >= swipeThresholdY && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.15f) {
                                                             hasSwitchedNumberRow = true
                                                             change.consume()
-                                                            performFeedback(isSpecial = true)
-                                                            val shouldEnable = totalDragY < 0
-                                                            val updated = currentSettings.copy(numberRowEnabled = shouldEnable)
-                                                            currentSettings = updated
-                                                            prefs.saveSettings(updated)
+                                                            val now = System.currentTimeMillis()
+                                                            if (totalDragY > 0) {
+                                                                // Swipe DOWN
+                                                                if (now - lastSwipeDownTime <= 320L && pendingSwipeDownJob?.isActive == true) {
+                                                                    // Double Swipe Down -> Hide Emoji Row
+                                                                    pendingSwipeDownJob?.cancel()
+                                                                    pendingSwipeDownJob = null
+                                                                    lastSwipeDownTime = 0L
+                                                                    val updated = currentSettings.copy(topQuickEmojiRowEnabled = false)
+                                                                    currentSettings = updated
+                                                                    prefs.saveSettings(updated)
+                                                                    performFeedback(durationMs = 45L, isSpecial = true)
+                                                                    resetSuccessToast = "تم إخفاء شريط الابتسامات (سحبتين لأسفل) ✓"
+                                                                } else {
+                                                                    // First Swipe Down -> Wait 280ms
+                                                                    lastSwipeDownTime = now
+                                                                    pendingSwipeDownJob?.cancel()
+                                                                    pendingSwipeDownJob = coroutineScope.launch {
+                                                                        delay(280L)
+                                                                        val updated = currentSettings.copy(numberRowEnabled = false)
+                                                                        currentSettings = updated
+                                                                        prefs.saveSettings(updated)
+                                                                        performFeedback(durationMs = 35L, isSpecial = true)
+                                                                        resetSuccessToast = "تم إخفاء شريط الأرقام (سحبة لأسفل) ✓"
+                                                                        lastSwipeDownTime = 0L
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                // Swipe UP
+                                                                if (now - lastSwipeUpTime <= 320L && pendingSwipeUpJob?.isActive == true) {
+                                                                    // Double Swipe Up -> Show Number Row
+                                                                    pendingSwipeUpJob?.cancel()
+                                                                    pendingSwipeUpJob = null
+                                                                    lastSwipeUpTime = 0L
+                                                                    val updated = currentSettings.copy(numberRowEnabled = true)
+                                                                    currentSettings = updated
+                                                                    prefs.saveSettings(updated)
+                                                                    performFeedback(durationMs = 45L, isSpecial = true)
+                                                                    resetSuccessToast = "تم إظهار شريط الأرقام (سحبتين لأعلى) ✓"
+                                                                } else {
+                                                                    // First Swipe Up -> Wait 280ms
+                                                                    lastSwipeUpTime = now
+                                                                    pendingSwipeUpJob?.cancel()
+                                                                    pendingSwipeUpJob = coroutineScope.launch {
+                                                                        delay(280L)
+                                                                        val updated = currentSettings.copy(topQuickEmojiRowEnabled = true)
+                                                                        currentSettings = updated
+                                                                        prefs.saveSettings(updated)
+                                                                        performFeedback(durationMs = 35L, isSpecial = true)
+                                                                        resetSuccessToast = "تم إظهار شريط الابتسامات (سحبة لأعلى) ✓"
+                                                                        lastSwipeUpTime = 0L
+                                                                    }
+                                                                }
+                                                            }
                                                         }
 
                                                         // 2. Horizontal Swipe: Switches keyboard language

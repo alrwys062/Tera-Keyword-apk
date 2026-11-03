@@ -15,6 +15,10 @@ import com.example.ui.theme.MyApplicationTheme
 class MainActivity : ComponentActivity() {
     private var initialDestination by mutableStateOf<AppDestination?>(null)
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.example.util.LocaleHelper.applyLocale(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
@@ -23,8 +27,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         handleIntent(intent)
         setContent {
-            MyApplicationTheme {
-                MainScreen(initialTarget = initialDestination)
+            val layoutDir = com.example.util.LocaleHelper.getLayoutDirection(this)
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalLayoutDirection provides layoutDir
+            ) {
+                MyApplicationTheme {
+                    MainScreen(initialTarget = initialDestination)
+                }
             }
         }
     }

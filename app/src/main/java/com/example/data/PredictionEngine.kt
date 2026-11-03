@@ -67,9 +67,15 @@ object PredictionEngine {
         "أنا" to listOf("بخير", "في", "أريد"),
         "من" to listOf("فضلك", "أجل", "هنا"),
         "على" to listOf("خير", "كل", "هذا"),
-        "في" to listOf("البيت", "العمل", "الطريق"),
-        "مع" to listOf("السلامة", "أطيب", "تحياتي"),
-        "أراك" to listOf("قريباً", "لاحقاً", "غداً")
+        "في" to listOf("البيت", "العمل", "الطريق", "أمان الله"),
+        "مع" to listOf("السلامة", "أطيب", "تحياتي", "الأسف"),
+        "أراك" to listOf("قريباً", "لاحقاً", "غداً", "على خير"),
+        "يسلمو" to listOf("يا غالي", "تسلم", "حبيبي", "كلك ذوق"),
+        "تسلم" to listOf("حبيبي", "يا غالي", "إيدك", "من كل شر"),
+        "أنا" to listOf("بخير", "في الطريق", "أريد", "معك"),
+        "من" to listOf("فضلك", "عيوني", "بعد إذنك", "أجل"),
+        "على" to listOf("خير", "راسي", "بركة الله", "فكرة"),
+        "الله" to listOf("يحفظك", "يسعدك", "يبارك فيك", "يعطيك العافية")
     )
 
     private val englishNextWordPredictions = mapOf(
@@ -81,7 +87,25 @@ object PredictionEngine {
         "thanks" to listOf("a lot", "so much", "brother"),
         "nice" to listOf("to meet", "day", "one"),
         "see" to listOf("you", "it", "soon"),
-        "have" to listOf("a good", "a great", "fun")
+        "have" to listOf("a good", "a great", "fun"),
+        "where" to listOf("are", "is", "can"),
+        "what" to listOf("are", "is", "do"),
+        "i" to listOf("am", "will", "would", "think")
+    )
+
+    private val portugueseNextWordPredictions = mapOf(
+        "bom" to listOf("dia", "trabalho", "fim de semana"),
+        "boa" to listOf("tarde", "noite", "sorte", "viagem"),
+        "como" to listOf("está", "vai", "você", "fazer"),
+        "muito" to listOf("obrigado", "bem", "bom", "legal"),
+        "obrigado" to listOf("amigo", "de coração", "pela ajuda"),
+        "tudo" to listOf("bem", "certo", "ótimo", "tranquilo"),
+        "por" to listOf("favor", "que", "isso", "aqui"),
+        "estou" to listOf("bem", "aqui", "chegando", "pronto"),
+        "você" to listOf("pode", "está", "vai", "quer"),
+        "onde" to listOf("está", "fica", "você"),
+        "um" to listOf("abraço", "beijo", "bom dia"),
+        "olá" to listOf("tudo bem", "como vai", "amigo")
     )
 
     data class PredictionResult(
@@ -218,23 +242,28 @@ object PredictionEngine {
     fun getNextWordPredictions(
         prevWord: String,
         isArabic: Boolean,
-        userDict: UserDictionaryManager? = null
+        userDict: UserDictionaryManager? = null,
+        langCode: String = "ar"
     ): List<PredictionResult> {
         val clean = prevWord.trim().replace(Regex("[،؛؟?!.,:;]+$"), "")
         if (clean.isEmpty()) {
             return getPredictionsWithCorrection("", isArabic, userDict = userDict)
         }
         val learned = userDict?.getLearnedNextWords(clean) ?: emptyList()
-        val nextWordMap = if (isArabic) arabicNextWordPredictions else englishNextWordPredictions
-        val staticNext = nextWordMap[clean] ?: emptyList()
+        val nextWordMap = when {
+            isArabic || langCode == "ar" -> arabicNextWordPredictions
+            langCode.startsWith("pt") -> portugueseNextWordPredictions
+            else -> englishNextWordPredictions
+        }
+        val staticNext = nextWordMap[clean.lowercase()] ?: nextWordMap[clean] ?: emptyList()
         val predictions = (learned + staticNext).distinct()
         if (predictions.isNotEmpty()) {
             return predictions.take(3).map { PredictionResult(word = it) }
         }
-        return if (isArabic) {
-            listOf(PredictionResult("شكراً"), PredictionResult("تمام"), PredictionResult("نعم"))
-        } else {
-            listOf(PredictionResult("Thanks"), PredictionResult("Okay"), PredictionResult("Sure"))
+        return when {
+            isArabic -> listOf(PredictionResult("شكراً"), PredictionResult("تمام"), PredictionResult("نعم"))
+            langCode.startsWith("pt") -> listOf(PredictionResult("obrigado"), PredictionResult("tudo bem"), PredictionResult("sim"))
+            else -> listOf(PredictionResult("Thanks"), PredictionResult("Okay"), PredictionResult("Sure"))
         }
     }
 

@@ -175,7 +175,39 @@ object InputLanguagesManager {
             row3 = listOf("z", "x", "c", "v", "b", "n", "m", "ù", "ì")
         ),
 
-        // 11. Portuguese (Português)
+        // 11. Portuguese (Português Brasil - ABNT2)
+        WorldLanguage(
+            code = "pt_BR",
+            nameAr = "البرتغالية (البرازيل - ABNT2)",
+            nameNative = "Português (Brasil)",
+            nameEn = "Portuguese (Brazil - ABNT2)",
+            flag = "🇧🇷",
+            size = "1.3 MB",
+            isRtl = false,
+            layoutTag = "ABNT2",
+            row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "á", "é"),
+            row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l", "ç", "ã"),
+            row3 = listOf("z", "x", "c", "v", "b", "n", "m", "õ", "ê"),
+            quickShortcuts = listOf("❤️", "Legal", "👍", "🔥", "Obrigado", "Tudo bem", "Valeu", "Beijo", "Top", "Bom dia")
+        ),
+
+        // 11.1 Portuguese (Português Portugal)
+        WorldLanguage(
+            code = "pt_PT",
+            nameAr = "البرتغالية (البرتغال)",
+            nameNative = "Português (Portugal)",
+            nameEn = "Portuguese (Portugal)",
+            flag = "🇵🇹",
+            size = "1.2 MB",
+            isRtl = false,
+            layoutTag = "QWERTY PT",
+            row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
+            row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l", "ç"),
+            row3 = listOf("z", "x", "c", "v", "b", "n", "m", "á", "é"),
+            quickShortcuts = listOf("❤️", "Olá", "👍", "Obrigado", "Bom dia", "Boa tarde", "Fixe", "Beijinhos", "Abraço", "Top")
+        ),
+
+        // 11.2 Standard Portuguese alias (pt)
         WorldLanguage(
             code = "pt",
             nameAr = "البرتغالية",
@@ -184,10 +216,10 @@ object InputLanguagesManager {
             flag = "🇧🇷",
             size = "1.2 MB",
             isRtl = false,
-            layoutTag = "QWERTY",
-            row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
-            row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l", "ç"),
-            row3 = listOf("z", "x", "c", "v", "b", "n", "m", "ã", "õ")
+            layoutTag = "QWERTY / ABNT2",
+            row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "á", "é"),
+            row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l", "ç", "ã"),
+            row3 = listOf("z", "x", "c", "v", "b", "n", "m", "õ", "ê")
         ),
 
         // 12. Indonesian (Bahasa Indonesia)

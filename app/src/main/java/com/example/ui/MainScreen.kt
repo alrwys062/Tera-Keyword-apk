@@ -44,7 +44,7 @@ enum class AppDestination {
 }
 
 @Composable
-fun MainScreen(initialTarget: AppDestination? = null) {
+fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = "auto") {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember { PreferencesManager(context) }
@@ -112,6 +112,7 @@ fun MainScreen(initialTarget: AppDestination? = null) {
                 BottomNavigationBar(
                     currentDestination = currentDestination,
                     keyboardStatus = keyboardStatus,
+                    appLanguageCode = appLanguageCode,
                     onDestinationSelected = { currentDestination = it }
                 )
             }
@@ -126,6 +127,7 @@ fun MainScreen(initialTarget: AppDestination? = null) {
                 AppDestination.KEYBOARD_SETUP -> {
                     KeyboardSetupScreen(
                         prefs = prefs,
+                        appLanguageCode = appLanguageCode,
                         onNavigateToThemes = { currentDestination = AppDestination.THEMES },
                         onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
                         onNavigateToChatSimulator = { currentDestination = AppDestination.CHAT_SIMULATOR },
@@ -134,6 +136,7 @@ fun MainScreen(initialTarget: AppDestination? = null) {
                 }
                 AppDestination.TOOLS -> {
                     ToolsScreen(
+                        appLanguageCode = appLanguageCode,
                         onNavigateToEmoji = { currentDestination = AppDestination.CHAT_SIMULATOR },
                         onNavigateToGif = { currentDestination = AppDestination.CHAT_SIMULATOR },
                         onNavigateToTranslate = { currentDestination = AppDestination.TRANSLATION_STUDIO },
@@ -153,6 +156,7 @@ fun MainScreen(initialTarget: AppDestination? = null) {
                     ThemesScreen(
                         prefs = prefs,
                         currentThemeId = currentTheme.id,
+                        appLanguageCode = appLanguageCode,
                         onThemeApplied = { theme -> currentTheme = theme },
                         onOpenCustomBuilder = { currentDestination = AppDestination.CUSTOM_THEME_BUILDER },
                         onBack = { currentDestination = AppDestination.TOOLS }
@@ -161,6 +165,7 @@ fun MainScreen(initialTarget: AppDestination? = null) {
                 AppDestination.SETTINGS -> {
                     SettingsScreen(
                         prefs = prefs,
+                        initialAppLanguageCode = appLanguageCode,
                         onNavigateToThemes = { currentDestination = AppDestination.THEMES },
                         onNavigateToClipboard = { currentDestination = AppDestination.CLIPBOARD_MANAGER },
                         onNavigateToSetup = { currentDestination = AppDestination.KEYBOARD_SETUP },
@@ -210,8 +215,10 @@ fun MainScreen(initialTarget: AppDestination? = null) {
 fun BottomNavigationBar(
     currentDestination: AppDestination,
     keyboardStatus: KeyboardStatus,
+    appLanguageCode: String = "auto",
     onDestinationSelected: (AppDestination) -> Unit
 ) {
+    val context = LocalContext.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color(0xFF0D111A),
@@ -237,7 +244,7 @@ fun BottomNavigationBar(
             }
 
             BottomBarItem(
-                title = "التفعيل",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tab_setup"),
                 icon = if (keyboardStatus == KeyboardStatus.ACTIVE_DEFAULT) Icons.Default.CheckCircle else Icons.Outlined.PowerSettingsNew,
                 isSelected = currentDestination == AppDestination.KEYBOARD_SETUP,
                 badgeColor = setupBadgeColor,
@@ -246,7 +253,7 @@ fun BottomNavigationBar(
 
             // Tools tab
             BottomBarItem(
-                title = "الأدوات",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tab_tools"),
                 icon = Icons.Outlined.DashboardCustomize,
                 isSelected = currentDestination == AppDestination.TOOLS,
                 onClick = { onDestinationSelected(AppDestination.TOOLS) }
@@ -254,7 +261,7 @@ fun BottomNavigationBar(
 
             // Themes tab
             BottomBarItem(
-                title = "السمات",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tab_themes"),
                 icon = Icons.Outlined.Palette,
                 isSelected = currentDestination == AppDestination.THEMES,
                 onClick = { onDestinationSelected(AppDestination.THEMES) }
@@ -262,7 +269,7 @@ fun BottomNavigationBar(
 
             // Settings tab
             BottomBarItem(
-                title = "الإعدادات",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tab_settings"),
                 icon = Icons.Outlined.Settings,
                 isSelected = currentDestination == AppDestination.SETTINGS,
                 onClick = { onDestinationSelected(AppDestination.SETTINGS) }

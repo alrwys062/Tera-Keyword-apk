@@ -156,10 +156,10 @@ object LongPressVariantsManager {
             return listOf(":", "؛", ";", "،", ",", "…")
         }
         if (char == "-" || char == "–" || char == "—") {
-            return listOf("ـ", "-", "—", "–", "•", "_", "~")
+            return listOf("-", "_", "ـ", "—", "–", "•", "~")
         }
         if (char == "_") {
-            return listOf("_", "ـ", "-", "–", "—", "~")
+            return listOf("_", "-", "ـ", "–", "—", "~")
         }
         if (char == "%" || char == "٪") {
             return listOf("%", "٪", "‰", "‱", "°")

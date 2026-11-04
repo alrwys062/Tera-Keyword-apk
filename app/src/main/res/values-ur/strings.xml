@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - اسمارٹ کی بورڈ</string>
+    <string name="ime_settings">Turbo Keyboard ترتیبات</string>
+    <string name="subtype_ar">عربی (Turbo Keyboard)</string>
+    <string name="subtype_en">انگریزی (Turbo Keyboard)</string>
+    <string name="subtype_ru">روسی (Turbo Keyboard)</string>
+    <string name="subtype_fa">فارسی (Turbo Keyboard)</string>
+    <string name="subtype_hi">ہندی (Turbo Keyboard)</string>
+    <string name="subtype_fr">فرانسیسی (Turbo Keyboard)</string>
+    <string name="subtype_es">ہسپانوی (Turbo Keyboard)</string>
+    <string name="subtype_it">اطالوی (Turbo Keyboard)</string>
+    <string name="subtype_pt">پرتگالی (Turbo Keyboard)</string>
+    <string name="subtype_de">جرمن (Turbo Keyboard)</string>
+    <string name="subtype_tr">ترکی (Turbo Keyboard)</string>
+    <string name="subtype_ur">اردو (Turbo Keyboard)</string>
+    <string name="subtype_id">انڈونیشیائی (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">مکمل</string>
+    <string name="action_cancel">منسوخ</string>
+    <string name="action_save">محفوظ کریں</string>
+    <string name="action_delete">حذف کریں</string>
+    <string name="action_close">بند کریں</string>
+    <string name="action_reset">ڈیفالٹ پر بحال کریں</string>
+    <string name="action_copy">کاپی</string>
+    <string name="action_paste">پیسٹ</string>
+    <string name="action_clear_all">تمام صاف کریں</string>
+    <string name="action_search_hint">ترتیبات میں تلاش کریں...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">ایپ کی زبان اور انٹرفیس</string>
+    <string name="desc_app_language">ایپ کی زبان تبدیل کریں یا موبائل کی زبان خود بخود پہچانیں</string>
+    <string name="title_input_languages">ٹائپنگ کی زبانیں اور کی بورڈز</string>
+    <string name="desc_input_languages">دنیا کے کی بورڈ لے آؤٹس ڈاؤن لوڈ اور تبدیل کریں</string>
+    <string name="title_translation">فوری ترجمہ</string>
+    <string name="desc_translation">چیٹ کا حقیقی وقت میں ترجمہ اور کاپی پر خودکار ترجمہ</string>
+    <string name="title_decoration">متن کی سجاوٹ اور فونٹس</string>
+    <string name="desc_decoration">خوبصورت فونٹس اور براہ راست سجاوٹ کے انداز</string>
+    <string name="title_appearance">تھیمز اور ظاہری شکل</string>
+    <string name="desc_appearance">شاندار کی بورڈ تھیمز منتخب کریں یا حسب ضرورت بنائیں</string>
+    <string name="title_layouts">کی بورڈ لے آؤٹ اور کالمز</string>
+    <string name="desc_layouts">10، 11 یا 12 کالمز، بٹن کے سائز اور حروف کی ترتیب</string>
+    <string name="title_emojis">اموجیز اور اسٹیکرز</string>
+    <string name="desc_emojis">اوپری فوری اموجی قطار اور سمائلی انداز</string>
+    <string name="title_clipboard">کلپ بورڈ مینیجر</string>
+    <string name="desc_clipboard">متن کو ہمیشہ محفوظ رکھیں، پیسٹ پر خودکار بندش</string>
+    <string name="title_shortcuts">شارٹ کٹس</string>
+    <string name="desc_shortcuts">تیز ٹائپنگ کے لیے متن کی توسیع کے شارٹ کٹس</string>
+    <string name="title_typing">ٹائپنگ اور خودکار تصحیح</string>
+    <string name="desc_typing">اگلے لفظ کی پیشین گوئی اور سمارٹ خودکار تصحیح</string>
+    <string name="title_ai_tone">مصنوعی ذہانت اور لہجہ تبدیل کریں</string>
+    <string name="desc_ai_tone">متن کو رسمی، دوستانہ، مختصر یا شاعرانہ انداز میں دوبارہ لکھیں</string>
+    <string name="title_dictionary">ذاتی لغت</string>
+    <string name="desc_dictionary">نئے الفاظ شامل کریں اور املا کی جانچ کا انتظام کریں</string>
+    <string name="title_rows_toolbar">نمبر قطار اور ٹول بار</string>
+    <string name="desc_rows_toolbar">نمبر قطار دکھائیں اور ٹول بار کو کنٹرول کریں</string>
+    <string name="title_customize_toolbar">ٹول بار حسب ضرورت بنائیں</string>
+    <string name="desc_customize_toolbar">صرف ضروری ٹولز دکھائیں اور غیر ضروری کو چھپائیں</string>
+    <string name="title_manage_quick_actions">فوری کارروائیوں کا انتظام کریں</string>
+    <string name="desc_manage_quick_actions">حروف کے اوپر والی بار چھپائیں یا ہٹائیں (تمام صاف، پڑھیں، پیسٹ)</string>
+    <string name="title_sound_haptic">آواز اور وائبریشن</string>
+    <string name="desc_sound_haptic">کی کلک کی آوازیں اور ملی سیکنڈ میں وائبریشن</string>
+    <string name="title_typing_speed">ٹائپنگ کی رفتار اور ردعمل</string>
+    <string name="desc_typing_speed">دہرانے کی شرح، ڈیلیٹ کی رفتار اور ٹچ کا ردعمل</string>
+    <string name="title_height_font">کی بورڈ کی اونچائی اور فونٹ کا سائز</string>
+    <string name="desc_height_font">کی بورڈ کی مجموعی اونچائی اور حروف کا سائز تبدیل کریں</string>
+    <string name="title_customization">اعلی درجے کی جہتیں</string>
+    <string name="desc_customization">ٹول بار اور بٹنوں کے درست سائز</string>
+    <string name="title_backup">بیک اپ اور بحالی</string>
+    <string name="desc_backup">کلپ بورڈ اور شارٹ کٹس کا بیک اپ لیں اور بحال کریں</string>
+    <string name="title_restore_defaults">اصل ترتیبات بحال کریں</string>
+    <string name="desc_restore_defaults">تمام آپشنز کو فیکٹری ڈیفالٹ پر ری سیٹ کریں</string>
+</resources>

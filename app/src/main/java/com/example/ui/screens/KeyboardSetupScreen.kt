@@ -38,6 +38,7 @@ import com.example.utils.KeyboardStatusHelper
 @Composable
 fun KeyboardSetupScreen(
     prefs: PreferencesManager,
+    appLanguageCode: String = "auto",
     onNavigateToThemes: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToChatSimulator: () -> Unit,
@@ -103,13 +104,13 @@ fun KeyboardSetupScreen(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "تفعيل واختيار الكيبورد",
+                    text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_title"),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Turbo Keyboard Setup",
+                    text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_subtitle"),
                     color = Color(0xFF00E5FF),
                     fontSize = 11.sp
                 )
@@ -118,7 +119,7 @@ fun KeyboardSetupScreen(
             IconButton(
                 onClick = {
                     keyboardStatus = KeyboardStatusHelper.checkKeyboardStatus(context)
-                    Toast.makeText(context, "تم تحديث حالة الكيبورد", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_active_title"), Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier
                     .size(38.dp)
@@ -159,14 +160,14 @@ fun KeyboardSetupScreen(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "كيبورد Turbo الخارق ⚡",
+                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_hero_title"),
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "أسرع كيبورد احترافي مع ترجمة وحافظة وزخرفة فورية",
+                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_hero_subtitle"),
                         color = Color(0xFF00E5FF),
                         fontSize = 12.sp
                     )
@@ -205,13 +206,13 @@ fun KeyboardSetupScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Turbo keyboard is currently disabled.",
+                                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_disabled_title"),
                                         color = Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "كيبورد Turbo غير مفعل حالياً في نظام أندرويد.",
+                                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_disabled_desc"),
                                         color = Color(0xFFFCA5A5),
                                         fontSize = 12.sp
                                     )
@@ -226,7 +227,7 @@ fun KeyboardSetupScreen(
                             ) {
                                 Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("تفعيل كيبورد Turbo في الإعدادات", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_btn_enable"), color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -257,13 +258,13 @@ fun KeyboardSetupScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Turbo keyboard is enabled but is not default.",
+                                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_enabled_title"),
                                         color = Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "تم تفعيل الكيبورد بالنظام، وباقي اختياره كافتراضي.",
+                                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_enabled_desc"),
                                         color = Color(0xFFBAE6FD),
                                         fontSize = 12.sp
                                     )
@@ -278,7 +279,7 @@ fun KeyboardSetupScreen(
                             ) {
                                 Icon(Icons.Default.TouchApp, contentDescription = null, tint = Color.Black)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("اختيار كيبورد Turbo كافتراضي", color = Color.Black, fontWeight = FontWeight.Bold)
+                                Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_btn_select_default"), color = Color.Black, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -309,13 +310,13 @@ fun KeyboardSetupScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Turbo keyboard selected as default ✓",
+                                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_active_title"),
                                         color = Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "كيبورد Turbo مفعل ويعمل كلوحة المفاتيح الافتراضية بنجاح!",
+                                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_hero_subtitle"),
                                         color = Color(0xFFA7F3D0),
                                         fontSize = 12.sp
                                     )
@@ -329,9 +330,9 @@ fun KeyboardSetupScreen(
 
         Spacer(modifier = Modifier.height(22.dp))
 
-        // Step-by-Step Setup Guide (Requirements 1 & 12)
+        // Step-by-Step Setup Guide
         Text(
-            text = "خطوات الإعداد السريعة",
+            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_steps_title"),
             color = Color.White,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
@@ -370,13 +371,13 @@ fun KeyboardSetupScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "الخطوة 1: تفعيل الكيبورد في أندرويد",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step1_title"),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (isEnabled) "تم التفعيل بنجاح ✓" else "اضغط لفتح إعدادات أندرويد وتفعيل Turbo",
+                            text = if (isEnabled) com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_active_title") else com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step1_desc"),
                             color = if (isEnabled) Color(0xFF10B981) else Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -392,7 +393,7 @@ fun KeyboardSetupScreen(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = if (isEnabled) "إعادة ضبط" else "تفعيل الآن",
+                        text = if (isEnabled) com.example.util.AppStrings.trCode(context, appLanguageCode, "dim_reset") else com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step1_btn"),
                         color = if (isEnabled) Color.White else Color.Black,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -434,13 +435,13 @@ fun KeyboardSetupScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "الخطوة 2: اختيار الكيبورد كافتراضي",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step2_title"),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (isDefault) "هو الكيبورد الافتراضي الآن ✓" else "اختر Turbo keyboard من القائمة",
+                            text = if (isDefault) com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_active_title") else com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step2_desc"),
                             color = if (isDefault) Color(0xFF10B981) else Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -457,7 +458,7 @@ fun KeyboardSetupScreen(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = if (isDefault) "تبديل" else "اختيار الآن",
+                        text = if (isDefault) com.example.util.AppStrings.trCode(context, appLanguageCode, "action_done") else com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step2_btn"),
                         color = if (isDefault) Color.White else Color.Black,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -495,13 +496,13 @@ fun KeyboardSetupScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "الخطوة 3: الثيمات واللغات والتخصيص",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step3_title"),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "أكثر من 28 ثيم وتخصيص كامل للأزرار",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step3_desc"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -514,7 +515,7 @@ fun KeyboardSetupScreen(
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text("الثيمات", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_step3_btn"), color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -543,7 +544,7 @@ fun KeyboardSetupScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "حقل اختبار الكتابة المباشر",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_test_field_title"),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
@@ -551,7 +552,7 @@ fun KeyboardSetupScreen(
                     }
                     if (testInputText.isNotEmpty()) {
                         TextButton(onClick = { testInputText = "" }) {
-                            Text("مسح", color = Color(0xFFEF4444), fontSize = 11.sp)
+                            Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "action_clear_all"), color = Color(0xFFEF4444), fontSize = 11.sp)
                         }
                     }
                 }
@@ -561,7 +562,7 @@ fun KeyboardSetupScreen(
                     onValueChange = { testInputText = it },
                     placeholder = {
                         Text(
-                            "انقر هنا ليظهر كيبورد Turbo على الشاشة وتجرب الكتابة...",
+                            com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_test_field_hint"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 12.sp
                         )

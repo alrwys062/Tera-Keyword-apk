@@ -26,6 +26,10 @@ open class TurboKeyboardService : InputMethodService(),
     ViewModelStoreOwner,
     SavedStateRegistryOwner {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.example.util.LocaleHelper.applyLocale(newBase))
+    }
+
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val store = ViewModelStore()
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
@@ -160,43 +164,48 @@ open class TurboKeyboardService : InputMethodService(),
                 val currentSessionId by inputSessionSignal
                 val prefs = remember { PreferencesManager(this@TurboKeyboardService) }
 
-                TurboKeyboardView(
-                    theme = currentTheme,
-                    settings = currentSettings,
-                    inputSessionId = currentSessionId,
-                    inputConnection = currentIc ?: currentInputConnection,
-                    getCurrentInputConnection = { currentInputConnection },
-                    editorInfo = currentEi ?: currentInputEditorInfo,
-                    getCurrentEditorInfo = { currentInputEditorInfo },
-                    initialLanguageCode = currentLang,
-                    onLanguageChanged = { newCode ->
-                        keyboardLanguageState.value = newCode
-                        com.example.data.InputLanguagesManager.setCurrentLanguageCode(this@TurboKeyboardService, newCode)
-                    },
-                    onServiceCommitText = { text ->
-                        performServiceCommitText(text)
-                    },
-                    onServiceEnter = { performServiceEnter() },
-                    onServiceNewline = { performServiceNewline() },
-                    onServiceDelete = { performServiceDelete() },
-                    onVoiceRequested = {
-                        // Voice view is activated directly in toolbar, or fallback to intent
-                        launchVoiceRecognition()
-                    },
-                    onOpenSettingsRequested = {
-                        openAppSettings()
-                    },
-                    onBackActionRegister = { action ->
-                        onBackKeyAction = action
-                    },
-                    onHideKeyboardRequested = {
-                        requestHideSelf(0)
-                    },
-                    onThemeChanged = { newTheme ->
-                        keyboardThemeState.value = newTheme
-                    },
-                    prefsManager = prefs
-                )
+                val layoutDir = com.example.util.LocaleHelper.getLayoutDirection(this@TurboKeyboardService)
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalLayoutDirection provides layoutDir
+                ) {
+                    TurboKeyboardView(
+                        theme = currentTheme,
+                        settings = currentSettings,
+                        inputSessionId = currentSessionId,
+                        inputConnection = currentIc ?: currentInputConnection,
+                        getCurrentInputConnection = { currentInputConnection },
+                        editorInfo = currentEi ?: currentInputEditorInfo,
+                        getCurrentEditorInfo = { currentInputEditorInfo },
+                        initialLanguageCode = currentLang,
+                        onLanguageChanged = { newCode ->
+                            keyboardLanguageState.value = newCode
+                            com.example.data.InputLanguagesManager.setCurrentLanguageCode(this@TurboKeyboardService, newCode)
+                        },
+                        onServiceCommitText = { text ->
+                            performServiceCommitText(text)
+                        },
+                        onServiceEnter = { performServiceEnter() },
+                        onServiceNewline = { performServiceNewline() },
+                        onServiceDelete = { performServiceDelete() },
+                        onVoiceRequested = {
+                            // Voice view is activated directly in toolbar, or fallback to intent
+                            launchVoiceRecognition()
+                        },
+                        onOpenSettingsRequested = {
+                            openAppSettings()
+                        },
+                        onBackActionRegister = { action ->
+                            onBackKeyAction = action
+                        },
+                        onHideKeyboardRequested = {
+                            requestHideSelf(0)
+                        },
+                        onThemeChanged = { newTheme ->
+                            keyboardThemeState.value = newTheme
+                        },
+                        prefsManager = prefs
+                    )
+                }
             }
         }
         this.composeView = view

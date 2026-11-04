@@ -724,15 +724,15 @@ class PreferencesManager(private val context: Context) {
         }
         current.add(0, ClipboardItem(text = trimmed, isPinned = finalPinned, timestamp = System.currentTimeMillis()))
         // Stored forever without small limit - up to 50000 items
-        if (current.size > 50000) {
-            saveClipboardItems(current.take(50000))
+        if (current.size > 2000) {
+            saveClipboardItems(current.take(2000))
         } else {
             saveClipboardItems(current)
         }
     }
 
     @Synchronized
-    fun syncWithSystemClipboard(context: Context): Boolean {
+    fun syncWithSystemClipboard(context: Context, forceRecheck: Boolean = false): Boolean {
         var addedNewItem = false
         try {
             val appContext = context.applicationContext ?: context
@@ -751,7 +751,7 @@ class PreferencesManager(private val context: Context) {
                 val item = clip.getItemAt(i) ?: continue
                 var extractedText: String? = null
 
-                // 1. Text from Telegram or WhatsApp (CharSequence / Spanned)
+                // 1. Text from Telegram, WhatsApp, Browser or any app (supports very large texts)
                 try {
                     val cs = item.text
                     if (!cs.isNullOrBlank()) {
@@ -791,20 +791,36 @@ class PreferencesManager(private val context: Context) {
 
                 if (!extractedText.isNullOrBlank()) {
                     val trimmed = extractedText.trim()
-                    if (trimmed.isNotEmpty() && !isDeletedSystemClip(trimmed)) {
-                        val now = System.currentTimeMillis()
-                        // Ensure newly copied text is immediately captured
-                        if (lastSyncedText != trimmed || (now - lastSyncedTime > 400L)) {
-                            lastSyncedText = trimmed
-                            lastSyncedTime = now
-                            addClipboardItem(trimmed)
-                            addedNewItem = true
+                    if (trimmed.isNotEmpty()) {
+                        if (forceRecheck) {
+                            unblacklistSystemClip(trimmed)
+                        }
+                        if (forceRecheck || !isDeletedSystemClip(trimmed)) {
+                            val now = System.currentTimeMillis()
+                            if (forceRecheck || lastSyncedText != trimmed || (now - lastSyncedTime > 300L)) {
+                                lastSyncedText = trimmed
+                                lastSyncedTime = now
+                                addClipboardItem(trimmed)
+                                addedNewItem = true
+                            }
                         }
                     }
                 }
             }
         } catch (_: Exception) {}
         return addedNewItem
+    }
+
+    @Synchronized
+    fun forceSyncAndRepairClipboard(context: Context): Int {
+        lastSyncedText = ""
+        lastSyncedTime = 0L
+        try {
+            prefs.edit().remove("recently_deleted_system_clips").apply()
+        } catch (_: Exception) {}
+        syncWithSystemClipboard(context, forceRecheck = true)
+        val refreshed = getClipboardItems(forceRefresh = true)
+        return refreshed.size
     }
 
     @Synchronized

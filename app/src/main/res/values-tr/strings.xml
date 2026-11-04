@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - Akıllı Klavye</string>
+    <string name="ime_settings">Turbo Keyboard Ayarları</string>
+    <string name="subtype_ar">Arapça (Turbo Keyboard)</string>
+    <string name="subtype_en">İngilizce (Turbo Keyboard)</string>
+    <string name="subtype_ru">Rusça (Turbo Keyboard)</string>
+    <string name="subtype_fa">Farsça (Turbo Keyboard)</string>
+    <string name="subtype_hi">Hintçe (Turbo Keyboard)</string>
+    <string name="subtype_fr">Fransızca (Turbo Keyboard)</string>
+    <string name="subtype_es">İspanyolca (Turbo Keyboard)</string>
+    <string name="subtype_it">İtalyanca (Turbo Keyboard)</string>
+    <string name="subtype_pt">Portekizce (Turbo Keyboard)</string>
+    <string name="subtype_de">Almanca (Turbo Keyboard)</string>
+    <string name="subtype_tr">Türkçe (Turbo Keyboard)</string>
+    <string name="subtype_ur">Urduca (Turbo Keyboard)</string>
+    <string name="subtype_id">Endonezce (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">Tamam</string>
+    <string name="action_cancel">İptal</string>
+    <string name="action_save">Kaydet</string>
+    <string name="action_delete">Sil</string>
+    <string name="action_close">Kapat</string>
+    <string name="action_reset">Varsayılana Sıfırla</string>
+    <string name="action_copy">Kopyala</string>
+    <string name="action_paste">Yapıştır</string>
+    <string name="action_clear_all">Tümünü Temizle</string>
+    <string name="action_search_hint">Ayarlarda ara...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">Uygulama Dili ve Arayüz</string>
+    <string name="desc_app_language">Uygulama arayüz dilini değiştirin veya cihaz dilini otomatik algılayın</string>
+    <string name="title_input_languages">Giriş Dilleri ve Klavyeler</string>
+    <string name="desc_input_languages">Dünya klavye düzenlerini indirin ve boşluk çubuğunu kaydırarak geçiş yapın</string>
+    <string name="title_translation">Anında Çeviri</string>
+    <string name="desc_translation">Gerçek zamanlı sohbet çevirisi ve kopyalamada otomatik çeviri</string>
+    <string name="title_decoration">Metin Süsleme ve Yazı Tipleri</string>
+    <string name="desc_decoration">Şık yazı tipleri ve canlı metin süsleme stilleri</string>
+    <string name="title_appearance">Temalar ve Görünüm</string>
+    <string name="desc_appearance">Harika klavye temaları seçin veya kendi paletinizi oluşturun</string>
+    <string name="title_layouts">Klavye Düzeni ve Sütunlar</string>
+    <string name="desc_layouts">10, 11 veya 12 sütun, özel tuş sıralaması ve tuş boyutları</string>
+    <string name="title_emojis">Emojiler ve Çıkartmalar</string>
+    <string name="desc_emojis">Hızlı üst emoji satırı ve ifade stilleri</string>
+    <string name="title_clipboard">Pano Yöneticisi</string>
+    <string name="desc_clipboard">Metinleri kalıcı olarak saklayın, yapıştırmada otomatik kapatın</string>
+    <string name="title_shortcuts">Metin Kısayolları</string>
+    <string name="desc_shortcuts">Hızlı metin genişletme kısayollarını yönetin</string>
+    <string name="title_typing">Yazma ve Otomatik Düzeltme</string>
+    <string name="desc_typing">Sonraki kelime tahmini ve akıllı otomatik düzeltme</string>
+    <string name="title_ai_tone">Yapay Zeka ve Ton Değiştirici</string>
+    <string name="desc_ai_tone">Metinleri resmi, samimi veya kısa tonda yeniden yazın</string>
+    <string name="title_dictionary">Kişisel Sözlük</string>
+    <string name="desc_dictionary">Yeni kelimeler ekleyin ve yazım denetimini yönetin</string>
+    <string name="title_rows_toolbar">Sayı Satırı ve Araç Çubuğu</string>
+    <string name="desc_rows_toolbar">Sayı satırını gösterin ve araç çubuğunu denetleyin</string>
+    <string name="title_customize_toolbar">Araç Çubuğunu Özelleştir</string>
+    <string name="desc_customize_toolbar">Yalnızca ihtiyacınız olan araçları görüntüleyin</string>
+    <string name="title_manage_quick_actions">Hızlı İşlemleri Yönet</string>
+    <string name="desc_manage_quick_actions">Harflerin üzerindeki çubuğu gizleyin veya kaldırın</string>
+    <string name="title_sound_haptic">Ses ve Titreşim</string>
+    <string name="desc_sound_haptic">Tuş tıklama sesleri ve milisaniye cinsinden titreşim</string>
+    <string name="title_typing_speed">Yazma Hızı ve Tepki Süresi</string>
+    <string name="desc_typing_speed">Yineleme hızı, silme hızı ve dokunma yanıt süresi</string>
+    <string name="title_height_font">Klavye Yüksekliği ve Yazı Boyutu</string>
+    <string name="desc_height_font">Klavye genel yüksekliğini ve harf boyutunu ayarlayın</string>
+    <string name="title_customization">Gelişmiş Boyutlar</string>
+    <string name="desc_customization">Araç çubuğu ve tuşlar için hassas boyutlandırma</string>
+    <string name="title_backup">Yedekleme ve Geri Yükleme</string>
+    <string name="desc_backup">Panoyu ve kısayolları dışa aktarın ve geri yükleyin</string>
+    <string name="title_restore_defaults">Fabrika Ayarlarına Sıfırla</string>
+    <string name="desc_restore_defaults">Tüm seçenekleri ilk varsayılan durumuna sıfırlayın</string>
+</resources>

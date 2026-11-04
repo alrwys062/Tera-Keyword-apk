@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - Умная клавиатура</string>
+    <string name="ime_settings">Настройки Turbo Keyboard</string>
+    <string name="subtype_ar">Арабский (Turbo Keyboard)</string>
+    <string name="subtype_en">Английский (Turbo Keyboard)</string>
+    <string name="subtype_ru">Русский (Turbo Keyboard)</string>
+    <string name="subtype_fa">Персидский (Turbo Keyboard)</string>
+    <string name="subtype_hi">Хинди (Turbo Keyboard)</string>
+    <string name="subtype_fr">Французский (Turbo Keyboard)</string>
+    <string name="subtype_es">Испанский (Turbo Keyboard)</string>
+    <string name="subtype_it">Итальянский (Turbo Keyboard)</string>
+    <string name="subtype_pt">Португальский (Turbo Keyboard)</string>
+    <string name="subtype_de">Немецкий (Turbo Keyboard)</string>
+    <string name="subtype_tr">Турецкий (Turbo Keyboard)</string>
+    <string name="subtype_ur">Урду (Turbo Keyboard)</string>
+    <string name="subtype_id">Индонезийский (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">Готово</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_close">Закрыть</string>
+    <string name="action_reset">Сбросить настройки</string>
+    <string name="action_copy">Копировать</string>
+    <string name="action_paste">Вставить</string>
+    <string name="action_clear_all">Очистить все</string>
+    <string name="action_search_hint">Поиск в настройках...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">Язык приложения и интерфейса</string>
+    <string name="desc_app_language">Смена языка приложения или автоопределение языка системы</string>
+    <string name="title_input_languages">Языки ввода и клавиатуры</string>
+    <string name="desc_input_languages">Загрузка и переключение раскладок языков мира (свайп по пробелу)</string>
+    <string name="title_translation">Мгновенный перевод</string>
+    <string name="desc_translation">Настройки перевода чата в реальном времени и при копировании</string>
+    <string name="title_decoration">Украшение текста и шрифты</string>
+    <string name="desc_decoration">Стильные шрифты и декоративные символы</string>
+    <string name="title_appearance">Темы и внешний вид</string>
+    <string name="desc_appearance">Выбор стильных тем или создание собственной темы</string>
+    <string name="title_layouts">Раскладка и столбцы клавиатуры</string>
+    <string name="desc_layouts">10, 11 или 12 столбцов, ручная настройка порядка букв</string>
+    <string name="title_emojis">Эмодзи и стикеры</string>
+    <string name="desc_emojis">Быстрая верхняя панель эмодзи и стили смайлов</string>
+    <string name="title_clipboard">Буфер обмена</string>
+    <string name="desc_clipboard">Вечное хранение текстов, закрытие при вставке и запоминание позиции</string>
+    <string name="title_shortcuts">Текстовые сокращения</string>
+    <string name="desc_shortcuts">Быстрые сокращения для моментальной вставки фраз</string>
+    <string name="title_typing">Ввод и автоисправление</string>
+    <string name="desc_typing">Предиктивный ввод, подсказки слов и заглавные буквы</string>
+    <string name="title_ai_tone">ИИ и изменение стиля текста</string>
+    <string name="desc_ai_tone">Переписывание текста в деловом, дружеском или кратком стиле</string>
+    <string name="title_dictionary">Словарь и проверка орфографии</string>
+    <string name="desc_dictionary">Добавление личных слов и управление проверкой правописания</string>
+    <string name="title_rows_toolbar">Числовой ряд и панель инструментов</string>
+    <string name="desc_rows_toolbar">Отображение ряда цифр и настройка панели</string>
+    <string name="title_customize_toolbar">Настройка панели инструментов</string>
+    <string name="desc_customize_toolbar">Выбор и скрытие неиспользуемых инструментов</string>
+    <string name="title_manage_quick_actions">Быстрые действия над клавишами</string>
+    <string name="desc_manage_quick_actions">Настройка панели (Очистить все, Чтение, Вставить, Буфер)</string>
+    <string name="title_sound_haptic">Звук и вибрация</string>
+    <string name="desc_sound_haptic">Звуки нажатия клавиш и тактильный отклик</string>
+    <string name="title_typing_speed">Скорость ввода и отклик</string>
+    <string name="desc_typing_speed">Скорость повтора, задержка удаления и отклик</string>
+    <string name="title_height_font">Высота клавиатуры и размер букв</string>
+    <string name="desc_height_font">Регулировка высоты клавиш и масштаба шрифта</string>
+    <string name="title_customization">Расширенные параметры</string>
+    <string name="desc_customization">Точные размеры панели инструментов и клавиш</string>
+    <string name="title_backup">Резервное копирование</string>
+    <string name="desc_backup">Экспорт и восстановление буфера обмена и настроек</string>
+    <string name="title_restore_defaults">Восстановить заводские настройки</string>
+    <string name="desc_restore_defaults">Сброс всех тем, цветов и раскладок к исходным</string>
+</resources>

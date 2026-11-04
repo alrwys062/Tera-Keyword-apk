@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - Keyboard Pintar</string>
+    <string name="ime_settings">Pengaturan Turbo Keyboard</string>
+    <string name="subtype_ar">Arab (Turbo Keyboard)</string>
+    <string name="subtype_en">Inggris (Turbo Keyboard)</string>
+    <string name="subtype_ru">Rusia (Turbo Keyboard)</string>
+    <string name="subtype_fa">Persia (Turbo Keyboard)</string>
+    <string name="subtype_hi">Hindi (Turbo Keyboard)</string>
+    <string name="subtype_fr">Prancis (Turbo Keyboard)</string>
+    <string name="subtype_es">Spanyol (Turbo Keyboard)</string>
+    <string name="subtype_it">Italia (Turbo Keyboard)</string>
+    <string name="subtype_pt">Portugis (Turbo Keyboard)</string>
+    <string name="subtype_de">Jerman (Turbo Keyboard)</string>
+    <string name="subtype_tr">Turki (Turbo Keyboard)</string>
+    <string name="subtype_ur">Urdu (Turbo Keyboard)</string>
+    <string name="subtype_id">Indonesia (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">Selesai</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_save">Simpan</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_reset">Reset ke Default</string>
+    <string name="action_copy">Salin</string>
+    <string name="action_paste">Tempel</string>
+    <string name="action_clear_all">Hapus Semua</string>
+    <string name="action_search_hint">Cari pengaturan...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">Bahasa Aplikasi &amp; Antarmuka</string>
+    <string name="desc_app_language">Ubah bahasa antarmuka atau deteksi otomatis bahasa sistem</string>
+    <string name="title_input_languages">Bahasa Pengetikan &amp; Keyboard</string>
+    <string name="desc_input_languages">Unduh dan beralih antara tata letak keyboard dunia</string>
+    <string name="title_translation">Terjemahan Instan</string>
+    <string name="desc_translation">Terjemahan obrolan langsung dan terjemahan otomatis saat menyalin</string>
+    <string name="title_decoration">Dekorasi Teks &amp; Font</string>
+    <string name="desc_decoration">Gaya font bergaya dan dekorasi teks langsung</string>
+    <string name="title_appearance">Tema &amp; Tampilan</string>
+    <string name="desc_appearance">Pilih tema keyboard yang indah atau buat palet kustom</string>
+    <string name="title_layouts">Tata Letak Keyboard &amp; Kolom</string>
+    <string name="desc_layouts">10, 11, atau 12 kolom, susunan tombol kustom</string>
+    <string name="title_emojis">Emoji &amp; Stiker</string>
+    <string name="desc_emojis">Bilah emoji cepat atas dan gaya smiley</string>
+    <string name="title_clipboard">Papan Klip</string>
+    <string name="desc_clipboard">Simpan teks selamanya, tutup otomatis saat menempel</string>
+    <string name="title_shortcuts">Pintasan Teks</string>
+    <string name="desc_shortcuts">Kelola pintasan perluasan teks cepat</string>
+    <string name="title_typing">Mengetik &amp; Koreksi Otomatis</string>
+    <string name="desc_typing">Prediksi kata berikutnya dan koreksi otomatis pintar</string>
+    <string name="title_ai_tone">AI &amp; Pengubah Nada Teks</string>
+    <string name="desc_ai_tone">Tulis ulang teks dalam nada formal, ramah, atau ringkas</string>
+    <string name="title_dictionary">Kamus Pribadi</string>
+    <string name="desc_dictionary">Tambahkan kata pribadi dan kelola pemeriksa ejaan</string>
+    <string name="title_rows_toolbar">Baris Angka &amp; Bilah Alat</string>
+    <string name="desc_rows_toolbar">Tampilkan baris angka dan kelola bilah alat</string>
+    <string name="title_customize_toolbar">Kustomisasi Bilah Alat</string>
+    <string name="desc_customize_toolbar">Tampilkan hanya alat yang Anda butuhkan</string>
+    <string name="title_manage_quick_actions">Kelola Tindakan Cepat</string>
+    <string name="desc_manage_quick_actions">Sembunyikan atau hapus bilah di atas huruf (Hapus Semua, Baca, Tempel)</string>
+    <string name="title_sound_haptic">Suara &amp; Getaran</string>
+    <string name="desc_sound_haptic">Suara ketukan tombol dan durasi getaran dalam milidetik</string>
+    <string name="title_typing_speed">Kecepatan Mengetik &amp; Respon</string>
+    <string name="desc_typing_speed">Laju pengulangan, kecepatan hapus, dan respon sentuh</string>
+    <string name="title_height_font">Tinggi Keyboard &amp; Ukuran Huruf</string>
+    <string name="desc_height_font">Sesuaikan tinggi keseluruhan dan skala huruf</string>
+    <string name="title_customization">Dimensi Tingkat Lanjut</string>
+    <string name="desc_customization">Ukuran presisi untuk bilah alat dan tombol</string>
+    <string name="title_backup">Cadangkan &amp; Pulihkan</string>
+    <string name="desc_backup">Ekspor dan pulihkan papan klip dan pintasan</string>
+    <string name="title_restore_defaults">Kembalikan Pengaturan Asli</string>
+    <string name="desc_restore_defaults">Setel ulang semua opsi ke default pabrik</string>
+</resources>

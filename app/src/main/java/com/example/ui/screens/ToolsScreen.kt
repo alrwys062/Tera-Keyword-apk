@@ -29,6 +29,7 @@ import com.example.ui.components.NeonToolGridCard
 
 @Composable
 fun ToolsScreen(
+    appLanguageCode: String = "auto",
     onNavigateToEmoji: () -> Unit,
     onNavigateToGif: () -> Unit,
     onNavigateToTranslate: () -> Unit,
@@ -74,7 +75,7 @@ fun ToolsScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "أدوات الكيبورد",
+                text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tools_title"),
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -128,13 +129,13 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = if (keyboardStatus == com.example.utils.KeyboardStatus.ACTIVE_DEFAULT) "الكيبورد مفعل ويعمل بنجاح" else "إعداد وتفعيل كيبورد Turbo",
+                            text = if (keyboardStatus == com.example.utils.KeyboardStatus.ACTIVE_DEFAULT) com.example.util.AppStrings.trCode(context, appLanguageCode, "tools_active_badge") else com.example.util.AppStrings.trCode(context, appLanguageCode, "tools_setup_prompt"),
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (keyboardStatus == com.example.utils.KeyboardStatus.ACTIVE_DEFAULT) "Turbo Keyboard هو لوحة المفاتيح الافتراضية" else "اضغط هنا لتفعيل الكيبورد واختياره كافتراضي",
+                            text = if (keyboardStatus == com.example.utils.KeyboardStatus.ACTIVE_DEFAULT) com.example.util.AppStrings.trCode(context, appLanguageCode, "tools_active_sub") else com.example.util.AppStrings.trCode(context, appLanguageCode, "tools_setup_prompt_sub"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -156,14 +157,14 @@ fun ToolsScreen(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             NeonToolGridCard(
-                title = "إيموجي",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_emoji"),
                 icon = Icons.Outlined.Mood,
                 neonColor = Color(0xFF00E5FF),
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToEmoji
             )
             NeonToolGridCard(
-                title = "GIF",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_gif"),
                 icon = Icons.Outlined.Gif,
                 neonColor = Color(0xFF818CF8),
                 modifier = Modifier.weight(1f),
@@ -178,14 +179,14 @@ fun ToolsScreen(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             NeonToolGridCard(
-                title = "ترجمة",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_translate"),
                 icon = Icons.Default.Translate,
                 neonColor = Color(0xFF38BDF8),
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToTranslate
             )
             NeonToolGridCard(
-                title = "حافظة",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_clipboard"),
                 icon = Icons.Outlined.ContentPaste,
                 neonColor = Color(0xFFC084FC),
                 modifier = Modifier.weight(1f),
@@ -200,14 +201,14 @@ fun ToolsScreen(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             NeonToolGridCard(
-                title = "كتابة صوتية",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_voice"),
                 icon = Icons.Outlined.Mic,
                 neonColor = Color(0xFF60A5FA),
                 modifier = Modifier.weight(1f),
                 onClick = { showVoiceDialog = true }
             )
             NeonToolGridCard(
-                title = "حافظة النصوص",
+                title = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_clip_history"),
                 icon = Icons.Outlined.ContentPaste,
                 neonColor = Color(0xFFA855F7),
                 modifier = Modifier.weight(1f),
@@ -252,13 +253,13 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "زخرفة النصوص العربية والإنجليزية",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_decoration_title"),
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "عشرات الخطوط والزخارف الاحترافية ꧁ ༺ 𝕿𝖚𝖗𝖇𝖔",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_decoration_desc"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 12.sp
                         )
@@ -308,13 +309,13 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "التدقيق والتصحيح الإملائي الصارم",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_spellcheck_title"),
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "تصحيح حروف الكلمات فقط • تطابق تام 100% لعدد الكلمات",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_spellcheck_desc"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 12.sp
                         )
@@ -451,13 +452,13 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "مساعد الذكاء الاصطناعي وتغيير النبرة",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_ai_title"),
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "رسمي، ودي، مختصر، شاعري، فصيح + تصحيح الأخطاء",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_ai_desc"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 12.sp
                         )

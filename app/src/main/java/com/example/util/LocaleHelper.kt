@@ -96,14 +96,26 @@ object LocaleHelper {
         SupportedAppLanguage("zu", "الزولو", "isiZulu", "Zulu", "🇿🇦", false)
     )
 
+    private val _appLanguageFlow = kotlinx.coroutines.flow.MutableStateFlow("auto")
+    val appLanguageFlow: kotlinx.coroutines.flow.StateFlow<String> = _appLanguageFlow
+
+    fun init(context: Context) {
+        _appLanguageFlow.value = getAppLanguageCode(context)
+    }
+
     fun getAppLanguageCode(context: Context): String {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return sp.getString(KEY_APP_LANGUAGE, "auto") ?: "auto"
+        val code = sp.getString(KEY_APP_LANGUAGE, "auto") ?: "auto"
+        if (_appLanguageFlow.value != code) {
+            _appLanguageFlow.value = code
+        }
+        return code
     }
 
     fun setAppLanguageCode(context: Context, code: String) {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         sp.edit().putString(KEY_APP_LANGUAGE, code).apply()
+        _appLanguageFlow.value = code
     }
 
     fun getEffectiveLocale(context: Context): Locale {
@@ -124,8 +136,25 @@ object LocaleHelper {
         return lang == "ar" || lang == "fa" || lang == "ur" || lang == "he" || lang == "ps" || lang == "ku"
     }
 
+    fun isRtlLanguageCode(langCode: String): Boolean {
+        val l = langCode.lowercase()
+        return l == "ar" || l == "fa" || l == "ur" || l == "he" || l == "ps" || l == "ku"
+    }
+
+    fun isRtlLanguage(langCode: String): Boolean = isRtlLanguageCode(langCode)
+
     fun getLayoutDirection(context: Context): LayoutDirection {
         return if (isRtl(context)) LayoutDirection.Rtl else LayoutDirection.Ltr
+    }
+
+    fun getLayoutDirectionForCode(context: Context, langCode: String): LayoutDirection {
+        return if (langCode == "auto") {
+            getLayoutDirection(context)
+        } else if (isRtlLanguageCode(langCode)) {
+            LayoutDirection.Rtl
+        } else {
+            LayoutDirection.Ltr
+        }
     }
 
     fun applyLocale(context: Context): Context {
@@ -134,6 +163,31 @@ object LocaleHelper {
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
         config.setLayoutDirection(locale)
-        return context.createConfigurationContext(config)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val localeList = android.os.LocaleList(locale)
+            android.os.LocaleList.setDefault(localeList)
+            config.setLocales(localeList)
+        }
+
+        @Suppress("DEPRECATION")
+        try {
+            context.resources.updateConfiguration(config, context.resources.displayMetrics)
+        } catch (_: Exception) {}
+
+        return try {
+            context.createConfigurationContext(config)
+        } catch (_: Exception) {
+            context
+        }
+    }
+
+    fun setLocale(context: Context): Context {
+        return applyLocale(context)
+    }
+
+    fun setLocale(context: Context, languageCode: String): Context {
+        setAppLanguageCode(context, languageCode)
+        return applyLocale(context)
     }
 }

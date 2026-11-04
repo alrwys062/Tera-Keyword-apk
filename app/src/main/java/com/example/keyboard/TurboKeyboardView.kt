@@ -629,17 +629,7 @@ fun TurboKeyboardView(
             return
         }
         dismissLongPressPopup()
-        val resolvedText = if (text == "-" || text == "_") {
-            val prevChar = currentComposingText.lastOrNull()
-            val isAfterArabic = prevChar != null && (prevChar in '\u0600'..'\u06FF' || prevChar == 'ـ')
-            if (isAfterArabic || isArabic) {
-                "ـ" // وصل الحروف مع بعض ومدها (Tatweel / Kashida)
-            } else {
-                text
-            }
-        } else {
-            text
-        }
+        val resolvedText = text
         val textToInsert = if (activeDecorationStyle != "none" && resolvedText.length == 1) {
             TextDecorator.decorateChar(resolvedText, activeDecorationStyle)
         } else {
@@ -2770,6 +2760,55 @@ fun TurboKeyboardView(
                                                 Text("تحديد الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
+                                    }
+
+                                    // 9. زر تخصيص / حذف الأدوات (⚙️)
+                                    Surface(
+                                         shape = RoundedCornerShape(8.dp),
+                                         color = Color(activeTheme.keyBackgroundColor),
+                                         border = BorderStroke(0.8.dp, Color(activeTheme.borderColor).copy(alpha = 0.45f)),
+                                         modifier = Modifier.clickable {
+                                             isManageQuickActionsOpen = true
+                                             performFeedback(isSpecial = true)
+                                         }
+                                    ) {
+                                         Box(
+                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                             contentAlignment = Alignment.Center
+                                         ) {
+                                             Icon(
+                                                 Icons.Default.Tune,
+                                                 contentDescription = "خيارات وتخصيص الأدوات",
+                                                 tint = Color(activeTheme.accentColor),
+                                                 modifier = Modifier.size(12.dp)
+                                             )
+                                         }
+                                    }
+
+                                    // 10. زر حذف / إخفاء الشريط بالكامل (❌)
+                                    Surface(
+                                         shape = RoundedCornerShape(8.dp),
+                                         color = Color(0xFFEF4444).copy(alpha = 0.15f),
+                                         border = BorderStroke(0.8.dp, Color(0xFFEF4444).copy(alpha = 0.4f)),
+                                         modifier = Modifier.clickable {
+                                             val updated = currentSettings.copy(showQuickActionsRow = false)
+                                             currentSettings = updated
+                                             prefs.saveSettings(updated)
+                                             performFeedback(durationMs = 35L, isSpecial = true)
+                                             resetSuccessToast = "تم إخفاء شريط الأدوات (يمكنك إعادته من الإعدادات) ✓"
+                                         }
+                                    ) {
+                                         Box(
+                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                             contentAlignment = Alignment.Center
+                                         ) {
+                                             Icon(
+                                                 Icons.Default.Close,
+                                                 contentDescription = "إخفاء شريط الأدوات",
+                                                 tint = Color(0xFFEF4444),
+                                                 modifier = Modifier.size(12.dp)
+                                             )
+                                         }
                                     }
                                 }
                             }

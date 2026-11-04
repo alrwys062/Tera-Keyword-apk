@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - Teclado Inteligente</string>
+    <string name="ime_settings">Ajustes de Turbo Keyboard</string>
+    <string name="subtype_ar">Árabe (Turbo Keyboard)</string>
+    <string name="subtype_en">Inglés (Turbo Keyboard)</string>
+    <string name="subtype_ru">Ruso (Turbo Keyboard)</string>
+    <string name="subtype_fa">Persa (Turbo Keyboard)</string>
+    <string name="subtype_hi">Hindi (Turbo Keyboard)</string>
+    <string name="subtype_fr">Francés (Turbo Keyboard)</string>
+    <string name="subtype_es">Español (Turbo Keyboard)</string>
+    <string name="subtype_it">Italiano (Turbo Keyboard)</string>
+    <string name="subtype_pt">Portugués (Turbo Keyboard)</string>
+    <string name="subtype_de">Alemán (Turbo Keyboard)</string>
+    <string name="subtype_tr">Turco (Turbo Keyboard)</string>
+    <string name="subtype_ur">Urdu (Turbo Keyboard)</string>
+    <string name="subtype_id">Indonesio (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">Listo</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_close">Cerrar</string>
+    <string name="action_reset">Restablecer valores predeterminados</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_paste">Pegar</string>
+    <string name="action_clear_all">Borrar todo</string>
+    <string name="action_search_hint">Buscar en ajustes...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">Idioma de la Aplicación e Interfaz</string>
+    <string name="desc_app_language">Cambie el idioma a todos los idiomas del mundo o detección automática</string>
+    <string name="title_input_languages">Idiomas de Entrada y Teclados</string>
+    <string name="desc_input_languages">Descargue y aplique todas las distribuciones de teclado del mundo</string>
+    <string name="title_translation">Traducción Instantánea</string>
+    <string name="desc_translation">Ajustes de traducción en tiempo real y traducción al copiar</string>
+    <string name="title_decoration">Decoración de Texto y Fuentes</string>
+    <string name="desc_decoration">Fuentes elegantes y estilos de decoración en vivo</string>
+    <string name="title_appearance">Temas y Apariencia</string>
+    <string name="desc_appearance">Elija fantásticos temas de teclado o cree su paleta</string>
+    <string name="title_layouts">Diseño de Teclado y Columnas</string>
+    <string name="desc_layouts">10, 11 o 12 columnas, tamaños de teclas y distribución personalizada</string>
+    <string name="title_emojis">Emojis y Pegatinas</string>
+    <string name="desc_emojis">Fila rápida superior de emojis y estilos de caritas</string>
+    <string name="title_clipboard">Portapapeles</string>
+    <string name="desc_clipboard">Guarde textos para siempre, cierre al pegar y recuerde la posición</string>
+    <string name="title_shortcuts">Atajos de Texto</string>
+    <string name="desc_shortcuts">Gestione atajos de expansión rápida de texto</string>
+    <string name="title_typing">Escritura y Autocorrección</string>
+    <string name="desc_typing">Predicción de palabra siguiente, autocorrección y mayúsculas</string>
+    <string name="title_ai_tone">IA y Cambio de Tono</string>
+    <string name="desc_ai_tone">Reescriba textos en tono formal, amistoso o conciso con IA</string>
+    <string name="title_dictionary">Diccionario Personal</string>
+    <string name="desc_dictionary">Agregue palabras al diccionario y gestione la corrección ortográfica</string>
+    <string name="title_rows_toolbar">Fila Numérica y Barra de Herramientas</string>
+    <string name="desc_rows_toolbar">Fila de números, ancho de barra espaciadora y herramientas</string>
+    <string name="title_customize_toolbar">Personalizar Barra de Herramientas</string>
+    <string name="desc_customize_toolbar">Muestre solo las herramientas que más utiliza</string>
+    <string name="title_manage_quick_actions">Gestionar Acciones Rápidas</string>
+    <string name="desc_manage_quick_actions">Oculte o elimine la barra sobre las letras (Borrar todo, Leer, Pegar)</string>
+    <string name="title_sound_haptic">Sonido y Vibración</string>
+    <string name="desc_sound_haptic">Sonidos de clic y duración de vibración en milisegundos</string>
+    <string name="title_typing_speed">Velocidad de Escritura y Respuesta</string>
+    <string name="desc_typing_speed">Velocidad de repetición, borrado y respuesta táctil</string>
+    <string name="title_height_font">Altura de Teclado y Tamaño de Letras</string>
+    <string name="desc_height_font">Ajuste la altura general y el tamaño de las letras</string>
+    <string name="title_customization">Dimensiones Avanzadas</string>
+    <string name="desc_customization">Tamaños precisos para barra de herramientas y teclas</string>
+    <string name="title_backup">Copia de Seguridad y Restauración</string>
+    <string name="desc_backup">Exporte y restaure portapapeles y atajos</string>
+    <string name="title_restore_defaults">Restaurar Ajustes Originales</string>
+    <string name="desc_restore_defaults">Restablezca todos los ajustes a los valores iniciales</string>
+</resources>

@@ -31,66 +31,78 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.PreferencesManager
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
+import com.example.util.AppStrings
+import com.example.util.LocaleHelper
 
 @Composable
 fun ThemesScreen(
     prefs: PreferencesManager,
     currentThemeId: String,
+    appLanguageCode: String = "auto",
     onThemeApplied: (KeyboardTheme) -> Unit,
     onOpenCustomBuilder: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val effectiveLang: String = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") LocaleHelper.getAppLanguageCode(context) else appLanguageCode
+    }
+    val isRtl: Boolean = remember(effectiveLang) { LocaleHelper.isRtlLanguage(effectiveLang) }
+
     var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("الكل") }
+    var selectedCategoryId by remember { mutableStateOf("all") }
     var previewLanguageIsArabic by remember { mutableStateOf(false) }
     var customThemes by remember { mutableStateOf(prefs.getCustomThemes()) }
 
-    val categories = listOf(
-        "الكل",
-        "✨ 20 ستايل فاتح",
-        "⭐ 20 ثيم بريميوم",
-        "Pro ستايلات الهواتف",
-        "أنظمة وهواتف",
-        "داكن وفاتح",
-        "نيون وسايبر",
-        "فخم وراقي",
-        "تدرجات لونية",
-        "زجاجي شفاف",
-        "ألعاب وجيمينج",
-        "ألوان ومرح",
-        "مينيمال",
-        "مخصص"
-    )
+    val categories = remember(effectiveLang, isRtl) {
+        listOf(
+            "all" to AppStrings.trCode(context, effectiveLang, "themes_cat_all"),
+            "twenty_light" to AppStrings.trCode(context, effectiveLang, "themes_cat_light"),
+            "twenty_premium" to AppStrings.trCode(context, effectiveLang, "themes_cat_premium"),
+            "pro_styles" to AppStrings.trCode(context, effectiveLang, "themes_cat_pro"),
+            "systems" to if (isRtl) "أنظمة وهواتف" else "Systems & Phones",
+            "dark_light" to if (isRtl) "داكن وفاتح" else "Dark & Light",
+            "neon" to if (isRtl) "نيون وسايبر" else "Neon & Cyber",
+            "elegant" to if (isRtl) "فخم وراقي" else "Luxury & Elegant",
+            "gradient" to if (isRtl) "تدرجات لونية" else "Gradients",
+            "glass" to if (isRtl) "زجاجي شفاف" else "Transparent Glass",
+            "gaming" to if (isRtl) "ألعاب وجيمينج" else "Gaming",
+            "colorful" to if (isRtl) "ألوان ومرح" else "Colorful & Fun",
+            "minimal" to if (isRtl) "مينيمال" else "Minimal",
+            "custom" to if (isRtl) "مخصص" else "Custom"
+        )
+    }
 
     val allThemes = remember(customThemes) {
         val presets = ThemePresets.allPresets
         (customThemes + presets).distinctBy { it.id }
     }
 
-    val filteredThemes = remember(allThemes, searchQuery, selectedCategory) {
+    val filteredThemes = remember(allThemes, searchQuery, selectedCategoryId) {
         allThemes.filter { theme ->
             val matchQuery = searchQuery.isBlank() ||
                     theme.nameAr.contains(searchQuery.trim(), ignoreCase = true) ||
                     theme.nameEn.contains(searchQuery.trim(), ignoreCase = true)
 
-            val matchCategory = when (selectedCategory) {
-                "الكل" -> true
-                "✨ 20 ستايل فاتح" -> theme.category == "twenty_light" || theme.id in ThemePresets.twentyLightThemes.map { it.id }
-                "⭐ 20 ثيم بريميوم" -> theme.category == "twenty_premium" || theme.id in ThemePresets.twentyPremiumThemes.map { it.id }
-                "Pro ستايلات الهواتف" -> theme.category == "pro_styles"
-                "أنظمة وهواتف" -> theme.category == "systems"
-                "داكن وفاتح" -> theme.category == "dark_light"
-                "نيون وسايبر" -> theme.category == "neon"
-                "تدرجات لونية" -> theme.category == "gradient"
-                "زجاجي شفاف" -> theme.category == "glass" || theme.isGlass
-                "ألعاب وجيمينج" -> theme.category == "gaming"
-                "فخم وراقي" -> theme.category == "elegant"
-                "ألوان ومرح" -> theme.category == "colorful"
-                "مينيمال" -> theme.category == "minimal"
-                "مخصص" -> theme.isCustom
+            val matchCategory = when (selectedCategoryId) {
+                "all" -> true
+                "twenty_light" -> theme.category == "twenty_light" || theme.id in ThemePresets.twentyLightThemes.map { it.id }
+                "twenty_premium" -> theme.category == "twenty_premium" || theme.id in ThemePresets.twentyPremiumThemes.map { it.id }
+                "pro_styles" -> theme.category == "pro_styles"
+                "systems" -> theme.category == "systems"
+                "dark_light" -> theme.category == "dark_light"
+                "neon" -> theme.category == "neon"
+                "gradient" -> theme.category == "gradient"
+                "glass" -> theme.category == "glass" || theme.isGlass
+                "gaming" -> theme.category == "gaming"
+                "elegant" -> theme.category == "elegant"
+                "colorful" -> theme.category == "colorful"
+                "minimal" -> theme.category == "minimal"
+                "custom" -> theme.isCustom
                 else -> true
             }
 
@@ -134,13 +146,13 @@ fun ThemesScreen(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "أشكال وثيمات الكيبورد",
+                    text = AppStrings.trCode(context, effectiveLang, "themes_title"),
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${filteredThemes.size} ستايل فائق السرعة والخفة",
+                    text = "${filteredThemes.size} " + AppStrings.trCode(context, effectiveLang, "themes_speed_subtitle"),
                     color = Color(0xFF00E5FF),
                     fontSize = 11.sp
                 )
@@ -190,7 +202,7 @@ fun ThemesScreen(
             onValueChange = { searchQuery = it },
             placeholder = {
                 Text(
-                    text = "ابحث بالاسم أو السمة (آيفون، نيون، جلاكسي، ذهبي...)",
+                    text = AppStrings.trCode(context, effectiveLang, "themes_search_hint"),
                     color = Color(0xFF728096),
                     fontSize = 12.sp
                 )
@@ -237,8 +249,8 @@ fun ThemesScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(categories) { category ->
-                val isSelected = category == selectedCategory
+            items(categories) { (catId, catLabel) ->
+                val isSelected = catId == selectedCategoryId
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = if (isSelected) Color(0xFF00E5FF) else Color(0xFF121724),
@@ -246,10 +258,10 @@ fun ThemesScreen(
                         1.dp,
                         if (isSelected) Color(0xFF00E5FF) else Color(0xFF222B3D)
                     ),
-                    modifier = Modifier.clickable { selectedCategory = category }
+                    modifier = Modifier.clickable { selectedCategoryId = catId }
                 ) {
                     Text(
-                        text = category,
+                        text = catLabel,
                         color = if (isSelected) Color.Black else Color(0xFFC0CAD9),
                         fontSize = 11.5.sp,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -275,6 +287,7 @@ fun ThemesScreen(
                     theme = heroTheme,
                     isCurrentActive = heroTheme.id == currentThemeId,
                     isArabic = previewLanguageIsArabic,
+                    appLanguageCode = effectiveLang,
                     onApply = {
                         prefs.setCurrentTheme(heroTheme.id)
                         onThemeApplied(heroTheme)
@@ -299,13 +312,13 @@ fun ThemesScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "اختر ستايل الكيبورد (${filteredThemes.size})",
+                        text = "${AppStrings.trCode(context, effectiveLang, "themes_choose_style")} (${filteredThemes.size})",
                         color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "اضغط للمعاينة الفورية",
+                        text = AppStrings.trCode(context, effectiveLang, "themes_live_preview"),
                         color = Color(0xFF00E5FF),
                         fontSize = 11.sp
                     )
@@ -321,6 +334,7 @@ fun ThemesScreen(
                     theme = theme,
                     isSelected = isSelectedForPreview,
                     isActive = isCurrentlyActive,
+                    appLanguageCode = effectiveLang,
                     onClick = {
                         heroThemeId = theme.id
                     },
@@ -344,9 +358,11 @@ fun HeroLivePreviewCard(
     theme: KeyboardTheme,
     isCurrentActive: Boolean,
     isArabic: Boolean,
+    appLanguageCode: String = "auto",
     onApply: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -433,9 +449,19 @@ fun HeroLivePreviewCard(
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("المفعل حالياً", color = Color.Black, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = AppStrings.trCode(context, appLanguageCode, "themes_applied"),
+                                    color = Color.Black,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             } else {
-                                Text("تطبيق الثيم", color = Color.White, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    text = AppStrings.trCode(context, appLanguageCode, "themes_apply_btn"),
+                                    color = Color.White,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
                     }
@@ -518,6 +544,7 @@ fun LightweightThemeCard(
     theme: KeyboardTheme,
     isSelected: Boolean,
     isActive: Boolean,
+    appLanguageCode: String = "auto",
     onClick: () -> Unit,
     onApplyDirect: () -> Unit
 ) {
@@ -635,7 +662,7 @@ fun LightweightThemeCard(
                         modifier = Modifier.align(Alignment.TopEnd)
                     ) {
                         Text(
-                            text = "✓ مفعل",
+                            text = "✓ " + AppStrings.trCode(LocalContext.current, appLanguageCode, "themes_applied"),
                             color = accentColor,
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
@@ -679,7 +706,7 @@ fun LightweightThemeCard(
                     modifier = Modifier.clickable { onApplyDirect() }
                 ) {
                     Text(
-                        text = if (isActive) "مفعل" else "تطبيق",
+                        text = if (isActive) AppStrings.trCode(LocalContext.current, appLanguageCode, "themes_applied") else AppStrings.trCode(LocalContext.current, appLanguageCode, "themes_apply_btn"),
                         color = if (isActive) accentColor else Color.White,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,

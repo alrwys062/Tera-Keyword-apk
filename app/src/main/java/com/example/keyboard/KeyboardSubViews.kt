@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -15,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -642,6 +644,8 @@ fun ClipboardDrawer(
     var searchQuery by remember { mutableStateOf("") }
     var selectedClipForMenu by remember { mutableStateOf<ClipboardItem?>(null) }
     var showClearConfirmation by remember { mutableStateOf(false) }
+    var isSingleColumnMode by remember { mutableStateOf(false) }
+    var previewFullTextItem by remember { mutableStateOf<ClipboardItem?>(null) }
 
     LaunchedEffect(Unit) {
         if (prefs.syncWithSystemClipboard(context)) {
@@ -692,11 +696,11 @@ fun ClipboardDrawer(
                 .padding(horizontal = 6.dp, vertical = 4.dp)
         ) {
             // Top Toolbar of Clipboard:
-            // [⚙️ Settings] [🗑️ Clear] [📋 Paste] [✂️ Cut] [❌ Close]
+            // [🔄 إصلاح ومزامنة] [☷/☰] [🗑️ Clear] [📋 Paste] [✂️ Cut] [❌ Close]
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .height(38.dp)
                     .background(Color(theme.toolbarColor), RoundedCornerShape(8.dp))
                     .padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -747,38 +751,54 @@ fun ClipboardDrawer(
                         }
                     }
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // 🔄 Refresh / Sync with Telegram & WhatsApp
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(Color(theme.accentColor).copy(alpha = 0.25f))
-                                .clickable {
-                                    prefs.syncWithSystemClipboard(context)
-                                    items = prefs.getClipboardItems(forceRefresh = true)
-                                },
-                            contentAlignment = Alignment.Center
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // 🔄 Dedicated "إصلاح ومزامنة" Button for large & all texts
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(theme.accentColor).copy(alpha = 0.25f),
+                            border = BorderStroke(0.8.dp, Color(theme.accentColor)),
+                            modifier = Modifier.clickable {
+                                val count = prefs.forceSyncAndRepairClipboard(context)
+                                items = prefs.getClipboardItems(forceRefresh = true)
+                                Toast.makeText(context, "تم إصلاح ومزامنة نصوص الحافظة ($count نصوص) ✓", Toast.LENGTH_SHORT).show()
+                            }
                         ) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = "تحديث الحافظة", tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = "إصلاح ومزامنة", tint = Color(theme.accentColor), modifier = Modifier.size(13.dp))
+                                Text(
+                                    text = "إصلاح ومزامنة",
+                                    color = Color(theme.accentColor),
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
-                        // Settings
+                        // Toggle Grid / Single Wide Column for longer texts
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(24.dp)
                                 .clip(CircleShape)
-                                .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
-                                .clickable { /* Settings handled in main */ },
+                                .background(if (isSingleColumnMode) Color(theme.accentColor).copy(alpha = 0.3f) else Color(theme.keyPressedColor).copy(alpha = 0.5f))
+                                .clickable { isSingleColumnMode = !isSingleColumnMode },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                            Icon(
+                                imageVector = if (isSingleColumnMode) Icons.Default.ViewAgenda else Icons.Default.GridView,
+                                contentDescription = "نمط العرض",
+                                tint = if (isSingleColumnMode) Color(theme.accentColor) else Color(theme.keyTextColor).copy(alpha = 0.85f),
+                                modifier = Modifier.size(13.dp)
+                            )
                         }
 
                         // Delete all non-pinned with protection against accidental erase
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(22.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFEF4444).copy(alpha = 0.15f))
                                 .clickable {
@@ -789,16 +809,18 @@ fun ClipboardDrawer(
                             Icon(Icons.Outlined.Delete, contentDescription = "Clear History", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
                         }
 
-                        // Copy all / current
+                        // Paste recent
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(22.dp)
                                 .clip(CircleShape)
                                 .background(Color(theme.accentColor).copy(alpha = 0.15f))
                                 .clickable {
                                     if (items.isNotEmpty()) {
                                         onItemInserted(items[0].text)
-                                        onClose()
+                                        if (prefs.getSettings().clipboardCloseOnPaste) {
+                                            onClose()
+                                        }
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -809,7 +831,7 @@ fun ClipboardDrawer(
                         // Cut icon
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(22.dp)
                                 .clip(CircleShape)
                                 .background(Color(theme.keyPressedColor).copy(alpha = 0.5f))
                                 .clickable {
@@ -818,7 +840,9 @@ fun ClipboardDrawer(
                                         onItemInserted(first.text)
                                         prefs.deleteClipboardItem(first.id, first.text)
                                         items = prefs.getClipboardItems(forceRefresh = true)
-                                        onClose()
+                                        if (prefs.getSettings().clipboardCloseOnPaste) {
+                                            onClose()
+                                        }
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -845,16 +869,30 @@ fun ClipboardDrawer(
 
             if (filteredItems.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "الحافظة فارغة (يتم حفظ كل ما تنسخه تلقائياً للأبد)",
-                        color = Color(theme.subtextColor),
-                        fontSize = 12.sp
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "الحافظة فارغة (يتم حفظ كل ما تنسخه تلقائياً للأبد)",
+                            color = Color(theme.subtextColor),
+                            fontSize = 12.sp
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                val count = prefs.forceSyncAndRepairClipboard(context)
+                                items = prefs.getClipboardItems(forceRefresh = true)
+                                Toast.makeText(context, "تم الفحص والمزامنة ($count نصوص) ✓", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(theme.accentColor)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("🔄 فحص واستيراد نصوص الجوال الآن", color = Color(theme.accentColor), fontSize = 11.sp)
+                        }
+                    }
                 }
             } else {
-                // 2-Column Grid with single-tap to paste and long-press for floating menu
+                // Adaptive Grid: 1 column (wide expanded preview) or 2 columns
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Fixed(if (isSingleColumnMode) 1 else 2),
                     state = gridState,
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -870,41 +908,67 @@ fun ClipboardDrawer(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(68.dp)
+                                .height(if (isSingleColumnMode) 96.dp else 84.dp)
                                 .pointerInput(clip.id) {
                                     detectTapGestures(
                                         onLongPress = {
                                             selectedClipForMenu = clip
                                         },
                                         onTap = {
-                                            // Single tap pastes directly: "وعند الضغطه الواحده يكتبه"
+                                            // Single tap pastes directly
                                             onItemInserted(clip.text)
-                                            onClose()
+                                            if (prefs.getSettings().clipboardCloseOnPaste) {
+                                                onClose()
+                                            }
                                         }
                                     )
                                 }
                         ) {
-                            Box(modifier = Modifier.padding(6.dp)) {
-                                Text(
-                                    text = clip.text,
-                                    color = Color(theme.keyTextColor),
-                                    fontSize = 11.sp,
-                                    maxLines = 3,
-                                    overflow = TextOverflow.Ellipsis,
-                                    lineHeight = 15.sp,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-
-                                // Pin icon indicator
-                                if (clip.isPinned) {
-                                    Icon(
-                                        imageVector = Icons.Default.PushPin,
-                                        contentDescription = "Pinned",
-                                        tint = Color(theme.accentColor),
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .align(Alignment.BottomEnd)
+                            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    Text(
+                                        text = clip.text,
+                                        color = Color(theme.keyTextColor),
+                                        fontSize = 11.5.sp,
+                                        maxLines = if (isSingleColumnMode) 8 else 5,
+                                        overflow = TextOverflow.Ellipsis,
+                                        lineHeight = 15.5.sp,
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
+                                }
+
+                                // Icons bottom: Preview eye for large text, and Pin
+                                Row(
+                                    modifier = Modifier.align(Alignment.BottomEnd),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (clip.text.length > 60 || clip.text.contains("\n")) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(theme.keyPressedColor).copy(alpha = 0.7f))
+                                                .clickable { previewFullTextItem = clip },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Visibility,
+                                                contentDescription = "معاينة كاملة",
+                                                tint = Color(theme.accentColor),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (clip.isPinned) {
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = "Pinned",
+                                            tint = Color(theme.accentColor),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1050,7 +1114,9 @@ fun ClipboardDrawer(
                                     .clickable {
                                         onItemInserted(clip.text)
                                         selectedClipForMenu = null
-                                        onClose()
+                                        if (prefs.getSettings().clipboardCloseOnPaste) {
+                                            onClose()
+                                        }
                                     }
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
@@ -1067,6 +1133,142 @@ fun ClipboardDrawer(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
+                            }
+
+                            // 5. معاينة كاملة (Full Preview for Large Texts)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        previewFullTextItem = clip
+                                        selectedClipForMenu = null
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Visibility,
+                                    contentDescription = "معاينة",
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "معاينة",
+                                    color = Color(0xFF38BDF8),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Full Text Viewer Modal for Large/Long Texts (عرض النص كاملاً بدون أي اقتطاع)
+        if (previewFullTextItem != null) {
+            val clip = previewFullTextItem!!
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .clickable { previewFullTextItem = null },
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(theme.backgroundColor),
+                    border = BorderStroke(1.2.dp, Color(theme.accentColor)),
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .fillMaxHeight(0.92f)
+                        .clickable(enabled = false) {}
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "معاينة النص الكامل (${clip.text.length} حرف)",
+                                color = Color(theme.accentColor),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(
+                                onClick = { previewFullTextItem = null },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = Color(theme.borderColor).copy(alpha = 0.4f),
+                            thickness = 0.8.dp,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
+
+                        // Scrollable complete text container
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .background(Color(theme.keyBackgroundColor), RoundedCornerShape(8.dp))
+                                .padding(10.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = clip.text,
+                                color = Color(theme.keyTextColor),
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Bottom Actions: Copy, Paste, Close
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                    cm?.setPrimaryClip(ClipData.newPlainText("text", clip.text))
+                                    Toast.makeText(context, "تم نسخ النص إلى الحافظة", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(theme.accentColor))
+                            ) {
+                                Icon(Icons.Outlined.ContentCopy, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("نسخ", color = Color(theme.accentColor), fontSize = 12.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    onItemInserted(clip.text)
+                                    previewFullTextItem = null
+                                    if (prefs.getSettings().clipboardCloseOnPaste) {
+                                        onClose()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                            ) {
+                                Icon(Icons.Outlined.ContentPaste, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("لصق بالكيبورد", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

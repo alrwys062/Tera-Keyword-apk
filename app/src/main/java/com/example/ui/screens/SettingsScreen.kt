@@ -40,6 +40,7 @@ import com.example.model.KeyboardSettings
 import com.example.model.TextShortcut
 import com.example.model.ThemePresets
 import com.example.sound.KeyboardSoundEngine
+import com.example.util.AppStrings
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
@@ -52,6 +53,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingsScreen(
     prefs: PreferencesManager,
+    initialAppLanguageCode: String = "auto",
     onNavigateToThemes: () -> Unit,
     onNavigateToClipboard: () -> Unit,
     onNavigateToSetup: () -> Unit,
@@ -62,7 +64,14 @@ fun SettingsScreen(
     var settings by remember { mutableStateOf(prefs.getSettings()) }
     var searchQuery by remember { mutableStateOf("") }
     var showLanguagesScreen by remember { mutableStateOf(false) }
-    var appLanguageCode by remember { mutableStateOf(com.example.util.LocaleHelper.getAppLanguageCode(context)) }
+    val flowLangCode by com.example.util.LocaleHelper.appLanguageFlow.collectAsState()
+    var appLanguageCode by remember(flowLangCode, initialAppLanguageCode) {
+        mutableStateOf(
+            if (flowLangCode != "auto") flowLangCode
+            else if (initialAppLanguageCode != "auto") initialAppLanguageCode
+            else com.example.util.LocaleHelper.getAppLanguageCode(context)
+        )
+    }
     var appLanguageSearchQuery by remember { mutableStateOf("") }
 
     if (showLanguagesScreen) {
@@ -94,13 +103,20 @@ fun SettingsScreen(
         prefs.saveSettings(newSettings)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF090D15))
-            .padding(horizontal = 14.dp)
+    val currentLayoutDir = remember(appLanguageCode) {
+        com.example.util.LocaleHelper.getLayoutDirectionForCode(context, appLanguageCode)
+    }
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides currentLayoutDir
     ) {
-        Spacer(modifier = Modifier.height(14.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF090D15))
+                .padding(horizontal = 14.dp)
+        ) {
+            Spacer(modifier = Modifier.height(14.dp))
 
         // Top bar matching Screenshots 1 & 2
         Row(
@@ -124,7 +140,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "إعدادات لوحة المفاتيح",
+                text = AppStrings.trCode(context, appLanguageCode, "app_settings"),
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -140,7 +156,7 @@ fun SettingsScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("بحث في إعدادات لوحة المفاتيح...", color = Color(0xFF8E9BAE), fontSize = 12.sp) },
+            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "search_placeholder"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -172,8 +188,8 @@ fun SettingsScreen(
                     if (found != null) "${found.flag} ${found.nameNative} (${found.nameAr})" else "🌐 تلقائي (لغة الجوال)"
                 }
                 TransboardSettingsRow(
-                    title = "لغة التطبيق والإعدادات / App Language",
-                    subtitle = "اللغة الحالية: $currentLangName - اضغط لتغيير لغة التطبيق لجميع لغات العالم أو كشف لغة الجوال تلقائياً",
+                    title = AppStrings.trCode(context, appLanguageCode, "app_language"),
+                    subtitle = "${AppStrings.trCode(context, appLanguageCode, "app_language_desc")} ($currentLangName)",
                     icon = Icons.Outlined.Public,
                     onClick = { activeDialog = "APP_UI_LANGUAGE" }
                 )
@@ -182,8 +198,8 @@ fun SettingsScreen(
             // 1. لغات الإدخال (Screenshots 1, 3, SettingsInputKeyboards)
             item {
                 TransboardSettingsRow(
-                    title = "لغات الإدخال والكتابة",
-                    subtitle = "تحميل وتطبيق جميع لغات العالم (البرتغالية ABNT2، الإنجليزية، الفرنسية...) مرر على المسافة للتبديل",
+                    title = AppStrings.trCode(context, appLanguageCode, "input_languages"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "input_languages_desc"),
                     icon = Icons.Outlined.Language,
                     onClick = { showLanguagesScreen = true }
                 )
@@ -192,8 +208,8 @@ fun SettingsScreen(
             // 2. الترجمة (Screenshot 1 & 4)
             item {
                 TransboardSettingsRow(
-                    title = "الترجمة",
-                    subtitle = "إعدادات الترجمة الفورية والترجمة عند النسخ",
+                    title = AppStrings.trCode(context, appLanguageCode, "translation"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "translation_desc"),
                     icon = Icons.Outlined.Translate,
                     onClick = { activeDialog = "TRANSLATE" }
                 )
@@ -202,8 +218,8 @@ fun SettingsScreen(
             // 3. الزخرفة (Screenshot 1 & 5)
             item {
                 TransboardSettingsRow(
-                    title = "الزخرفة",
-                    subtitle = "إعدادات الزخرفة الحية وأنماط الخطوط",
+                    title = AppStrings.trCode(context, appLanguageCode, "decoration"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "decoration_desc"),
                     icon = Icons.Outlined.AutoAwesome,
                     onClick = { activeDialog = "DECORATION" }
                 )
@@ -212,8 +228,8 @@ fun SettingsScreen(
             // 4. المظهر (Screenshot 1 & 6)
             item {
                 TransboardSettingsRow(
-                    title = "المظهر والسمات",
-                    subtitle = "اختر مظهر لوحة المفاتيح أو أنشئ مظهر مخصص",
+                    title = AppStrings.trCode(context, appLanguageCode, "appearance"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "appearance_desc"),
                     icon = Icons.Outlined.Palette,
                     onClick = onNavigateToThemes
                 )
@@ -222,8 +238,8 @@ fun SettingsScreen(
             // 5. تخطيط لوحة المفاتيح والأعمدة
             item {
                 TransboardSettingsRow(
-                    title = "تخطيط لوحة المفاتيح والأعمدة",
-                    subtitle = "10 أعمدة (مثل الصورة) أو 11 أو 12 عمود، تعديل ترتيب الأحرف يدوياً، وحجم الأحرف ومربعات الأزرار",
+                    title = AppStrings.trCode(context, appLanguageCode, "layouts"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "layouts_desc"),
                     icon = Icons.Outlined.Keyboard,
                     onClick = { activeDialog = "LAYOUTS" }
                 )
@@ -232,8 +248,8 @@ fun SettingsScreen(
             // 6. الإبتسامات (Screenshot 1)
             item {
                 TransboardSettingsRow(
-                    title = "الإبتسامات",
-                    subtitle = "صف الإيموجي العلوي السريع ومظهر السمايلات",
+                    title = AppStrings.trCode(context, appLanguageCode, "emojis"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "emojis_desc"),
                     icon = Icons.Outlined.Mood,
                     onClick = { activeDialog = "EMOJIS" }
                 )
@@ -242,8 +258,8 @@ fun SettingsScreen(
             // 7. الحافظة (Screenshot 1 & User requirement: حفظ للأبد وإغلاق عند اللصق وتذكر الموضع)
             item {
                 TransboardSettingsRow(
-                    title = "الحافظة",
-                    subtitle = "حفظ النصوص للأبد، إغلاق عند اللصق، وتذكر موضع التمرير",
+                    title = AppStrings.trCode(context, appLanguageCode, "clipboard"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "clipboard_desc"),
                     icon = Icons.Outlined.ContentPaste,
                     onClick = { activeDialog = "CLIPBOARD" }
                 )
@@ -252,8 +268,8 @@ fun SettingsScreen(
             // 8. الاختصارات (Screenshot 1 & 2)
             item {
                 TransboardSettingsRow(
-                    title = "الاختصارات",
-                    subtitle = "التحكم في اختصارات النصوص السريعة (سلام، ص، جزاك...)",
+                    title = AppStrings.trCode(context, appLanguageCode, "shortcuts"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "shortcuts_desc"),
                     icon = Icons.Outlined.ShortText,
                     onClick = { activeDialog = "SHORTCUTS" }
                 )
@@ -262,8 +278,8 @@ fun SettingsScreen(
             // 9. الكتابة (Screenshot 2 & 10)
             item {
                 TransboardSettingsRow(
-                    title = "الكتابة والتصحيح التلقائي",
-                    subtitle = "إعدادات الاقتراحات والتصحيح التلقائي والكتابة بالأحرف الكبيرة",
+                    title = AppStrings.trCode(context, appLanguageCode, "typing"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "typing_desc"),
                     icon = Icons.Outlined.TextFields,
                     onClick = { activeDialog = "TYPING" }
                 )
@@ -272,8 +288,8 @@ fun SettingsScreen(
             // 9.1 الذكاء الاصطناعي وتغيير النبرة
             item {
                 TransboardSettingsRow(
-                    title = "الذكاء الاصطناعي وتغيير نبرة الكتابة",
-                    subtitle = "تغيير نبرة الكتابة (رسمي، ودي، مختصر، شاعري، فصيح...) وإعادة الصياغة",
+                    title = AppStrings.trCode(context, appLanguageCode, "ai_tone"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ai_tone_desc"),
                     icon = Icons.Outlined.Psychology,
                     onClick = { activeDialog = "AI_TONE" }
                 )
@@ -282,8 +298,8 @@ fun SettingsScreen(
             // 9.2 قاموس تصحيح الأخطاء والكلمات الشخصية
             item {
                 TransboardSettingsRow(
-                    title = "قاموس تصحيح الأخطاء والكلمات",
-                    subtitle = "إضافة كلمات جديدة للقاموس والتحكم في قاموس التدقيق الإملائي",
+                    title = AppStrings.trCode(context, appLanguageCode, "dictionary"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "dictionary_desc"),
                     icon = Icons.Outlined.Spellcheck,
                     onClick = { activeDialog = "DICTIONARY" }
                 )
@@ -292,8 +308,8 @@ fun SettingsScreen(
             // 10. الصف السفلي والعلوي وشريط الأدوات (Screenshot 2 & 11)
             item {
                 TransboardSettingsRow(
-                    title = "الصف السفلي والعلوي و شريط الأدوات",
-                    subtitle = "إظهار صف الأرقام العلوي والتحكم بالصف السفلي وشريط الأدوات",
+                    title = AppStrings.trCode(context, appLanguageCode, "rows_toolbar"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "rows_toolbar_desc"),
                     icon = Icons.Outlined.ViewStream,
                     onClick = { activeDialog = "ROWS_TOOLBAR" }
                 )
@@ -302,8 +318,8 @@ fun SettingsScreen(
             // 10.1 تخصيص شريط الأدوات العلوي (تقليل الأيقونات وإزالة الزحمة)
             item {
                 TransboardSettingsRow(
-                    title = "تخصيص شريط الأدوات العلوي",
-                    subtitle = "تقليل عدد الأيقونات، إخفاء الأدوات غير المستخدمة، واختيار الأدوات التي تظهر فقط",
+                    title = AppStrings.trCode(context, appLanguageCode, "customize_toolbar"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "customize_toolbar_desc"),
                     icon = Icons.Outlined.Tune,
                     onClick = { activeDialog = "CUSTOMIZE_TOOLBAR" }
                 )
@@ -312,8 +328,8 @@ fun SettingsScreen(
             // 10.2 إدارة وحذف شريط الأدوات فوق الأحرف
             item {
                 TransboardSettingsRow(
-                    title = "حذف وإدارة شريط الأدوات فوق الأحرف (مسح الكل، قراءة، لصق، الحافظة)",
-                    subtitle = "حذف أو إخفاء شريط الأدوات بالكامل أو إزالة وتخصيص أزرار مسح الكل وقراءة ولصق والحافظة وغيرها",
+                    title = AppStrings.trCode(context, appLanguageCode, "manage_quick_actions"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "manage_quick_actions_desc"),
                     icon = Icons.Outlined.FormatListBulleted,
                     onClick = { activeDialog = "MANAGE_KEYBOARD_MENUS" }
                 )
@@ -322,8 +338,8 @@ fun SettingsScreen(
             // 11. الصوت والإهتزاز (Screenshot 2 & 12)
             item {
                 TransboardSettingsRow(
-                    title = "الصوت والإهتزاز",
-                    subtitle = "التحكم في أصوات المفاتيح ونغمات النقر والاهتزاز بالملي ثانية",
+                    title = AppStrings.trCode(context, appLanguageCode, "sound_haptic"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "sound_haptic_desc"),
                     icon = Icons.Outlined.VolumeUp,
                     onClick = { activeDialog = "SOUND_HAPTIC" }
                 )
@@ -332,8 +348,8 @@ fun SettingsScreen(
             // 11.1 سرعة الكتابة واستجابة الأزرار
             item {
                 TransboardSettingsRow(
-                    title = "سرعة الكتابة واستجابة الأزرار",
-                    subtitle = "زيادة أو تقليل سرعة الكتابة، تكرار الحذف، وتوقيت الضغط مثل آيفون 16",
+                    title = AppStrings.trCode(context, appLanguageCode, "typing_speed"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "typing_speed_desc"),
                     icon = Icons.Outlined.Speed,
                     onClick = { activeDialog = "TYPING_SPEED" }
                 )
@@ -342,8 +358,8 @@ fun SettingsScreen(
             // 12. إرتفاع الكيبورد وحجم الأحرف (Screenshot 2 & 13)
             item {
                 TransboardSettingsRow(
-                    title = "إرتفاع الكيبورد وحجم الأحرف",
-                    subtitle = "التحكم في ارتفاع الكيبورد وحجم الأحرف على المفاتيح",
+                    title = AppStrings.trCode(context, appLanguageCode, "height_font"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "height_font_desc"),
                     icon = Icons.Outlined.Height,
                     onClick = { activeDialog = "HEIGHT_FONT" }
                 )
@@ -352,8 +368,8 @@ fun SettingsScreen(
             // 12.1 قسم التخصيص والأبعاد المتقدمة
             item {
                 TransboardSettingsRow(
-                    title = "التخصيص والأبعاد المتقدمة",
-                    subtitle = "شريط الأدوات (30-80 dp)، أزرار الكيبورد (40-90 dp)، حجم الخط (14-32 sp)، وسرعة الأحرف العائمة",
+                    title = AppStrings.trCode(context, appLanguageCode, "customization"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "customization_desc"),
                     icon = Icons.Outlined.Tune,
                     onClick = { activeDialog = "CUSTOMIZATION" }
                 )
@@ -362,8 +378,8 @@ fun SettingsScreen(
             // 13. النسخ الإحتياطي (Screenshot 2)
             item {
                 TransboardSettingsRow(
-                    title = "النسخ الإحتياطي",
-                    subtitle = "النسخ الإحتياطي للحافظة والإختصارات واستعادتها",
+                    title = AppStrings.trCode(context, appLanguageCode, "backup"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "backup_desc"),
                     icon = Icons.Outlined.CloudUpload,
                     onClick = { activeDialog = "BACKUP" }
                 )
@@ -372,8 +388,8 @@ fun SettingsScreen(
             // 13.1 استعادة الإعدادات الافتراضية
             item {
                 TransboardSettingsRow(
-                    title = "استعادة الإعدادات الافتراضية",
-                    subtitle = "إعادة جميع خيارات وثيمات وتخطيط وأزرار الكيبورد إلى الوضع الافتراضي الأصلي",
+                    title = AppStrings.trCode(context, appLanguageCode, "restore_defaults"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "restore_defaults_desc"),
                     icon = Icons.Outlined.RestartAlt,
                     onClick = { activeDialog = "RESET_DEFAULTS_CONFIRM" }
                 )
@@ -1240,7 +1256,7 @@ fun SettingsScreen(
     if (activeDialog == "CLIPBOARD") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("التحكم في إعدادات الحافظة", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "clipboard"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     // Feature 1: حفظ للأبد
@@ -1250,8 +1266,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("حفظ النصوص للأبد", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("الاحتفاظ بكافة النصوص المنسوخة دون حذف تلقائي", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_save_forever"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_save_forever_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Checkbox(
                             checked = settings.clipboardSaveForever,
@@ -1267,8 +1283,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("إغلاق الحافظة عند اللصق", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("الرجوع إلى المفاتيح مباشرة عند اختيار أي نص", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_close_on_paste"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_close_on_paste_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Checkbox(
                             checked = settings.clipboardCloseOnPaste,
@@ -1284,8 +1300,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("تذكر موضع التمرير بالحافظة", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("عند فتح الحافظة تبقى عند نفس المكان الذي وصلت إليه", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_remember_scroll"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_remember_scroll"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(20.dp))
                     }
@@ -1299,9 +1315,9 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("تبديل مكان الحافظة مكان الإيموجي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "clipboard_swap_emoji"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
-                                if (settings.swapClipboardAndEmoji) "الحافظة على اليسار [📋] والإيموجي على اليمين [😊]" else "الإيموجي على اليسار [😊] والحافظة على اليمين [📋]",
+                                if (settings.swapClipboardAndEmoji) "[📋] | [😊]" else "[😊] | [📋]",
                                 color = Color(0xFF00E5FF),
                                 fontSize = 10.sp
                             )
@@ -1310,6 +1326,33 @@ fun SettingsScreen(
                             checked = settings.swapClipboardAndEmoji,
                             onCheckedChange = { updateSettings(settings.copy(swapClipboardAndEmoji = it)) }
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // زر إصلاح ومزامنة نصوص الحافظة الفورية (Fix & Sync Clipboard)
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF00E5FF).copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, Color(0xFF00E5FF)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val count = prefs.forceSyncAndRepairClipboard(context)
+                                Toast.makeText(context, "تم إصلاح ومزامنة نصوص الحافظة بنجاح ($count نصوص) ✓", Toast.LENGTH_SHORT).show()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(24.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(AppStrings.trCode(context, appLanguageCode, "fix_and_sync_clipboard"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "fix_and_sync_clipboard_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -3014,22 +3057,23 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Tune, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("التخصيص والأبعاد المتقدمة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "dim_title"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
+                val isRtlLang = com.example.util.LocaleHelper.isRtlLanguage(appLanguageCode)
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 4.dp)
                 ) {
-                    // 1. ارتفاع شريط الأدوات (Toolbar Height: 30 - 80 dp)
+                    // 1. Toolbar Height
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("ارتفاع شريط الأدوات (📋🌐🧮✨):", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${AppStrings.trCode(context, appLanguageCode, "dim_toolbar_height")} (📋🌐🧮✨):", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                         Text("${settings.toolbarHeightDp} dp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -3041,13 +3085,13 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 2. ارتفاع أزرار الكيبورد (Keyboard Height: 5 Levels + Slider 30 - 80 dp)
+                    // 2. Keyboard Key Height
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("ارتفاع أزرار الكيبورد (الحجم الافتراضي 100%):", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${AppStrings.trCode(context, appLanguageCode, "dim_keys_height")}:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         Text("${settings.keyHeightDp} dp (${(settings.keyHeightFactor * 100).toInt()}%)", color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -3059,14 +3103,14 @@ fun SettingsScreen(
                         valueRange = 30f..80f,
                         steps = 49
                     )
-                    // 5 مستويات ارتفاع واضحة وثابتة
+                    // 5 Clear Height Presets
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         listOf(
-                            Triple("صغير جداً", 34, 0.82f),
-                            Triple("صغير", 37, 0.90f),
-                            Triple("متوسط 100%", 40, 1.00f),
-                            Triple("كبير", 46, 1.15f),
-                            Triple("كبير جداً", 52, 1.30f)
+                            Triple(if (isRtlLang) "صغير جداً" else "Very Small", 34, 0.82f),
+                            Triple(if (isRtlLang) "صغير" else "Small", 37, 0.90f),
+                            Triple(if (isRtlLang) "متوسط 100%" else "Medium 100%", 40, 1.00f),
+                            Triple(if (isRtlLang) "كبير" else "Large", 46, 1.15f),
+                            Triple(if (isRtlLang) "كبير جداً" else "Very Large", 52, 1.30f)
                         ).forEach { (lbl, dpVal, factorVal) ->
                             val isSel = settings.keyHeightDp == dpVal || kotlin.math.abs(settings.keyHeightFactor - factorVal) < 0.04f
                             Surface(
@@ -3085,15 +3129,15 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // تحريك المؤشر بسلاسة بالسحب على المسافة
+                    // Spacebar cursor control
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("تحريك المؤشر بالسحب على المسافة", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            Text("اسحب يميناً ويساراً على المسافة للتحكم في مكان المؤشر بدقة وسلاسة", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "dim_space_cursor"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "dim_space_cursor_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.spacebarCursorControl,
@@ -3103,13 +3147,13 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 3. حجم خط الأحرف (Key Font Size: 14 - 32 sp)
+                    // 3. Key Font Size
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("حجم خط الأحرف على المفاتيح:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${AppStrings.trCode(context, appLanguageCode, "dim_font_size")}:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                         Text("${settings.keyFontSizeSp} sp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -3124,22 +3168,23 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 4. سرعة التنقل في الأحرف العائمة (Floating Navigation Speed: 1 - 10)
+                    // 4. Floating Navigation Speed
+                    val speedDesc = if (settings.floatingNavSpeed <= 3) (if (isRtlLang) "(بطيء)" else "(Slow)") else if (settings.floatingNavSpeed >= 8) (if (isRtlLang) "(سريع)" else "(Fast)") else (if (isRtlLang) "(متوسط)" else "(Medium)")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("سرعة التنقل في الأحرف العائمة:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("${AppStrings.trCode(context, appLanguageCode, "dim_floating_speed")}:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "${settings.floatingNavSpeed} ${if (settings.floatingNavSpeed <= 3) "(بطيء)" else if (settings.floatingNavSpeed >= 8) "(سريع)" else "(متوسط)"}",
+                            "${settings.floatingNavSpeed} $speedDesc",
                             color = Color(0xFF00E5FF),
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Text(
-                        "اسحب يميناً ويساراً للتنقل بين الأحرف المنبثقة (1 = مسافة سحب أكبر، 10 = استجابة سريعة)",
+                        AppStrings.trCode(context, appLanguageCode, "dim_floating_speed_desc"),
                         color = Color(0xFF94A3B8),
                         fontSize = 10.sp
                     )
@@ -3152,13 +3197,13 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 5. حجم شريط الابتسامات السريعة
+                    // 5. Emoji Bar Height
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("حجم شريط الابتسامات السريعة:", color = Color.White, fontSize = 12.5.sp)
+                        Text("${AppStrings.trCode(context, appLanguageCode, "dim_quick_emoji_size")}:", color = Color.White, fontSize = 12.5.sp)
                         Text("${(settings.emojiBarHeightFactor * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -3169,8 +3214,8 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 6. تكبير وتصغير أزرار الكيبورد
-                    Text("تكبير وتصغير أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    // 6. Keyboard Scale
+                    Text("${AppStrings.trCode(context, appLanguageCode, "dim_keyboard_scale")}: ${(settings.keyButtonScale * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Slider(
                         value = settings.keyButtonScale,
                         onValueChange = { updateSettings(settings.copy(keyButtonScale = it)) },
@@ -3193,7 +3238,7 @@ fun SettingsScreen(
                                     backspaceKeyScale = 1.15f
                                 )
                             )
-                            Toast.makeText(context, "تمت استعادة الإعدادات الافتراضية للكيبورد ✓", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, if (isRtlLang) "تمت استعادة الإعدادات الافتراضية للكيبورد ✓" else "Default keyboard dimensions restored ✓", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -3202,13 +3247,13 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("↺ استعادة القيم الافتراضية للكيبورد", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("↺ " + AppStrings.trCode(context, appLanguageCode, "dim_restore_btn"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم وحفظ ✓", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "dim_save_done"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -3226,10 +3271,10 @@ fun SettingsScreen(
                                 keyButtonScale = 1.0f
                             )
                         )
-                        Toast.makeText(context, "تمت استعادة الحجم الافتراضي ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, if (com.example.util.LocaleHelper.isRtlLanguage(appLanguageCode)) "تمت استعادة الحجم الافتراضي ✓" else "Default size restored ✓", Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("إعادة ضبط", color = Color(0xFF94A3B8))
+                    Text(AppStrings.trCode(context, appLanguageCode, "dim_reset"), color = Color(0xFF94A3B8))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -3561,7 +3606,7 @@ fun SettingsScreen(
             },
             title = {
                 Text(
-                    text = "استعادة إعدادات الكيبورد الأصلية",
+                    text = AppStrings.trCode(context, appLanguageCode, "reset_confirm_title"),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
@@ -3571,7 +3616,7 @@ fun SettingsScreen(
             },
             text = {
                 Text(
-                    text = "هل تريد استعادة إعدادات الكيبورد الأصلية؟\n\nسيتم إعادة الثيم والخلفية والألوان وحجم الأزرار وارتفاع الكيبورد واللغة والتخطيط وشريط الأدوات وإعدادات التصحيح التلقائي وجميع خيارات التخصيص إلى الوضع الافتراضي كما كان عند التثبيت.\n\n✓ لن يتم حذف نصوص الحافظة المحفوظة أو كلماتك الشخصية أو اختصاراتك دون إذنك.",
+                    text = AppStrings.trCode(context, appLanguageCode, "reset_confirm_msg"),
                     color = Color(0xFFCAD5E2),
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
@@ -3585,12 +3630,12 @@ fun SettingsScreen(
                         val (newSettings, _) = prefs.resetToFactoryDefaults()
                         updateSettings(newSettings)
                         activeDialog = null
-                        Toast.makeText(context, "تمت استعادة الإعدادات الأصلية بنجاح ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "reset_confirm_success"), Toast.LENGTH_SHORT).show()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("استعادة", color = Color(0xFF090D15), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "reset_confirm_btn"), color = Color(0xFF090D15), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -3599,7 +3644,7 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(10.dp),
                     border = BorderStroke(1.dp, Color(0xFF334155))
                 ) {
-                    Text("إلغاء", color = Color(0xFF94A3B8))
+                    Text(AppStrings.trCode(context, appLanguageCode, "cancel"), color = Color(0xFF94A3B8))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -3615,7 +3660,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Outlined.FormatListBulleted, contentDescription = null, tint = Color(0xFF00E5FF))
-                    Text("إدارة قوائم وأزرار الكيبورد", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "manage_menus_title"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -3625,7 +3670,7 @@ fun SettingsScreen(
                         .heightIn(max = 480.dp)
                 ) {
                     Text(
-                        text = "تحكم في إظهار وإخفاء قوائم وأزرار الكيبورد بشكل مستقل. يتم حفظ خياراتك تلقائياً وبشكل فوري دون فراغات.",
+                        text = AppStrings.trCode(context, appLanguageCode, "manage_menus_desc"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.5.sp,
                         lineHeight = 16.sp
@@ -3642,7 +3687,7 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
                             Text(
-                                text = "معاينة حية لشريط الإجراءات السريعة:",
+                                text = AppStrings.trCode(context, appLanguageCode, "manage_menus_preview"),
                                 color = Color(0xFF00E5FF),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
@@ -3866,11 +3911,12 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color(0xFF141A28)
         )
+    }
     }
 }
 

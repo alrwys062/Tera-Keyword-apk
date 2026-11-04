@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - صفحه‌کلید هوشمند</string>
+    <string name="ime_settings">تنظیمات Turbo Keyboard</string>
+    <string name="subtype_ar">عربی (Turbo Keyboard)</string>
+    <string name="subtype_en">انگلیسی (Turbo Keyboard)</string>
+    <string name="subtype_ru">روسی (Turbo Keyboard)</string>
+    <string name="subtype_fa">فارسی (Turbo Keyboard)</string>
+    <string name="subtype_hi">هندی (Turbo Keyboard)</string>
+    <string name="subtype_fr">فرانسوی (Turbo Keyboard)</string>
+    <string name="subtype_es">اسپانیایی (Turbo Keyboard)</string>
+    <string name="subtype_it">ایتالیایی (Turbo Keyboard)</string>
+    <string name="subtype_pt">پرتغالی (Turbo Keyboard)</string>
+    <string name="subtype_de">آلمانی (Turbo Keyboard)</string>
+    <string name="subtype_tr">ترکی (Turbo Keyboard)</string>
+    <string name="subtype_ur">اردو (Turbo Keyboard)</string>
+    <string name="subtype_id">اندونزیایی (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">انجام شد</string>
+    <string name="action_cancel">لغو</string>
+    <string name="action_save">ذخیره</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_close">بستن</string>
+    <string name="action_reset">بازنشانی به پیش‌فرض</string>
+    <string name="action_copy">کپی</string>
+    <string name="action_paste">جای‌گذاری</string>
+    <string name="action_clear_all">پاک‌کردن همه</string>
+    <string name="action_search_hint">جستجو در تنظیمات...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">زبان برنامه و رابط کاربری</string>
+    <string name="desc_app_language">تغییر زبان برنامه به تمام زبان‌های دنیا یا تشخیص خودکار زبان گوشی</string>
+    <string name="title_input_languages">زبان‌های ورودی و صفحه‌کلیدها</string>
+    <string name="desc_input_languages">دانلود و تغییر چیدمان زبان‌ها (کشش روی فاصله برای تغییر)</string>
+    <string name="title_translation">ترجمه فوری</string>
+    <string name="desc_translation">تنظیمات ترجمه همزمان و ترجمه هنگام کپی کردن</string>
+    <string name="title_decoration">زیبانویسی و فونت‌ها</string>
+    <string name="desc_decoration">قلم‌های شیک و تزئین زنده متن</string>
+    <string name="title_appearance">پوسته‌ها و ظاهر</string>
+    <string name="desc_appearance">انتخاب تم‌های زیبا یا ساخت تم سفارشی</string>
+    <string name="title_layouts">چیدمان کلیدها و ستون‌ها</string>
+    <string name="desc_layouts">۱۰، ۱۱ یا ۱۲ ستون، مرتب‌سازی دستی کلیدها</string>
+    <string name="title_emojis">شکلک‌ها و استیکرها</string>
+    <string name="desc_emojis">ردیف سریع ایموجی در بالا و ظاهر شکلک‌ها</string>
+    <string name="title_clipboard">کلیپ‌بورد (حافظه موقت)</string>
+    <string name="desc_clipboard">ذخیره همیشگی متن‌ها، بستن پس از چسباندن و ذخیره جایگاه اسکرول</string>
+    <string name="title_shortcuts">میانبرهای متنی</string>
+    <string name="desc_shortcuts">مدیریت میانبرهای سریع برای تایپ سریع جملات</string>
+    <string name="title_typing">تایپ و تصحیح خودکار</string>
+    <string name="desc_typing">پیش‌بینی کلمات بعدی و تصحیح هوشمند غلط‌های املایی</string>
+    <string name="title_ai_tone">هوش مصنوعی و تغییر لحن متن</string>
+    <string name="desc_ai_tone">بازنویسی متن به لحن رسمی، صمیمی، کوتاه یا شاعرانه</string>
+    <string name="title_dictionary">فرهنگ لغت و اصلاح املایی</string>
+    <string name="desc_dictionary">افزودن واژگان شخصی و مدیریت بررسی املایی</string>
+    <string name="title_rows_toolbar">ردیف اعداد و نوار ابزار</string>
+    <string name="desc_rows_toolbar">نمایش ردیف اعداد و کنترل نوار ابزار</string>
+    <string name="title_customize_toolbar">سفارشی‌سازی نوار ابزار</string>
+    <string name="desc_customize_toolbar">کاهش آیکون‌ها و نمایش تنها ابزارهای موردنیاز</string>
+    <string name="title_manage_quick_actions">مدیریت ردیف عملیات سریع بالای حروف</string>
+    <string name="desc_manage_quick_actions">حذف یا پنهان کردن ابزارهای بالای حروف (پاک کردن همه، خواندن، چسباندن)</string>
+    <string name="title_sound_haptic">صدا و لرزش</string>
+    <string name="desc_sound_haptic">صدای فشردن کلیدها و میزان ویبره به میلی‌ثانیه</string>
+    <string name="title_typing_speed">سرعت تایپ و پاسخگویی</string>
+    <string name="desc_typing_speed">سرعت تکرار کلید، حذف سریع و زمان پاسخ لمسی</string>
+    <string name="title_height_font">ارتفاع صفحه‌کلید و اندازه حروف</string>
+    <string name="desc_height_font">تنظیم ارتفاع کلی کیبورد و اندازه نویسه‌های روی کلیدها</string>
+    <string name="title_customization">ابعاد پیشرفته</string>
+    <string name="desc_customization">اندازه‌گیری دقیق نوار ابزار و کلیدها</string>
+    <string name="title_backup">پشتیبان‌گیری و بازیابی</string>
+    <string name="desc_backup">پشتیبان‌گیری از کلیپ‌بورد و میانبرها</string>
+    <string name="title_restore_defaults">بازگردانی تنظیمات کارخانه</string>
+    <string name="desc_restore_defaults">بازگرداندن تمام تنظیمات، تم‌ها و کلیدها به حالت اولیه</string>
+</resources>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - स्मार्ट कीबोर्ड</string>
+    <string name="ime_settings">Turbo Keyboard सेटिंग्स</string>
+    <string name="subtype_ar">अरबी (Turbo Keyboard)</string>
+    <string name="subtype_en">अंग्रेजी (Turbo Keyboard)</string>
+    <string name="subtype_ru">रूसी (Turbo Keyboard)</string>
+    <string name="subtype_fa">फ़ारसी (Turbo Keyboard)</string>
+    <string name="subtype_hi">हिन्दी (Turbo Keyboard)</string>
+    <string name="subtype_fr">फ़्रेंच (Turbo Keyboard)</string>
+    <string name="subtype_es">स्पेनिश (Turbo Keyboard)</string>
+    <string name="subtype_it">इतालवी (Turbo Keyboard)</string>
+    <string name="subtype_pt">पुर्तगाली (Turbo Keyboard)</string>
+    <string name="subtype_de">जर्मन (Turbo Keyboard)</string>
+    <string name="subtype_tr">तुर्की (Turbo Keyboard)</string>
+    <string name="subtype_ur">उर्दू (Turbo Keyboard)</string>
+    <string name="subtype_id">इंडोनेशियाई (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">पूर्ण</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_save">सहेजें</string>
+    <string name="action_delete">हटाएं</string>
+    <string name="action_close">बंद करें</string>
+    <string name="action_reset">डिफ़ॉल्ट रीसेट करें</string>
+    <string name="action_copy">कॉपी करें</string>
+    <string name="action_paste">पेस्ट करें</string>
+    <string name="action_clear_all">सभी साफ़ करें</string>
+    <string name="action_search_hint">सेटिंग्स खोजें...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">ऐप भाषा और इंटरफ़ेस</string>
+    <string name="desc_app_language">ऐप की भाषा बदलें या फ़ोन की भाषा अपने आप पहचानें</string>
+    <string name="title_input_languages">टाइपिंग भाषाएं और कीबोर्ड</string>
+    <string name="desc_input_languages">विश्व कीबोर्ड लेआउट डाउनलोड करें और स्पेसबार स्वाइप से बदलें</string>
+    <string name="title_translation">त्वरित अनुवाद</string>
+    <string name="desc_translation">रियल-टाइम चैट अनुवाद और कॉपी पर स्वचालित अनुवाद</string>
+    <string name="title_decoration">टेक्स्ट सजावट और फ़ॉन्ट्स</string>
+    <string name="desc_decoration">स्टाइलिश फ़ॉन्ट शैलियाँ और टेक्स्ट डेकोरेटर</string>
+    <string name="title_appearance">थीम्स और दिखावट</string>
+    <string name="desc_appearance">सुंदर कीबोर्ड थीम चुनें या कस्टमाइज़ करें</string>
+    <string name="title_layouts">कीबोर्ड लेआउट और कॉलम</string>
+    <string name="desc_layouts">10, 11, या 12 कॉलम, अक्षरों का क्रम और बटन आकार</string>
+    <string name="title_emojis">इमोजी और स्टिकर</string>
+    <string name="desc_emojis">त्वरित शीर्ष इमोजी पंक्ति और स्माइली शैलियाँ</string>
+    <string name="title_clipboard">क्लिपबोर्ड प्रबंधक</string>
+    <string name="desc_clipboard">हमेशा के लिए टेक्स्ट सहेजें, पेस्ट पर ऑटो-क्लोज़ और स्क्रॉल याद रखें</string>
+    <string name="title_shortcuts">टेक्स्ट शॉर्टकट</string>
+    <string name="desc_shortcuts">तेज़ टाइपिंग के लिए शॉर्टकट और वाक्यांश विस्तार</string>
+    <string name="title_typing">टाइपिंग और स्वत: सुधार</string>
+    <string name="desc_typing">अगले शब्द का सुझाव और स्मार्ट ऑटो-करेक्ट</string>
+    <string name="title_ai_tone">एआई टोन परिवर्तक</string>
+    <string name="desc_ai_tone">औपचारिक, मैत्रीपूर्ण, काव्यात्मक या संक्षिप्त टोन में लिखें</string>
+    <string name="title_dictionary">व्यक्तिगत शब्दकोश</string>
+    <string name="desc_dictionary">नए शब्द जोड़ें और वर्तनी जांच प्रबंधित करें</string>
+    <string name="title_rows_toolbar">संख्या पंक्ति और टूलबार</string>
+    <string name="desc_rows_toolbar">नंबर रो दिखाएं और टूलबार प्रबंधित करें</string>
+    <string name="title_customize_toolbar">टूलबार कस्टमाइज़ करें</string>
+    <string name="desc_customize_toolbar">अप्रयुक्त उपकरण छुपाएं और केवल उपयोगी उपकरण रखें</string>
+    <string name="title_manage_quick_actions">त्वरित क्रियाएं पंक्ति प्रबंधित करें</string>
+    <string name="desc_manage_quick_actions">अक्षरों के ऊपर की पंक्ति छुपाएं या हटाएं (सभी साफ़ करें, पढ़ें, पेस्ट)</string>
+    <string name="title_sound_haptic">ध्वनि और कंपन</string>
+    <string name="desc_sound_haptic">कुंजी दबाने की ध्वनि और मिलीसेकंड में कंपन</string>
+    <string name="title_typing_speed">टाइपिंग गति और प्रतिक्रिया</string>
+    <string name="desc_typing_speed">दोहराव गति, हटाने की गति और स्पर्श समय</string>
+    <string name="title_height_font">कीबोर्ड ऊंचाई और फ़ॉन्ट आकार</string>
+    <string name="desc_height_font">कीबोर्ड की ऊंचाई और अक्षरों का आकार समायोजित करें</string>
+    <string name="title_customization">उन्नत आयाम</string>
+    <string name="desc_customization">टूलबार और कीबोर्ड बटन के सटीक आयाम</string>
+    <string name="title_backup">बैकअप और पुनर्स्थापना</string>
+    <string name="desc_backup">क्लिपबोर्ड और शॉर्टकट का बैकअप लें और पुनर्स्थापित करें</string>
+    <string name="title_restore_defaults">मूल सेटिंग्स पुनर्स्थापित करें</string>
+    <string name="desc_restore_defaults">सभी थीम, रंग और लेआउट को डिफ़ॉल्ट पर रीसेट करें</string>
+</resources>

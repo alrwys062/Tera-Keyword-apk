@@ -1,7 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Turbo Keyboard</string>
-    <string name="ime_name">Turbo Keyboard - كيبورد برو</string>
+    <string name="ime_name">Turbo Keyboard - Smart Pro</string>
     <string name="ime_settings">Turbo Keyboard Settings</string>
-    <string name="subtype_ar">العربية (Turbo Keyboard)</string>
+    <string name="subtype_ar">Arabic (Turbo Keyboard)</string>
     <string name="subtype_en">English (Turbo Keyboard)</string>
+    <string name="subtype_ru">Russian (Turbo Keyboard)</string>
+    <string name="subtype_fa">Persian (Turbo Keyboard)</string>
+    <string name="subtype_hi">Hindi (Turbo Keyboard)</string>
+    <string name="subtype_fr">French (Turbo Keyboard)</string>
+    <string name="subtype_es">Spanish (Turbo Keyboard)</string>
+    <string name="subtype_it">Italian (Turbo Keyboard)</string>
+    <string name="subtype_pt">Portuguese (Turbo Keyboard)</string>
+    <string name="subtype_de">German (Turbo Keyboard)</string>
+    <string name="subtype_tr">Turkish (Turbo Keyboard)</string>
+    <string name="subtype_ur">Urdu (Turbo Keyboard)</string>
+    <string name="subtype_id">Indonesian (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">Done</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_close">Close</string>
+    <string name="action_reset">Reset to Defaults</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_paste">Paste</string>
+    <string name="action_clear_all">Clear All</string>
+    <string name="action_search_hint">Search settings...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">App Language &amp; Interface</string>
+    <string name="desc_app_language">Change app interface language or auto-detect system language</string>
+    <string name="title_input_languages">Input Languages &amp; Keyboards</string>
+    <string name="desc_input_languages">Download and switch between world keyboard layouts</string>
+    <string name="title_translation">Instant Translation</string>
+    <string name="desc_translation">Real-time chat translation and copy translation</string>
+    <string name="title_decoration">Text Decoration &amp; Fonts</string>
+    <string name="desc_decoration">Live stylish decorative fonts and calligraphy</string>
+    <string name="title_appearance">Themes &amp; Appearance</string>
+    <string name="desc_appearance">Select keyboard themes or customize colors</string>
+    <string name="title_layouts">Keyboard Layout &amp; Columns</string>
+    <string name="desc_layouts">10, 11, or 12 columns, custom key arrangement</string>
+    <string name="title_emojis">Emojis &amp; Stickers</string>
+    <string name="desc_emojis">Quick emoji top row, iOS and Android emoji styles</string>
+    <string name="title_clipboard">Clipboard Manager</string>
+    <string name="desc_clipboard">Unlimited text storage forever, auto-close, scroll preserve</string>
+    <string name="title_shortcuts">Text Shortcuts</string>
+    <string name="desc_shortcuts">Instant phrase expansion abbreviations</string>
+    <string name="title_typing">Typing &amp; Auto-Correction</string>
+    <string name="desc_typing">Smart suggestions, next-word prediction, auto-correct</string>
+    <string name="title_ai_tone">AI Tone Changer</string>
+    <string name="desc_ai_tone">Formal, friendly, poetic, or concise rewrite</string>
+    <string name="title_dictionary">Personal Dictionary</string>
+    <string name="desc_dictionary">Manage custom words and spell checker</string>
+    <string name="title_rows_toolbar">Rows &amp; Toolbar</string>
+    <string name="desc_rows_toolbar">Number row, spacebar width, and toolbar controls</string>
+    <string name="title_customize_toolbar">Customize Toolbar</string>
+    <string name="desc_customize_toolbar">Show or hide toolbar action icons</string>
+    <string name="title_manage_quick_actions">Manage Quick Actions</string>
+    <string name="desc_manage_quick_actions">Show or hide row above letters (Clear All, Read, Paste)</string>
+    <string name="title_sound_haptic">Sound &amp; Vibration</string>
+    <string name="desc_sound_haptic">Keypress click sounds and vibration feedback</string>
+    <string name="title_typing_speed">Typing Speed &amp; Response</string>
+    <string name="desc_typing_speed">Repeat rate, delete speed, tactile response</string>
+    <string name="title_height_font">Keyboard Height &amp; Font Size</string>
+    <string name="desc_height_font">Resize keyboard height and key character scales</string>
+    <string name="title_customization">Advanced Dimensions</string>
+    <string name="desc_customization">Precise toolbars, buttons, and font scaling</string>
+    <string name="title_backup">Backup &amp; Restore</string>
+    <string name="desc_backup">Export and restore clipboard, shortcuts, and settings</string>
+    <string name="title_restore_defaults">Restore Factory Defaults</string>
+    <string name="desc_restore_defaults">Reset all colors, themes, layouts, and tools</string>
 </resources>

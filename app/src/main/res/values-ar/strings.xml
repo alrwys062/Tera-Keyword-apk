@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turbo Keyboard</string>
+    <string name="ime_name">Turbo Keyboard - كيبورد برو</string>
+    <string name="ime_settings">إعدادات Turbo Keyboard</string>
+    <string name="subtype_ar">العربية (Turbo Keyboard)</string>
+    <string name="subtype_en">English (Turbo Keyboard)</string>
+    <string name="subtype_ru">الروسية (Turbo Keyboard)</string>
+    <string name="subtype_fa">الفارسية (Turbo Keyboard)</string>
+    <string name="subtype_hi">الهندية (Turbo Keyboard)</string>
+    <string name="subtype_fr">الفرنسية (Turbo Keyboard)</string>
+    <string name="subtype_es">الإسبانية (Turbo Keyboard)</string>
+    <string name="subtype_it">الإيطالية (Turbo Keyboard)</string>
+    <string name="subtype_pt">البرتغالية (Turbo Keyboard)</string>
+    <string name="subtype_de">الألمانية (Turbo Keyboard)</string>
+    <string name="subtype_tr">التركية (Turbo Keyboard)</string>
+    <string name="subtype_ur">الأردية (Turbo Keyboard)</string>
+    <string name="subtype_id">الإندونيسية (Turbo Keyboard)</string>
+
+    <!-- General Actions -->
+    <string name="action_done">تم</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_save">حفظ</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_close">إغلاق</string>
+    <string name="action_reset">استعادة الافتراضي</string>
+    <string name="action_copy">نسخ</string>
+    <string name="action_paste">لصق</string>
+    <string name="action_clear_all">مسح الكل</string>
+    <string name="action_search_hint">بحث في الإعدادات...</string>
+
+    <!-- Settings Categories -->
+    <string name="title_app_language">لغة التطبيق والإعدادات</string>
+    <string name="desc_app_language">تغيير لغة واجهة التطبيق لجميع لغات العالم أو كشف لغة الجوال تلقائياً</string>
+    <string name="title_input_languages">لغات الإدخال والكتابة</string>
+    <string name="desc_input_languages">تحميل وتطبيق جميع لغات العالم (البرتغالية ABNT2، الإنجليزية، الفرنسية...)</string>
+    <string name="title_translation">الترجمة</string>
+    <string name="desc_translation">إعدادات الترجمة الفورية والترجمة عند النسخ</string>
+    <string name="title_decoration">الزخرفة</string>
+    <string name="desc_decoration">إعدادات الزخرفة الحية وأنماط الخطوط</string>
+    <string name="title_appearance">المظهر والسمات</string>
+    <string name="desc_appearance">اختر مظهر لوحة المفاتيح أو أنشئ مظهر مخصص</string>
+    <string name="title_layouts">تخطيط لوحة المفاتيح والأعمدة</string>
+    <string name="desc_layouts">10 أعمدة أو 11 أو 12 عمود، تعديل ترتيب الأحرف وحجم الأزرار</string>
+    <string name="title_emojis">الإبتسامات</string>
+    <string name="desc_emojis">صف الإيموجي العلوي السريع ومظهر السمايلات</string>
+    <string name="title_clipboard">الحافظة</string>
+    <string name="desc_clipboard">حفظ النصوص للأبد، إغلاق عند اللصق، وتذكر موضع التمرير</string>
+    <string name="title_shortcuts">الاختصارات</string>
+    <string name="desc_shortcuts">التحكم في اختصارات النصوص السريعة (سلام، ص، جزاك...)</string>
+    <string name="title_typing">الكتابة والتصحيح التلقائي</string>
+    <string name="desc_typing">إعدادات الاقتراحات والتصحيح التلقائي والكتابة بالأحرف الكبيرة</string>
+    <string name="title_ai_tone">الذكاء الاصطناعي وتغيير النبرة</string>
+    <string name="desc_ai_tone">تغيير نبرة الكتابة (رسمي، ودي، مختصر، شاعري، فصيح...) وإعادة الصياغة</string>
+    <string name="title_dictionary">قاموس تصحيح الأخطاء والكلمات</string>
+    <string name="desc_dictionary">إضافة كلمات جديدة للقاموس والتحكم في قاموس التدقيق الإملائي</string>
+    <string name="title_rows_toolbar">الصف السفلي والعلوي و شريط الأدوات</string>
+    <string name="desc_rows_toolbar">إظهار صف الأرقام العلوي والتحكم بالصف السفلي وشريط الأدوات</string>
+    <string name="title_customize_toolbar">تخصيص شريط الأدوات العلوي</string>
+    <string name="desc_customize_toolbar">تقليل عدد الأيقونات، إخفاء الأدوات غير المستخدمة، واختيار الأدوات</string>
+    <string name="title_manage_quick_actions">حذف وإدارة شريط الأدوات فوق الأحرف</string>
+    <string name="desc_manage_quick_actions">حذف أو إخفاء شريط الأدوات بالكامل (مسح الكل، قراءة، لصق، الحافظة)</string>
+    <string name="title_sound_haptic">الصوت والإهتزاز</string>
+    <string name="desc_sound_haptic">التحكم في أصوات المفاتيح ونغمات النقر والاهتزاز بالملي ثانية</string>
+    <string name="title_typing_speed">سرعة الكتابة واستجابة الأزرار</string>
+    <string name="desc_typing_speed">زيادة أو تقليل سرعة الكتابة، تكرار الحذف، وتوقيت الضغط</string>
+    <string name="title_height_font">إرتفاع الكيبورد وحجم الأحرف</string>
+    <string name="desc_height_font">التحكم في ارتفاع الكيبورد وحجم الأحرف على المفاتيح</string>
+    <string name="title_customization">التخصيص والأبعاد المتقدمة</string>
+    <string name="desc_customization">شريط الأدوات (30-80 dp)، أزرار الكيبورد (40-90 dp)، حجم الخط</string>
+    <string name="title_backup">النسخ الإحتياطي</string>
+    <string name="desc_backup">النسخ الإحتياطي للحافظة والإختصارات واستعادتها</string>
+    <string name="title_restore_defaults">استعادة الإعدادات الافتراضية</string>
+    <string name="desc_restore_defaults">إعادة جميع خيارات وثيمات وتخطيط وأزرار الكيبورد للوضع الأصلي</string>
+</resources>

@@ -415,7 +415,7 @@ fun SettingsScreen(
     if (activeDialog == "LANGUAGES") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("لغات الإدخال", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "input_langs_dialog_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     Row(
@@ -423,7 +423,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("عربي اساسي", color = Color.White, fontSize = 14.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "arabic_basic"), color = Color.White, fontSize = 14.sp)
                         Checkbox(checked = true, onCheckedChange = null)
                     }
                     Row(
@@ -441,8 +441,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("السحب على المسافة للتبديل", color = Color.White, fontSize = 13.sp)
-                            Text("مرر إصبعك على مفتاح المسافة لتبديل اللغة", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "swipe_space_switch"), color = Color.White, fontSize = 13.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "swipe_space_switch_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.swipeSpaceSwitchLanguage,
@@ -453,7 +453,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -467,7 +467,7 @@ fun SettingsScreen(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.Public, contentDescription = null, tint = Color(0xFF00E5FF))
-                    Text("لغة التطبيق والإعدادات", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "app_language"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -477,7 +477,7 @@ fun SettingsScreen(
                         .height(380.dp)
                 ) {
                     Text(
-                        text = "اختر لغة واجهة التطبيق والإعدادات. يمكنك اختيار الكشف التلقائي لمطابقة لغة هاتفك، أو اختيار أي لغة من لغات العالم:",
+                        text = AppStrings.trCode(context, appLanguageCode, "app_ui_lang_dialog_desc"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.5.sp,
                         lineHeight = 16.sp
@@ -487,7 +487,7 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = appLanguageSearchQuery,
                         onValueChange = { appLanguageSearchQuery = it },
-                        placeholder = { Text("ابحث عن أي لغة بالعالم...", fontSize = 11.sp, color = Color(0xFF8E9BAE)) },
+                        placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "search_any_lang"), fontSize = 11.sp, color = Color(0xFF8E9BAE)) },
                         modifier = Modifier.fillMaxWidth().height(46.dp),
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
@@ -533,8 +533,15 @@ fun SettingsScreen(
                                         appLanguageCode = lang.code
                                         com.example.util.LocaleHelper.setAppLanguageCode(context, lang.code)
                                         com.example.util.LocaleHelper.applyLocale(context)
-                                        Toast.makeText(context, "تم ضبط لغة التطبيق: ${lang.nameNative} بنجاح!", Toast.LENGTH_SHORT).show()
                                         activeDialog = null
+                                        val activity = context as? android.app.Activity
+                                        if (activity != null) {
+                                            val intent = android.content.Intent(activity, com.example.MainActivity::class.java).apply {
+                                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                            }
+                                            activity.startActivity(intent)
+                                            activity.finish()
+                                        }
                                     }
                             ) {
                                 Row(
@@ -554,12 +561,12 @@ fun SettingsScreen(
                                                 Text(lang.nameNative, color = Color.White, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
                                                 if (lang.code == "auto") {
                                                     Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF00E5FF).copy(alpha = 0.2f)) {
-                                                        Text("موصى به", color = Color(0xFF00E5FF), fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                                        Text(AppStrings.trCode(context, appLanguageCode, "recommended"), color = Color(0xFF00E5FF), fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
                                                     }
                                                 }
                                             }
                                             Text(
-                                                text = if (lang.code == "auto") "يكتشف لغة الجوال تلقائياً بدون تدخل" else "${lang.nameAr} (${lang.nameEn})",
+                                                text = if (lang.code == "auto") "Auto-detect device system language" else "${lang.nameAr} (${lang.nameEn})",
                                                 color = Color(0xFF8E9BAE),
                                                 fontSize = 10.sp
                                             )
@@ -577,7 +584,7 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("إغلاق", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "action_close"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF0D121D)
@@ -595,10 +602,10 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("إعدادات الترجمة الفورية", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "instant_translate_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("لغات الترجمة الافتراضية:", color = Color(0xFF8E9BAE), fontSize = 11.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "default_translate_langs"), color = Color(0xFF8E9BAE), fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
@@ -614,8 +621,10 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f).clickable { showSourcePicker = true }
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
-                                Text("من:", color = Color(0xFF8E9BAE), fontSize = 10.sp)
-                                Text("${srcLangObj.flag} ${srcLangObj.nameAr}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "from_label"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                                val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
+                                val srcName = if (isArabicLang) srcLangObj.nameAr else srcLangObj.nameEn
+                                Text("${srcLangObj.flag} $srcName", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -629,8 +638,10 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f).clickable { showTargetPicker = true }
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
-                                Text("إلى:", color = Color(0xFF8E9BAE), fontSize = 10.sp)
-                                Text("${tgtLangObj.flag} ${tgtLangObj.nameAr}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "to_label"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                                val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
+                                val tgtName = if (isArabicLang) tgtLangObj.nameAr else tgtLangObj.nameEn
+                                Text("${tgtLangObj.flag} $tgtName", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -647,19 +658,29 @@ fun SettingsScreen(
                                 showSourcePicker = false
                                 showTargetPicker = false
                             },
-                            title = { Text(if (showSourcePicker) "اختر لغة الإدخال (من)" else "اختر لغة الترجمة (إلى)", color = Color.White, fontSize = 15.sp) },
+                            title = {
+                                Text(
+                                    if (showSourcePicker) AppStrings.trCode(context, appLanguageCode, "select_source_lang")
+                                    else AppStrings.trCode(context, appLanguageCode, "select_target_lang"),
+                                    color = Color.White,
+                                    fontSize = 15.sp
+                                )
+                            },
                             text = {
                                 Column(modifier = Modifier.height(300.dp)) {
                                     OutlinedTextField(
                                         value = langFilter,
                                         onValueChange = { langFilter = it },
-                                        placeholder = { Text("بحث بين جميع لغات العالم...", fontSize = 11.sp) },
+                                        placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "search_languages_hint"), fontSize = 11.sp) },
                                         modifier = Modifier.fillMaxWidth().height(46.dp),
                                         singleLine = true
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                                         items(filteredList) { l ->
+                                            val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
+                                            val displayName = if (isArabicLang) l.nameAr else l.nameEn
+                                            val subName = if (isArabicLang) l.nameEn else l.nameAr
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -677,9 +698,9 @@ fun SettingsScreen(
                                             ) {
                                                 Text(l.flag, fontSize = 18.sp)
                                                 Spacer(modifier = Modifier.width(8.dp))
-                                                Text(l.nameAr, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                                Text(displayName, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Text("(${l.nameEn})", color = Color(0xFF8E9BAE), fontSize = 11.sp)
+                                                Text("($subName)", color = Color(0xFF8E9BAE), fontSize = 11.sp)
                                             }
                                         }
                                     }
@@ -690,7 +711,7 @@ fun SettingsScreen(
                                     showSourcePicker = false
                                     showTargetPicker = false
                                 }) {
-                                    Text("إلغاء", color = Color(0xFF00E5FF))
+                                    Text(AppStrings.trCode(context, appLanguageCode, "cancel"), color = Color(0xFF00E5FF))
                                 }
                             },
                             containerColor = Color(0xFF141A28)
@@ -707,8 +728,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("الترجمة التلقائية", color = Color.White, fontSize = 13.sp)
-                            Text("ترجمة تلقائية للنص بعد النسخ", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "auto_translate_copied"), color = Color.White, fontSize = 13.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "auto_translate_copied_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Checkbox(
                             checked = settings.autoTranslateOnCopy,
@@ -722,8 +743,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("الضغط 4 ثوانٍ على Enter للترجمة", color = Color.White, fontSize = 13.sp)
-                            Text("ترجمة النص المكتوب كاملاً عند الضغط المطول", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "translate_enter_hold"), color = Color.White, fontSize = 13.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "translate_enter_hold_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Checkbox(
                             checked = settings.enterLongPressTranslateEnabled,
@@ -734,7 +755,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -745,7 +766,7 @@ fun SettingsScreen(
     if (activeDialog == "DECORATION") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("زخارف ونمط الكتابة", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "text_decoration_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 LazyColumn(modifier = Modifier.height(260.dp)) {
                     items(TextDecorator.allStyles) { style ->
@@ -775,7 +796,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("إغلاق", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "close"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1047,7 +1068,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "save_done_btn"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1224,7 +1245,7 @@ fun SettingsScreen(
     if (activeDialog == "EMOJIS") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("الإبتسامات والصف السريع", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "emojis_dialog_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     Row(
@@ -1233,8 +1254,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("صف الإيموجي والاختصارات العلوي", color = Color.White, fontSize = 13.sp)
-                            Text("إظهار شريط (👑 💋 ة ؤ ء ئ ى لأ 😂 خاص) أعلى الحروف", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "emojis_row_toggle"), color = Color.White, fontSize = 13.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "emojis_row_toggle_desc"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.topQuickEmojiRowEnabled,
@@ -1245,7 +1266,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1359,19 +1380,20 @@ fun SettingsScreen(
                     OutlinedButton(
                         onClick = {
                             prefs.clearClipboardHistory()
-                            Toast.makeText(context, "تم مسح النصوص غير المثبتة", Toast.LENGTH_SHORT).show()
+                            val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
+                            Toast.makeText(context, if (isArabicLang) "تم مسح النصوص غير المثبتة" else "Unpinned clips cleared", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
                         border = BorderStroke(1.dp, Color(0xFFEF4444))
                     ) {
-                        Text("مسح النصوص غير المثبتة فقط")
+                        Text(AppStrings.trCode(context, appLanguageCode, "clear_unpinned_only"))
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1386,7 +1408,7 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("إدارة الاختصارات", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "shortcuts_dialog_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column(modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 450.dp)) {
                     Text(
@@ -1517,7 +1539,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1528,7 +1550,7 @@ fun SettingsScreen(
     if (activeDialog == "ROWS_TOOLBAR") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("الصف السفلي والعلوي وشريط الأدوات", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "rows_toolbar"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     Row(
@@ -2105,7 +2127,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم وحفظ", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "save_done_btn"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -2116,7 +2138,7 @@ fun SettingsScreen(
     if (activeDialog == "TYPING") {
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("إعدادات الكتابة والتصحيح", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "typing_dialog_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     Row(
@@ -2188,7 +2210,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -2389,7 +2411,7 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { activeDialog = null },
-            title = { Text("قاموس الكلمات الشخصية", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text(AppStrings.trCode(context, appLanguageCode, "dictionary_dialog_title"), color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column(modifier = Modifier.height(340.dp)) {
                     Text(
@@ -2468,7 +2490,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -2827,7 +2849,7 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = dAccent),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("تم وحفظ الإعدادات ✓", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "dim_save_done"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             },
             containerColor = dBg

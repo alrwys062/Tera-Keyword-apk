@@ -344,13 +344,13 @@ fun ToolsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Spellcheck, contentDescription = null, tint = Color(0xFF10B981))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("التدقيق والتصحيح الإملائي الصارم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_spellcheck_title"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 },
                 text = {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "شروط صارمة: تصحيح الحروف فقط، منع زيادة أو تأليف أي كلمة، تطابق تام لعدد الكلمات.",
+                            text = com.example.util.AppStrings.trCode(context, appLanguageCode, "tool_spellcheck_desc"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -358,7 +358,7 @@ fun ToolsScreen(
                         OutlinedTextField(
                             value = sampleSpellText,
                             onValueChange = { sampleSpellText = it },
-                            label = { Text("اكتب نصاً لفحص التصحيح الإملائي") },
+                            label = { Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "spellcheck_input_hint")) },
                             modifier = Modifier.fillMaxWidth(),
                             maxLines = 3
                         )
@@ -374,20 +374,14 @@ fun ToolsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "المدخل: ${stats.inputWordCount} | المخرج: ${stats.outputWordCount} كلمة",
-                                color = Color(0xFF38BDF8),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "تطابق 100% ✓",
+                                text = "100% ✓",
                                 color = Color(0xFF34D399),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
-                        Text("النص المصحح (بدون تأليف أو زيادة):", color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "spellcheck_result_label"), color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFF131A26),
@@ -396,7 +390,7 @@ fun ToolsScreen(
                         ) {
                             Box(modifier = Modifier.padding(10.dp)) {
                                 Text(
-                                    text = if (correctedResult.isNotBlank()) correctedResult else "لا يوجد نص",
+                                    text = if (correctedResult.isNotBlank()) correctedResult else "-",
                                     color = Color.White,
                                     fontSize = 12.sp,
                                     lineHeight = 18.sp
@@ -407,7 +401,7 @@ fun ToolsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showSpellCheckDialog = false }) {
-                        Text("إغلاق", color = Color(0xFF00E5FF))
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "close"), color = Color(0xFF00E5FF))
                     }
                 },
                 containerColor = Color(0xFF141A28)
@@ -479,7 +473,7 @@ fun ToolsScreen(
 
             AlertDialog(
                 onDismissRequest = { showAiToneDialog = false },
-                title = { Text("تجربة نبرات الذكاء الاصطناعي", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "ai_tone_test_title"), color = Color.White, fontWeight = FontWeight.Bold) },
                 text = {
                     Column {
                         OutlinedTextField(
@@ -488,7 +482,7 @@ fun ToolsScreen(
                                 sampleText = it
                                 resultText = com.example.data.AiToneEngine.transformTone(it, selectedTone)
                             },
-                            label = { Text("اكتب نصاً لتغيير نبرته") },
+                            label = { Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "ai_tone_input_hint")) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -504,12 +498,14 @@ fun ToolsScreen(
                                         resultText = com.example.data.AiToneEngine.transformTone(sampleText, tone.id)
                                     }
                                 ) {
-                                    Text("${tone.icon} ${tone.nameAr}", color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
+                                    val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && com.example.util.AppStrings.getLang(context) == "ar"))
+                                    val toneName = if (isArabicLang) tone.nameAr else tone.nameEn
+                                    Text("${tone.icon} $toneName", color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
                                 }
                             }
                         }
                         Spacer(modifier = Modifier.height(10.dp))
-                        Text("النتيجة:", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "result_label"), color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFF131A26),
@@ -523,7 +519,7 @@ fun ToolsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showAiToneDialog = false }) {
-                        Text("إغلاق", color = Color(0xFF00E5FF))
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "close"), color = Color(0xFF00E5FF))
                     }
                 },
                 containerColor = Color(0xFF141A28)
@@ -544,14 +540,15 @@ fun ToolsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Mic, contentDescription = null, tint = Color(0xFF60A5FA))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("الكتابة بالصوت (Voice Typing)", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "voice_typing_title"), color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 text = {
                     Column {
+                        val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && com.example.util.AppStrings.getLang(context) == "ar"))
                         Text(
-                            text = if (hasAudioPerm) "✓ إذن الميكروفون مفعل ومتاح للاستخدام."
-                                   else "⚠️ إذن الميكروفون غير مفعل. يرجى تفعيله للتمكن من التحدث وتحويل الصوت إلى نص.",
+                            text = if (hasAudioPerm) (if (isArabicLang) "✓ إذن الميكروفون مفعل ومتاح للاستخدام." else "✓ Microphone permission is granted and active.")
+                                   else (if (isArabicLang) "⚠️ إذن الميكروفون غير مفعل. يرجى تفعيله للتمكن من التحدث وتحويل الصوت إلى نص." else "⚠️ Microphone permission is disabled. Please enable it to use voice typing."),
                             color = if (hasAudioPerm) Color(0xFF34D399) else Color(0xFFF87171),
                             fontSize = 13.sp
                         )
@@ -559,7 +556,8 @@ fun ToolsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "طريقة الاستخدام:\n1. افتح الكيبورد في أي تطبيق (تليجرام، واتساب...)\n2. اضغط على أيقونة الميكروفون [🎙️] في شريط الأدوات العلوي للكيبورد\n3. تحدث بصوت واضح وسيقوم الكيبورد بكتابة النص فوراً!",
+                            text = if (isArabicLang) "طريقة الاستخدام:\n1. افتح الكيبورد في أي تطبيق (تليجرام، واتساب...)\n2. اضغط على أيقونة الميكروفون [🎙️] في شريط الأدوات العلوي للكيبورد\n3. تحدث بصوت واضح وسيقوم الكيبورد بكتابة النص فوراً!"
+                                   else "How to use:\n1. Open the keyboard in any app (Telegram, WhatsApp...)\n2. Tap the mic icon [🎙️] on the keyboard toolbar\n3. Speak clearly and the keyboard will type your speech instantly!",
                             color = Color(0xFF94A3B8),
                             fontSize = 12.sp,
                             lineHeight = 18.sp
@@ -571,8 +569,8 @@ fun ToolsScreen(
                                 onClick = {
                                     try {
                                         val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = Uri.fromParts("package", context.packageName, null)
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                             data = Uri.fromParts("package", context.packageName, null)
+                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         }
                                         context.startActivity(intent)
                                     } catch (_: Exception) {}
@@ -580,14 +578,14 @@ fun ToolsScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("⚙️ فتح الإعدادات لتفعيل الميكروفون", color = Color.White, fontSize = 12.sp)
+                                Text(if (isArabicLang) "⚙️ فتح الإعدادات لتفعيل الميكروفون" else "⚙️ Open Settings to Enable Mic", color = Color.White, fontSize = 12.sp)
                             }
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { showVoiceDialog = false }) {
-                        Text("تم", color = Color(0xFF60A5FA))
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "done"), color = Color(0xFF60A5FA))
                     }
                 },
                 containerColor = Color(0xFF141A28)

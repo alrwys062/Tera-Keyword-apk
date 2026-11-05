@@ -538,6 +538,11 @@ open class TurboKeyboardService : InputMethodService(),
         }
     }
 
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        inputSessionSignal.value = System.currentTimeMillis()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         composeView = null

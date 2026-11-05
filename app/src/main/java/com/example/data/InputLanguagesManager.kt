@@ -282,7 +282,7 @@ object InputLanguagesManager {
             row3 = listOf("ζ", "χ", "ψ", "ω", "β", "ν", "μ")
         ),
 
-        // 16. Kurdish (کوردی)
+        // 16. Kurdish (کوردی سۆرانی)
         WorldLanguage(
             code = "ku",
             nameAr = "الكردية",
@@ -292,10 +292,11 @@ object InputLanguagesManager {
             size = "1.3 MB",
             isRtl = true,
             layoutTag = "سۆرانی",
-            row1 = listOf("ض", "ص", "ث", "ق", "ف", "ڤ", "غ", "ع", "ھ", "خ", "ح", "ج", "چ"),
-            row2 = listOf("ش", "س", "ی", "ێ", "ب", "ل", "ڵ", "ا", "ت", "ن", "م", "ک", "گ"),
-            row3 = listOf("ظ", "ط", "ز", "ژ", "ڕ", "ر", "ذ", "د", "پ", "و", "ۆ")
+            row1 = listOf("ق", "و", "ە", "ر", "ت", "ی", "ێ", "ح", "ۆ", "پ"),
+            row2 = listOf("ا", "س", "د", "ف", "گ", "ھ", "ش", "ک", "ل"),
+            row3 = listOf("ز", "خ", "ج", "ڤ", "ب", "ن", "م")
         ),
+
 
         // 17. Pashto (پښتو)
         WorldLanguage(

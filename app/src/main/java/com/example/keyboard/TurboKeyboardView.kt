@@ -83,12 +83,15 @@ import com.example.model.KeyboardSubView
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
 import com.example.sound.KeyboardSoundEngine
+import com.example.util.AppStrings
+import com.example.util.LocaleHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+
 
 data class ImeActionInfo(
     val actionId: Int,
@@ -211,6 +214,7 @@ fun TurboKeyboardView(
     val prefs = remember { prefsManager ?: PreferencesManager(context) }
     var currentSettings by remember { mutableStateOf(settings) }
     LaunchedEffect(settings) { currentSettings = settings }
+    val appLangCode = remember { LocaleHelper.getAppLanguageCode(context) }
 
     var currentLangCode by remember(initialLanguageCode) {
         mutableStateOf(initialLanguageCode ?: InputLanguagesManager.getCurrentLanguageCode(context))
@@ -1511,6 +1515,7 @@ fun TurboKeyboardView(
                 isNightMode = true,
                 visibleTools = currentSettings.visibleToolbarTools,
                 isForceEnglishNumbers = currentSettings.forceEnglishNumbers,
+                appLanguageCode = appLangCode,
                 onMyThemeClick = {
                     val isThemesActive = activeSubView == KeyboardSubView.THEMES
                     if (!isThemesActive) {
@@ -2560,9 +2565,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.DeleteSweep, contentDescription = "مسح الكل", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.DeleteSweep, contentDescription = AppStrings.trCode(context, appLangCode, "clear_all"), tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("مسح الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "clear_all"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2590,9 +2595,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.VolumeUp, contentDescription = "قراءة", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.VolumeUp, contentDescription = AppStrings.trCode(context, appLangCode, "read_text"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("قراءة", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "read_text"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2619,9 +2624,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.ContentPaste, contentDescription = "لصق", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.ContentPaste, contentDescription = AppStrings.trCode(context, appLangCode, "paste"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("لصق", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "paste"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2648,9 +2653,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.ContentPaste, contentDescription = "الحافظة", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.ContentPaste, contentDescription = AppStrings.trCode(context, appLangCode, "clipboard_label"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("الحافظة", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "clipboard_label"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -3409,65 +3414,39 @@ fun TurboKeyboardView(
                                                             isDragGesture = true
                                                         }
 
-                                                        // 1. Vertical Swipe on Spacebar:
-                                                        // - Swipe DOWN: 1 swipe -> hide number row, 2 swipes (within 280-320ms) -> hide emoji row
-                                                        // - Swipe UP: 1 swipe -> show emoji row, 2 swipes (within 280-320ms) -> show number row
+                                                        // 1. Strict Vertical Swipe on Spacebar state machine:
+                                                        // - swipeState = 2: Full mode (Number row + Emoji row + letter keys)
+                                                        // - swipeState = 1: Number row hidden, Emoji row + letters visible
+                                                        // - swipeState = 0: Number row and Emoji row hidden, letters only
+                                                        // Swipe DOWN decrements; Swipe UP increments. Fully reversible!
                                                         if (!hasSwitchedNumberRow && !hasSwitchedLanguage && kotlin.math.abs(totalDragY) >= swipeThresholdY && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.15f) {
                                                             hasSwitchedNumberRow = true
                                                             change.consume()
-                                                            val now = System.currentTimeMillis()
+                                                            var swipeState = when {
+                                                                currentSettings.numberRowEnabled -> 2
+                                                                currentSettings.topQuickEmojiRowEnabled -> 1
+                                                                else -> 0
+                                                            }
                                                             if (totalDragY > 0) {
                                                                 // Swipe DOWN
-                                                                if (now - lastSwipeDownTime <= 320L && pendingSwipeDownJob?.isActive == true) {
-                                                                    // Double Swipe Down -> Hide Emoji Row
-                                                                    pendingSwipeDownJob?.cancel()
-                                                                    pendingSwipeDownJob = null
-                                                                    lastSwipeDownTime = 0L
-                                                                    val updated = currentSettings.copy(topQuickEmojiRowEnabled = false)
-                                                                    currentSettings = updated
-                                                                    prefs.saveSettings(updated)
-                                                                    performFeedback(durationMs = 45L, isSpecial = true)
-                                                                    resetSuccessToast = "تم إخفاء شريط الابتسامات (سحبتين لأسفل) ✓"
-                                                                } else {
-                                                                    // First Swipe Down -> Wait 280ms
-                                                                    lastSwipeDownTime = now
-                                                                    pendingSwipeDownJob?.cancel()
-                                                                    pendingSwipeDownJob = coroutineScope.launch {
-                                                                        delay(280L)
-                                                                        val updated = currentSettings.copy(numberRowEnabled = false)
-                                                                        currentSettings = updated
-                                                                        prefs.saveSettings(updated)
-                                                                        performFeedback(durationMs = 35L, isSpecial = true)
-                                                                        resetSuccessToast = "تم إخفاء شريط الأرقام (سحبة لأسفل) ✓"
-                                                                        lastSwipeDownTime = 0L
-                                                                    }
-                                                                }
+                                                                if (swipeState > 0) swipeState--
                                                             } else {
                                                                 // Swipe UP
-                                                                if (now - lastSwipeUpTime <= 320L && pendingSwipeUpJob?.isActive == true) {
-                                                                    // Double Swipe Up -> Show Number Row
-                                                                    pendingSwipeUpJob?.cancel()
-                                                                    pendingSwipeUpJob = null
-                                                                    lastSwipeUpTime = 0L
-                                                                    val updated = currentSettings.copy(numberRowEnabled = true)
-                                                                    currentSettings = updated
-                                                                    prefs.saveSettings(updated)
-                                                                    performFeedback(durationMs = 45L, isSpecial = true)
-                                                                    resetSuccessToast = "تم إظهار شريط الأرقام (سحبتين لأعلى) ✓"
-                                                                } else {
-                                                                    // First Swipe Up -> Wait 280ms
-                                                                    lastSwipeUpTime = now
-                                                                    pendingSwipeUpJob?.cancel()
-                                                                    pendingSwipeUpJob = coroutineScope.launch {
-                                                                        delay(280L)
-                                                                        val updated = currentSettings.copy(topQuickEmojiRowEnabled = true)
-                                                                        currentSettings = updated
-                                                                        prefs.saveSettings(updated)
-                                                                        performFeedback(durationMs = 35L, isSpecial = true)
-                                                                        resetSuccessToast = "تم إظهار شريط الابتسامات (سحبة لأعلى) ✓"
-                                                                        lastSwipeUpTime = 0L
-                                                                    }
-                                                                }
+                                                                if (swipeState < 2) swipeState++
+                                                            }
+                                                            val newNum = (swipeState == 2)
+                                                            val newEmoji = (swipeState >= 1)
+                                                            val updated = currentSettings.copy(
+                                                                numberRowEnabled = newNum,
+                                                                topQuickEmojiRowEnabled = newEmoji
+                                                            )
+                                                            currentSettings = updated
+                                                            prefs.saveSettings(updated)
+                                                            performFeedback(durationMs = 40L, isSpecial = true)
+                                                            resetSuccessToast = when (swipeState) {
+                                                                2 -> "الوضع الكامل: أرقام + ابتسامات ✓"
+                                                                1 -> "إخفاء الأرقام • إظهار الابتسامات ✓"
+                                                                else -> "الوضع المضغوط: إخفاء الأشرطة ✓"
                                                             }
                                                         }
 

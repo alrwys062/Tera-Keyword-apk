@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.example.util.AppStrings
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -111,8 +113,10 @@ fun KeyboardToolbar(
     onMyThemeLongClick: (() -> Unit)? = null,
     onResetSettingsClick: (() -> Unit)? = null,
     isQuickActionsEnabled: Boolean = false,
-    onToggleQuickActions: (() -> Unit)? = null
+    onToggleQuickActions: (() -> Unit)? = null,
+    appLanguageCode: String = "auto"
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val toolsToShow = if (visibleTools.isEmpty()) {
         listOf("stickers", "clipboard", "decoration", "phrases", "translate", "calculator", "emoji", "voice", "ai", "photos", "gif", "settings")
@@ -139,7 +143,7 @@ fun KeyboardToolbar(
         if (onMyThemeClick != null) {
             ToolbarFixedItem(
                 icon = Icons.Outlined.Palette,
-                label = "ثيماتي",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_themes"),
                 isActive = activeSubView == KeyboardSubView.THEMES,
                 theme = theme,
                 onClick = onMyThemeClick,
@@ -152,7 +156,7 @@ fun KeyboardToolbar(
             val isStickersActive = activeSubView == KeyboardSubView.STICKERS
             ToolbarFixedItem(
                 icon = Icons.Outlined.AutoAwesomeMosaic,
-                label = "ملصقات",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_stickers"),
                 isActive = isStickersActive,
                 theme = theme,
                 onClick = {
@@ -166,7 +170,7 @@ fun KeyboardToolbar(
             val isMyStickersActive = activeSubView == KeyboardSubView.MY_STICKERS
             ToolbarFixedItem(
                 icon = Icons.Outlined.PhotoFilter,
-                label = "ملصقاتي",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_my_stickers"),
                 isActive = isMyStickersActive,
                 theme = theme,
                 onClick = {
@@ -180,7 +184,7 @@ fun KeyboardToolbar(
             val isClipboardActive = activeSubView == KeyboardSubView.CLIPBOARD
             ToolbarFixedItem(
                 icon = Icons.Outlined.ContentPaste,
-                label = "حافظة",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_clipboard"),
                 isActive = isClipboardActive,
                 theme = theme,
                 onClick = {
@@ -191,9 +195,10 @@ fun KeyboardToolbar(
 
         // 2.1 تثبيت الأرقام الإنجليزية (English Numbers 123)
         if ("english_numbers" in toolsToShow) {
+            val numLabel = AppStrings.trCode(context, appLanguageCode, "tb_numbers")
             ToolbarFixedItem(
                 icon = Icons.Outlined.Pin,
-                label = if (isForceEnglishNumbers) "أرقام 123 ✓" else "أرقام ١٢٣",
+                label = if (isForceEnglishNumbers) "$numLabel ✓" else numLabel,
                 isActive = isForceEnglishNumbers,
                 theme = theme,
                 onClick = {
@@ -207,7 +212,7 @@ fun KeyboardToolbar(
             val isDecorActive = isDecorationActive || activeSubView == KeyboardSubView.DECORATION
             ToolbarFixedItem(
                 icon = Icons.Outlined.AutoAwesome,
-                label = "زخرفة",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_decoration"),
                 isActive = isDecorActive,
                 theme = theme,
                 onClick = onToggleDecorationBar
@@ -219,7 +224,7 @@ fun KeyboardToolbar(
             val isPhrasesActive = activeSubView == KeyboardSubView.PHRASES
             ToolbarFixedItem(
                 icon = Icons.Outlined.FavoriteBorder,
-                label = "كليشات",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_phrases"),
                 isActive = isPhrasesActive,
                 theme = theme,
                 onClick = {
@@ -228,12 +233,12 @@ fun KeyboardToolbar(
             )
         }
 
-        // 1. ترجمة (Translation) - ضغطة سريعة تفتح/تغلق الترجمة، وضغطة مطولة 1.5 ثانية تعمل كزر Enter
+        // 1. ترجمة (Translation)
         if ("translate" in toolsToShow) {
             val isTranslateActive = isTranslationActive || activeSubView == KeyboardSubView.TRANSLATE
             ToolbarFixedItem(
                 icon = Icons.Default.Translate,
-                label = "ترجمة",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_translate"),
                 isActive = isTranslateActive,
                 theme = theme,
                 onClick = onToggleTranslationBar,
@@ -243,12 +248,13 @@ fun KeyboardToolbar(
         }
 
 
+
         // 5. حاسبة (Calculator)
         if ("calculator" in toolsToShow) {
             val isCalcActive = activeSubView == KeyboardSubView.CALCULATOR
             ToolbarFixedItem(
                 icon = Icons.Outlined.Calculate,
-                label = "حاسبة",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_calculator"),
                 isActive = isCalcActive,
                 theme = theme,
                 onClick = {
@@ -262,7 +268,7 @@ fun KeyboardToolbar(
             val isEmojiActive = activeSubView == KeyboardSubView.EMOJI
             ToolbarFixedItem(
                 icon = Icons.Outlined.Mood,
-                label = "إيموجي",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_emoji"),
                 isActive = isEmojiActive,
                 theme = theme,
                 onClick = {
@@ -276,7 +282,7 @@ fun KeyboardToolbar(
             val isVoiceActive = activeSubView == KeyboardSubView.VOICE_INPUT
             ToolbarFixedItem(
                 icon = Icons.Default.Mic,
-                label = "صوت",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_voice"),
                 isActive = isVoiceActive,
                 theme = theme,
                 onClick = {
@@ -290,7 +296,7 @@ fun KeyboardToolbar(
             val isAiActive = activeSubView == KeyboardSubView.AI_ASSISTANT
             ToolbarFixedItem(
                 icon = Icons.Outlined.AutoFixHigh,
-                label = "AI ذكي",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_ai"),
                 isActive = isAiActive,
                 theme = theme,
                 onClick = {
@@ -304,7 +310,7 @@ fun KeyboardToolbar(
             val isTtsActive = activeSubView == KeyboardSubView.TTS_SPEECH
             ToolbarFixedItem(
                 icon = Icons.Outlined.VolumeUp,
-                label = "قراءة",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_read"),
                 isActive = isTtsActive,
                 theme = theme,
                 onClick = {
@@ -332,7 +338,7 @@ fun KeyboardToolbar(
             val isPhotosActive = activeSubView == KeyboardSubView.PHOTOS
             ToolbarFixedItem(
                 icon = Icons.Outlined.PhotoLibrary,
-                label = "صور",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_photos"),
                 isActive = isPhotosActive,
                 theme = theme,
                 onClick = {
@@ -359,7 +365,7 @@ fun KeyboardToolbar(
         if ("quick_actions" in toolsToShow) {
             ToolbarFixedItem(
                 icon = Icons.Outlined.FormatListBulleted,
-                label = "أدوات الأحرف",
+                label = AppStrings.trCode(context, appLanguageCode, "manage_quick_actions"),
                 isActive = isQuickActionsEnabled,
                 theme = theme,
                 onClick = {
@@ -373,7 +379,7 @@ fun KeyboardToolbar(
             val isSettingsActive = activeSubView == KeyboardSubView.SETTINGS
             ToolbarFixedItem(
                 icon = Icons.Outlined.Settings,
-                label = "إعدادات",
+                label = AppStrings.trCode(context, appLanguageCode, "tb_settings"),
                 isActive = isSettingsActive,
                 theme = theme,
                 onClick = {
@@ -386,7 +392,7 @@ fun KeyboardToolbar(
         if ("reset_settings" in toolsToShow) {
             ToolbarFixedItem(
                 icon = Icons.Outlined.RestartAlt,
-                label = "استعادة",
+                label = AppStrings.trCode(context, appLanguageCode, "dim_reset"),
                 isActive = false,
                 theme = theme,
                 onClick = {
@@ -399,7 +405,7 @@ fun KeyboardToolbar(
         val isTelegramActive = activeSubView == KeyboardSubView.TELEGRAM_CHANNELS
         ToolbarFixedItem(
             icon = Icons.AutoMirrored.Filled.Send,
-            label = "تليجرام",
+            label = "Telegram",
             isActive = isTelegramActive,
             theme = theme,
             onClick = {
@@ -411,7 +417,7 @@ fun KeyboardToolbar(
         val isCustomizeActive = activeSubView == KeyboardSubView.CUSTOMIZE_TOOLBAR
         ToolbarFixedItem(
             icon = Icons.Outlined.Tune,
-            label = "تخصيص",
+            label = AppStrings.trCode(context, appLanguageCode, "tb_customize"),
             isActive = isCustomizeActive,
             theme = theme,
             onClick = onCustomizeToolbar

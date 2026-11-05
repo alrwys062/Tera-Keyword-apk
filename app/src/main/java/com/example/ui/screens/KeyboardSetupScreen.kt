@@ -619,7 +619,7 @@ fun KeyboardSetupScreen(
                     ) {
                         Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("شاشة المحادثة", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "chat_simulator"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -631,7 +631,7 @@ fun KeyboardSetupScreen(
                     ) {
                         Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("إعدادات النظام", fontSize = 11.sp)
+                        Text(com.example.util.AppStrings.trCode(context, appLanguageCode, "system_settings"), fontSize = 11.sp)
                     }
                 }
 
@@ -644,13 +644,13 @@ fun KeyboardSetupScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "معاينة تفاعلية فورية لكيبورد Turbo:",
+                                text = com.example.util.AppStrings.trCode(context, appLanguageCode, "interactive_preview_title"),
                                 color = Color(0xFF00E5FF),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "جرب الكتابة والمسطرة والإيموجي",
+                                text = com.example.util.AppStrings.trCode(context, appLanguageCode, "interactive_preview_desc"),
                                 color = Color(0xFF8E9BAE),
                                 fontSize = 10.sp
                             )

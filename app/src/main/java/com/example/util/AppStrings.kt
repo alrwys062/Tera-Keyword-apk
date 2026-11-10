@@ -4,11 +4,140 @@ import android.content.Context
 
 object AppStrings {
 
+    @Volatile
+    private var appContext: Context? = null
+
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
+
     fun getLang(context: Context): String {
         val locale = LocaleHelper.getEffectiveLocale(context)
         val l = locale.language.lowercase()
+        return getNormalizedLangCode(l)
+    }
+
+    private val cachedAutoTranslations: MutableMap<String, Map<String, String>> = java.util.concurrent.ConcurrentHashMap()
+    private val resIdCache: MutableMap<String, Int> = java.util.concurrent.ConcurrentHashMap()
+    private var masterSourceCache: Map<String, org.json.JSONObject>? = null
+
+    fun getMasterSource(context: Context): Map<String, org.json.JSONObject> {
+        masterSourceCache?.let { return it }
+        val map = mutableMapOf<String, org.json.JSONObject>()
+        try {
+            val jsonStr = context.assets.open("i18n_source.json").bufferedReader().use { it.readText() }
+            val jsonObj = org.json.JSONObject(jsonStr)
+            val keys = jsonObj.keys()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                val obj = jsonObj.optJSONObject(k)
+                if (obj != null) {
+                    map[k] = obj
+                }
+            }
+        } catch (_: Exception) {}
+        masterSourceCache = map
+        return map
+    }
+
+    fun loadCacheForLanguage(context: Context, lang: String) {
+        getAutoTranslations(context, lang)
+    }
+
+    fun updateCacheForLanguage(lang: String, map: Map<String, String>) {
+        cachedAutoTranslations[lang] = map
+    }
+
+    fun getResId(context: Context, key: String): Int {
+        return resIdCache.computeIfAbsent(key) {
+            context.resources.getIdentifier(key, "string", context.packageName)
+        }
+    }
+
+    fun getAutoTranslations(context: Context, lang: String): Map<String, String> {
+        val cached = cachedAutoTranslations[lang]
+        if (cached != null) return cached
+        val file = java.io.File(context.filesDir, "i18n_$lang.json")
+        if (!file.exists()) {
+            val empty = emptyMap<String, String>()
+            cachedAutoTranslations[lang] = empty
+            return empty
+        }
+        val map = mutableMapOf<String, String>()
+        try {
+            val jsonStr = file.readText()
+            val jsonObj = org.json.JSONObject(jsonStr)
+            val trs = jsonObj.optJSONObject("translations") ?: jsonObj
+            val keys = trs.keys()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                map[k] = trs.getString(k)
+            }
+        } catch (_: Exception) {}
+        cachedAutoTranslations[lang] = map
+        return map
+    }
+
+    fun invalidateTranslationsCache(lang: String) {
+        cachedAutoTranslations.remove(lang)
+    }
+
+    fun getRawResourceString(context: Context, key: String): String? {
+        val id = getResId(context, key)
+        if (id != 0) {
+            try {
+                return context.resources.getString(id)
+            } catch (_: Exception) {}
+        }
+        return null
+    }
+
+    fun getLocalizedResource(context: Context, lang: String, key: String): String? {
+        val id = getResId(context, key)
+        if (id == 0) return null
+        return try {
+            val config = android.content.res.Configuration(context.resources.configuration)
+            val locale = if (lang.contains("_")) {
+                val p = lang.split("_")
+                java.util.Locale(p[0], p[1])
+            } else {
+                java.util.Locale(lang)
+            }
+            config.setLocale(locale)
+            val localizedContext = context.createConfigurationContext(config)
+            localizedContext.resources.getString(id)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun detectSrcLang(text: String): String {
+        for (ch in text) {
+            val block = Character.UnicodeBlock.of(ch)
+            if (block == Character.UnicodeBlock.ARABIC ||
+                block == Character.UnicodeBlock.ARABIC_PRESENTATION_FORMS_A ||
+                block == Character.UnicodeBlock.ARABIC_PRESENTATION_FORMS_B ||
+                block == Character.UnicodeBlock.ARABIC_SUPPLEMENT) {
+                return "ar"
+            }
+        }
+        return "en"
+    }
+
+    fun getNormalizedLangCode(langCode: String): String {
+        val l = langCode.lowercase().trim()
+        if (l == "auto" || l.isBlank()) return "en"
         return when {
             l == "ar" -> "ar"
+            l.startsWith("zh") -> "zh"
+            l.startsWith("ja") -> "ja"
+            l.startsWith("ko") -> "ko"
+            l.startsWith("nl") -> "nl"
+            l.startsWith("pl") -> "pl"
+            l.startsWith("vi") -> "vi"
+            l.startsWith("th") -> "th"
+            l.startsWith("el") -> "el"
+            l.startsWith("ku") -> "ku"
             l.startsWith("pt") -> "pt"
             l.startsWith("es") -> "es"
             l.startsWith("fr") -> "fr"
@@ -20,37 +149,82 @@ object AppStrings {
             l.startsWith("fa") -> "fa"
             l.startsWith("ur") -> "ur"
             l.startsWith("hi") -> "hi"
-            else -> "en"
+            else -> l.substringBefore('_').substringBefore('-')
         }
     }
 
     fun tr(context: Context, key: String): String {
         val lang = getLang(context)
-        return translations[lang]?.get(key) ?: translations["en"]?.get(key) ?: translations["ar"]?.get(key) ?: key
+        return resolve(context, lang, key)
     }
 
     fun trCode(context: Context, langCode: String, key: String): String {
         val effectiveLang = if (langCode == "auto" || langCode.isBlank()) {
             getLang(context)
         } else {
-            val l = langCode.lowercase()
-            when {
-                l == "ar" -> "ar"
-                l.startsWith("pt") -> "pt"
-                l.startsWith("es") -> "es"
-                l.startsWith("fr") -> "fr"
-                l.startsWith("de") -> "de"
-                l.startsWith("tr") -> "tr"
-                l.startsWith("ru") -> "ru"
-                l.startsWith("it") -> "it"
-                l.startsWith("id") || l.startsWith("in") -> "id"
-                l.startsWith("fa") -> "fa"
-                l.startsWith("ur") -> "ur"
-                l.startsWith("hi") -> "hi"
-                else -> "en"
+            getNormalizedLangCode(langCode)
+        }
+        return resolve(context, effectiveLang, key)
+    }
+
+    fun tr(key: String): String {
+        val ctx = appContext
+        return if (ctx != null) tr(ctx, key) else (translations["en"]?.get(key) ?: translations["ar"]?.get(key) ?: key)
+    }
+
+    fun trf(key: String, vararg args: Any?): String {
+        val ctx = appContext
+        return if (ctx != null) trf(ctx, key, *args) else {
+            val template = tr(key)
+            try {
+                String.format(template, *args)
+            } catch (_: Exception) {
+                template
             }
         }
-        return translations[effectiveLang]?.get(key) ?: translations["en"]?.get(key) ?: translations["ar"]?.get(key) ?: key
+    }
+
+    fun trf(context: Context, key: String, vararg args: Any?): String {
+        val template = tr(context, key)
+        return try {
+            String.format(template, *args)
+        } catch (_: Exception) {
+            template
+        }
+    }
+
+    fun trfCode(context: Context, langCode: String, key: String, vararg args: Any?): String {
+        val template = trCode(context, langCode, key)
+        return try {
+            String.format(template, *args)
+        } catch (_: Exception) {
+            template
+        }
+    }
+
+    private fun resolve(context: Context, lang: String, key: String): String {
+        // (1) Check Android localized resource from values-<lang>/strings.xml
+        val localizedRes = getLocalizedResource(context, lang, key)
+        if (!localizedRes.isNullOrBlank()) {
+            return localizedRes
+        }
+
+        // (2) Check built-in translations map
+        val builtIn = translations[lang]?.get(key)
+        if (builtIn != null) {
+            return builtIn
+        }
+
+        // (3) Check auto translations
+        val autoTranslations = getAutoTranslations(context, lang)
+        val autoTr = autoTranslations[key]
+        if (!autoTr.isNullOrBlank()) {
+            return autoTr
+        }
+
+        // (4) Fallback to raw resource or English/Arabic
+        val rawRes = getRawResourceString(context, key)
+        return rawRes ?: translations["en"]?.get(key) ?: translations["ar"]?.get(key) ?: key
     }
 
     private val translations: Map<String, Map<String, String>> = mapOf(
@@ -268,7 +442,90 @@ object AppStrings {
             "ai_tone_input_hint" to "اكتب نصاً لتغيير نبرته",
             "result_label" to "النتيجة:",
             "voice_typing_title" to "الكتابة بالصوت",
-            "voice_open_mic_settings" to "فتح الإعدادات لتفعيل الميكروفون"
+            "voice_open_mic_settings" to "فتح الإعدادات لتفعيل الميكروفون",
+            "dict_add_desc" to "أضف كلماتك ومصطلحاتك الخاصة ليتعلمها الكيبورد ولا يصححها:",
+            "dict_input_hint" to "اكتب كلمة جديدة...",
+            "dict_add_btn" to "إضافة +",
+            "dict_saved_words" to "الكلمات المحفوظة",
+            "dict_empty_msg" to "لا توجد كلمات شخصية مضافة بعد.\nيمكنك إضافة كلمات هنا أو مباشرة أثناء الكتابة!",
+            "dict_word_added" to "تمت إضافة الكلمة بنجاح ✓",
+            "top_emojis_dialog_title" to "تخصيص شريط الابتسامات العلوي",
+            "top_emojis_instruction" to "اضغط على أي ابتسامة لحذفها، أو اختر من القائمة أدناه لإضافتها للشريط:",
+            "top_emojis_input_hint" to "اكتب إيموجي أو رمزاً...",
+            "telegram_channels_title" to "قنوات التليجرام والتواصل المباشر",
+            "telegram_channels_desc" to "تابع آخر التحديثات والإصدارات والدعم الفني عبر قنواتنا الرسمية على تليجرام:",
+            "telegram_channel_1" to "📢 القناة الأولى: قناة أبو صالح الرسمية",
+            "telegram_channel_2" to "🚀 القناة الثانية: قناة المطور والدعم",
+            "telegram_join_btn" to "دخول القناة",
+            "setup_preview_show" to "معاينة مباشرة هنا",
+            "setup_preview_hide" to "إخفاء المعاينة",
+            "setup_honor_huawei_title" to "ملاحظة خاصة لهواتف Honor و Huawei و Xiaomi:",
+            "setup_honor_huawei_desc" to "في واجهات Honor (MagicOS) و Huawei (EMUI): بعد الضغط على 'تفعيل'، تأكد من تفعيل مفتاح Turbo Keyboard في قائمة 'إدارة لوحات المفاتيح'، ثم اضغط 'اختيار' لتحديده ككيبورد افتراضي لكافة التطبيقات.",
+            "tools_custom_toolbar_title" to "شريط أدوات قابل للتخصيص",
+            "tools_custom_toolbar_desc" to "بإمكانك تعديل الأدوات والترتيب في شريط الكيبورد حسب احتياجك",
+            "clipboard_screen_title" to "حافظة النصوص المتقدمة",
+            "clipboard_clear_btn" to "مسح",
+            "clipboard_add_hint" to "أضف نصاً جديداً للحافظة...",
+            "clipboard_search_hint" to "بحث في الحافظة...",
+            "clipboard_toast_copied" to "تم نسخ النص إلى الحافظة",
+            "clipboard_toast_cleared" to "تم مسح النصوص غير المثبتة",
+            "clipboard_toast_added" to "تمت إضافة النص وتثبيته",
+            "clipboard_pinned_badge" to "📌 مثبتة",
+            "clipboard_recent_badge" to "الأخيرة",
+            "clipboard_options_title" to "خيارات النص المنسوخ",
+            "clipboard_opt_delete" to "حذف",
+            "clipboard_opt_pin" to "تثبيت",
+            "clipboard_opt_unpin" to "إلغاء التثبيت",
+            "clipboard_opt_copy" to "نسخ",
+            "clipboard_opt_close" to "إغلاق",
+            "decor_screen_title" to "زخرفة النصوص الاحترافية",
+            "decor_tab_ar" to "زخرفة عربية",
+            "decor_tab_en" to "زخرفة إنجليزية",
+            "decor_input_label" to "أدخل النص للزخرفة الفورية",
+            "decor_copied_toast" to "تم نسخ النص المزخرف!",
+            "trans_screen_title" to "الترجمة الفورية المدمجة",
+            "trans_source_picker_title" to "اختر لغة النص الأصلي (من)",
+            "trans_target_picker_title" to "اختر لغة الترجمة (إلى)",
+            "trans_search_hint" to "ابحث في جميع لغات العالم...",
+            "trans_original_label" to "النص الأصلي:",
+            "trans_btn" to "ترجمة فورية",
+            "trans_result_label" to "الترجمة الناتجة:",
+            "trans_copied_toast" to "تم نسخ الترجمة",
+            "builder_screen_title" to "صانع الثيمات بالصور والألوان",
+            "builder_save_apply" to "حفظ وتطبيق",
+            "builder_live_preview" to "معاينة حية للكيبورد",
+            "builder_theme_name" to "اسم الثيم",
+            "builder_custom_bg_img" to "خلفية الكيبورد بصورة مخصصة",
+            "builder_dim_ratio" to "نسبة تعتيم الصورة لإبراز الحروف",
+            "builder_pick_gallery" to "اختيار صورة من الاستديو",
+            "builder_change_img" to "تغيير صورة الخلفية",
+            "builder_key_opacity" to "شفافية الأزرار",
+            "builder_color_bg" to "لون الخلفية",
+            "builder_color_keys" to "لون الأزرار والمربعات",
+            "builder_color_text" to "لون نص الحروف",
+            "builder_color_accent" to "لون الإضاءة والنيون",
+            "builder_color_enter" to "لون زر الإدخال (Enter)",
+            "builder_corner_radius" to "استدارة حواف مربعات الأزرار",
+            "input_langs_header_title" to "لغات الإدخال ولوحات المفاتيح",
+            "input_langs_header_subtitle" to "جميع لغات العالم مع التنزيل والتطبيق",
+            "input_langs_swipe_space" to "السحب على المسافة للتبديل",
+            "input_langs_swipe_space_desc" to "مرر إصبعك على مفتاح المسافة لتبديل لغة الكتابة",
+            "input_langs_installed_tab" to "اللغات المثبتة والمفعلة",
+            "input_langs_download_tab" to "تحميل لغات العالم",
+            "input_langs_search_placeholder" to "ابحث عن أي لغة بالعالم (فرنسية، روسية، كورية، ألمانية...)",
+            "input_langs_active_switch_desc" to "اللغات المفعلة يتم التبديل بينها عبر السحب على المسافة أو زر اللغة:",
+            "input_langs_currently_active" to "مفعلة حالياً بالكيبورد",
+            "input_langs_apply" to "تطبيق",
+            "input_langs_download_inst" to "اضغط تحميل على أي لغة لإضافتها فوراً وتطبيقها على لوحة المفاتيح:",
+            "input_langs_installed_badge" to "مثبتة",
+            "input_langs_downloading" to "جاري التنزيل",
+            "input_langs_download" to "تحميل",
+            "chat_new_msg" to "محادثة جديدة",
+            "chat_sim_header" to "تجربة كيبورد برو التفاعلية",
+            "chat_android_system_kbd" to "لوحة مفاتيح نظام أندرويد:",
+            "chat_step1_enable" to "1. تفعيل في النظام",
+            "chat_step2_default" to "2. اختيار كافتراضي",
+            "chat_draft_hint" to "اكتب رسالة أو جرب إيماءات الكيبورد..."
         ),
         "en" to mapOf(
             "app_settings" to "Turbo Keyboard Settings",
@@ -484,7 +741,90 @@ object AppStrings {
             "ai_tone_input_hint" to "Type text to rewrite tone",
             "result_label" to "Result:",
             "voice_typing_title" to "Voice Typing",
-            "voice_open_mic_settings" to "Open Settings to Enable Microphone"
+            "voice_open_mic_settings" to "Open Settings to Enable Microphone",
+            "dict_add_desc" to "Add your custom words so the keyboard learns them and avoids correcting them:",
+            "dict_input_hint" to "Type a new word...",
+            "dict_add_btn" to "+ Add",
+            "dict_saved_words" to "Saved Words",
+            "dict_empty_msg" to "No personal words added yet.\nYou can add words here or directly while typing!",
+            "dict_word_added" to "Word added successfully ✓",
+            "top_emojis_dialog_title" to "Customize Top Emojis Bar",
+            "top_emojis_instruction" to "Tap any emoji to remove it, or choose from the list below to add it:",
+            "top_emojis_input_hint" to "Type an emoji or symbol...",
+            "telegram_channels_title" to "Official Telegram Channels & Support",
+            "telegram_channels_desc" to "Follow latest updates, releases and technical support on our official Telegram channels:",
+            "telegram_channel_1" to "📢 Channel 1: Official Abu Saleh Channel",
+            "telegram_channel_2" to "🚀 Channel 2: Developer & Support Channel",
+            "telegram_join_btn" to "Join Channel",
+            "setup_preview_show" to "Live Preview Here",
+            "setup_preview_hide" to "Hide Preview",
+            "setup_honor_huawei_title" to "Notice for Honor, Huawei & Xiaomi devices:",
+            "setup_honor_huawei_desc" to "On Honor (MagicOS) and Huawei (EMUI): after tapping 'Enable', ensure Turbo Keyboard is toggled on in 'Manage Keyboards', then tap 'Select' to set it as default.",
+            "tools_custom_toolbar_title" to "Customizable Toolbar",
+            "tools_custom_toolbar_desc" to "Customize and rearrange tools on the keyboard toolbar to suit your needs",
+            "clipboard_screen_title" to "Advanced Clipboard Manager",
+            "clipboard_clear_btn" to "Clear",
+            "clipboard_add_hint" to "Add new clip to clipboard...",
+            "clipboard_search_hint" to "Search clipboard...",
+            "clipboard_toast_copied" to "Text copied to clipboard",
+            "clipboard_toast_cleared" to "Unpinned clips cleared",
+            "clipboard_toast_added" to "Text added and pinned",
+            "clipboard_pinned_badge" to "📌 Pinned",
+            "clipboard_recent_badge" to "Recent",
+            "clipboard_options_title" to "Clip Options",
+            "clipboard_opt_delete" to "Delete",
+            "clipboard_opt_pin" to "Pin",
+            "clipboard_opt_unpin" to "Unpin",
+            "clipboard_opt_copy" to "Copy",
+            "clipboard_opt_close" to "Close",
+            "decor_screen_title" to "Professional Text Decoration",
+            "decor_tab_ar" to "Arabic Decor",
+            "decor_tab_en" to "English Decor",
+            "decor_input_label" to "Enter text for live decoration",
+            "decor_copied_toast" to "Decorated text copied!",
+            "trans_screen_title" to "Built-in Instant Translation",
+            "trans_source_picker_title" to "Select Source Language (From)",
+            "trans_target_picker_title" to "Select Target Language (To)",
+            "trans_search_hint" to "Search all world languages...",
+            "trans_original_label" to "Original Text:",
+            "trans_btn" to "Instant Translate",
+            "trans_result_label" to "Translated Text:",
+            "trans_copied_toast" to "Translation copied",
+            "builder_screen_title" to "Custom Theme & Photo Builder",
+            "builder_save_apply" to "Save & Apply",
+            "builder_live_preview" to "Live Keyboard Preview",
+            "builder_theme_name" to "Theme Name",
+            "builder_custom_bg_img" to "Custom Background Image",
+            "builder_dim_ratio" to "Background Dimming Ratio",
+            "builder_pick_gallery" to "Pick Image from Gallery",
+            "builder_change_img" to "Change Background Image",
+            "builder_key_opacity" to "Key Opacity",
+            "builder_color_bg" to "Background Color",
+            "builder_color_keys" to "Keys & Boxes Color",
+            "builder_color_text" to "Letter Text Color",
+            "builder_color_accent" to "Glow & Accent Color",
+            "builder_color_enter" to "Enter Button Color",
+            "builder_corner_radius" to "Key Corner Radius",
+            "input_langs_header_title" to "Input Languages & Keyboards",
+            "input_langs_header_subtitle" to "All world languages with download and live apply",
+            "input_langs_swipe_space" to "Swipe Spacebar to Switch",
+            "input_langs_swipe_space_desc" to "Swipe across the spacebar to quickly switch input language",
+            "input_langs_installed_tab" to "Installed & Active Languages",
+            "input_langs_download_tab" to "Download World Languages",
+            "input_langs_search_placeholder" to "Search any world language (French, Russian, Korean, German...)",
+            "input_langs_active_switch_desc" to "Switch between active languages by swiping spacebar or tapping language key:",
+            "input_langs_currently_active" to "Currently Active on Keyboard",
+            "input_langs_apply" to "Apply",
+            "input_langs_download_inst" to "Tap download on any language to install and apply it to the keyboard:",
+            "input_langs_installed_badge" to "Installed",
+            "input_langs_downloading" to "Downloading",
+            "input_langs_download" to "Download",
+            "chat_new_msg" to "New Message",
+            "chat_sim_header" to "Interactive Keyboard Simulator",
+            "chat_android_system_kbd" to "Android System Keyboard:",
+            "chat_step1_enable" to "1. Enable in System",
+            "chat_step2_default" to "2. Set as Default",
+            "chat_draft_hint" to "Type a message or try keyboard gestures..."
         ),
         "ru" to mapOf(
             "app_settings" to "Настройки Turbo Keyboard",

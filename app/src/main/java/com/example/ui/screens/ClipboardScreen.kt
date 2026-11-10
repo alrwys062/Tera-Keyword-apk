@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.AppStrings
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -76,13 +77,13 @@ fun ClipboardScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
 
             Text(
-                text = "حافظة النصوص المتقدمة",
+                text = AppStrings.tr(context, "ui_clipboard_screen_001"),
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -92,10 +93,10 @@ fun ClipboardScreen(
                 onClick = {
                     prefs.clearClipboardHistory()
                     items = prefs.getClipboardItems()
-                    Toast.makeText(context, "تم مسح النصوص غير المثبتة", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_002"), Toast.LENGTH_SHORT).show()
                 }
             ) {
-                Text("مسح", color = Color(0xFFEF4444), fontSize = 13.sp)
+                Text(AppStrings.tr(context, "ui_clipboard_screen_003"), color = Color(0xFFEF4444), fontSize = 13.sp)
             }
         }
 
@@ -109,7 +110,7 @@ fun ClipboardScreen(
             OutlinedTextField(
                 value = newClipText,
                 onValueChange = { newClipText = it },
-                placeholder = { Text("أضف نصاً جديداً للحافظة...", color = Color(0xFF8E9BAE), fontSize = 12.sp) },
+                placeholder = { Text(AppStrings.tr(context, "ui_clipboard_screen_004"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp),
@@ -129,14 +130,14 @@ fun ClipboardScreen(
                         prefs.addClipboardItem(newClipText, isPinned = true)
                         items = prefs.getClipboardItems()
                         newClipText = ""
-                        Toast.makeText(context, "تمت إضافة النص وتثبيته", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_005"), Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add", tint = Color.Black)
+                Icon(imageVector = Icons.Default.Add, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_006"), tint = Color.Black)
             }
         }
 
@@ -146,7 +147,7 @@ fun ClipboardScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("بحث في الحافظة...", color = Color(0xFF8E9BAE), fontSize = 12.sp) },
+            placeholder = { Text(AppStrings.tr(context, "ui_clipboard_screen_007"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -187,7 +188,7 @@ fun ClipboardScreen(
                                 },
                                 onTap = {
                                     clipboardManager.setText(AnnotatedString(clip.text))
-                                    Toast.makeText(context, "تم نسخ النص إلى الحافظة", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -224,7 +225,7 @@ fun ClipboardScreen(
                             ) {
                                 Icon(
                                     imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Default.OutlinedFlag,
-                                    contentDescription = "Pin",
+                                    contentDescription = AppStrings.tr(context, "ui_clipboard_screen_009"),
                                     tint = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE)
                                 )
                             }
@@ -232,12 +233,12 @@ fun ClipboardScreen(
                             IconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(clip.text))
-                                    Toast.makeText(context, "تم نسخ النص", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
                                 }
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.ContentPaste,
-                                    contentDescription = "Copy",
+                                    contentDescription = AppStrings.tr(context, "ui_clipboard_screen_011"),
                                     tint = Color(0xFF38BDF8)
                                 )
                             }
@@ -250,7 +251,7 @@ fun ClipboardScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.DeleteOutline,
-                                    contentDescription = "Delete",
+                                    contentDescription = AppStrings.tr(context, "ui_clipboard_screen_012"),
                                     tint = Color(0xFFEF4444)
                                 )
                             }
@@ -268,7 +269,7 @@ fun ClipboardScreen(
                 containerColor = Color(0xFF141926),
                 title = {
                     Text(
-                        text = "خيارات النص المنسوخ",
+                        text = AppStrings.tr(context, "ui_clipboard_screen_013"),
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -299,12 +300,12 @@ fun ClipboardScreen(
                                         prefs.deleteClipboardItem(clip.id, clip.text)
                                         items = prefs.getClipboardItems(forceRefresh = true)
                                         selectedClipForFloatingMenu = null
-                                        Toast.makeText(context, "تم حذف النص", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_014"), Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(8.dp)
                             ) {
-                                Icon(Icons.Outlined.DeleteOutline, contentDescription = "حذف", tint = Color(0xFFEF4444))
-                                Text("حذف", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Outlined.DeleteOutline, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_015"), tint = Color(0xFFEF4444))
+                                Text(AppStrings.tr(context, "ui_clipboard_screen_015"), color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                             // 2. تثبيت
                             Column(
@@ -315,11 +316,11 @@ fun ClipboardScreen(
                                         prefs.togglePinClipboard(clip.id)
                                         items = prefs.getClipboardItems()
                                         selectedClipForFloatingMenu = null
-                                        Toast.makeText(context, if (!clip.isPinned) "تم التثبيت" else "تم إلغاء التثبيت", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, if (!clip.isPinned) AppStrings.tr(context, "ui_clipboard_screen_016") else "تم إلغاء التثبيت", Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(8.dp)
                             ) {
-                                Icon(Icons.Default.PushPin, contentDescription = "تثبيت", tint = Color(0xFF00E5FF))
+                                Icon(Icons.Default.PushPin, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_017"), tint = Color(0xFF00E5FF))
                                 Text(if (clip.isPinned) "إلغاء التثبيت" else "تثبيت", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                             // 3. نسخ
@@ -330,19 +331,19 @@ fun ClipboardScreen(
                                     .clickable {
                                         clipboardManager.setText(AnnotatedString(clip.text))
                                         selectedClipForFloatingMenu = null
-                                        Toast.makeText(context, "تم نسخ النص", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(8.dp)
                             ) {
-                                Icon(Icons.Outlined.ContentPaste, contentDescription = "نسخ", tint = Color(0xFF38BDF8))
-                                Text("نسخ", color = Color(0xFF38BDF8), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Outlined.ContentPaste, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_018"), tint = Color(0xFF38BDF8))
+                                Text(AppStrings.tr(context, "ui_clipboard_screen_018"), color = Color(0xFF38BDF8), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { selectedClipForFloatingMenu = null }) {
-                        Text("إغلاق", color = Color(0xFF8E9BAE))
+                        Text(AppStrings.tr(context, "ui_clipboard_screen_019"), color = Color(0xFF8E9BAE))
                     }
                 }
             )

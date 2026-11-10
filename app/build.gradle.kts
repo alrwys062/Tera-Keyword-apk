@@ -60,6 +60,9 @@ android {
     includeInApk = false
     includeInBundle = true
   }
+  lint {
+    disable += "MissingTranslation"
+  }
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
@@ -117,6 +120,7 @@ dependencies {
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
   // implementation(libs.play.services.location)
+  implementation("com.google.mlkit:translate:17.0.3")
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

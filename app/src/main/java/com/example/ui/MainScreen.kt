@@ -50,6 +50,12 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
     val prefs = remember { PreferencesManager(context) }
     var currentTheme by remember { mutableStateOf(prefs.getActiveTheme()) }
 
+    // Live reactive language from LocaleHelper
+    val flowLanguageCode by com.example.util.LocaleHelper.appLanguageFlow.collectAsState()
+    val activeLanguage = if (flowLanguageCode != "auto") flowLanguageCode
+                         else if (appLanguageCode != "auto") appLanguageCode
+                         else com.example.util.LocaleHelper.getAppLanguageCode(context)
+
     var keyboardStatus by remember {
         mutableStateOf(KeyboardStatusHelper.checkKeyboardStatus(context))
     }
@@ -112,7 +118,7 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
                 BottomNavigationBar(
                     currentDestination = currentDestination,
                     keyboardStatus = keyboardStatus,
-                    appLanguageCode = appLanguageCode,
+                    appLanguageCode = activeLanguage,
                     onDestinationSelected = { currentDestination = it }
                 )
             }
@@ -127,7 +133,7 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
                 AppDestination.KEYBOARD_SETUP -> {
                     KeyboardSetupScreen(
                         prefs = prefs,
-                        appLanguageCode = appLanguageCode,
+                        appLanguageCode = activeLanguage,
                         onNavigateToThemes = { currentDestination = AppDestination.THEMES },
                         onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
                         onNavigateToChatSimulator = { currentDestination = AppDestination.CHAT_SIMULATOR },
@@ -136,7 +142,7 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
                 }
                 AppDestination.TOOLS -> {
                     ToolsScreen(
-                        appLanguageCode = appLanguageCode,
+                        appLanguageCode = activeLanguage,
                         onNavigateToEmoji = { currentDestination = AppDestination.CHAT_SIMULATOR },
                         onNavigateToGif = { currentDestination = AppDestination.CHAT_SIMULATOR },
                         onNavigateToTranslate = { currentDestination = AppDestination.TRANSLATION_STUDIO },
@@ -156,7 +162,7 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
                     ThemesScreen(
                         prefs = prefs,
                         currentThemeId = currentTheme.id,
-                        appLanguageCode = appLanguageCode,
+                        appLanguageCode = activeLanguage,
                         onThemeApplied = { theme -> currentTheme = theme },
                         onOpenCustomBuilder = { currentDestination = AppDestination.CUSTOM_THEME_BUILDER },
                         onBack = { currentDestination = AppDestination.TOOLS }
@@ -165,7 +171,7 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
                 AppDestination.SETTINGS -> {
                     SettingsScreen(
                         prefs = prefs,
-                        initialAppLanguageCode = appLanguageCode,
+                        initialAppLanguageCode = activeLanguage,
                         onNavigateToThemes = { currentDestination = AppDestination.THEMES },
                         onNavigateToClipboard = { currentDestination = AppDestination.CLIPBOARD_MANAGER },
                         onNavigateToSetup = { currentDestination = AppDestination.KEYBOARD_SETUP },

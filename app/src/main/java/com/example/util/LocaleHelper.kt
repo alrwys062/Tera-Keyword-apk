@@ -100,6 +100,7 @@ object LocaleHelper {
     val appLanguageFlow: kotlinx.coroutines.flow.StateFlow<String> = _appLanguageFlow
 
     fun init(context: Context) {
+        AppStrings.init(context)
         _appLanguageFlow.value = getAppLanguageCode(context)
     }
 

@@ -132,7 +132,7 @@ fun SettingsScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -398,8 +398,8 @@ fun SettingsScreen(
             // 14. قنوات التليجرام والتواصل
             item {
                 TransboardSettingsRow(
-                    title = "قنوات التليجرام والتواصل المباشر",
-                    subtitle = "القناة الأولى (@Abu2Saleh) والقناة الثانية الرسمية",
+                    title = AppStrings.trCode(context, appLanguageCode, "telegram_channels_title"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "telegram_channels_desc"),
                     icon = Icons.Outlined.Send,
                     onClick = { activeDialog = "TELEGRAM_CHANNELS" }
                 )
@@ -431,7 +431,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("English", color = Color.White, fontSize = 14.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_001"), color = Color.White, fontSize = 14.sp)
                         Checkbox(checked = true, onCheckedChange = null)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
@@ -534,14 +534,6 @@ fun SettingsScreen(
                                         com.example.util.LocaleHelper.setAppLanguageCode(context, lang.code)
                                         com.example.util.LocaleHelper.applyLocale(context)
                                         activeDialog = null
-                                        val activity = context as? android.app.Activity
-                                        if (activity != null) {
-                                            val intent = android.content.Intent(activity, com.example.MainActivity::class.java).apply {
-                                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                            }
-                                            activity.startActivity(intent)
-                                            activity.finish()
-                                        }
                                     }
                             ) {
                                 Row(
@@ -624,7 +616,7 @@ fun SettingsScreen(
                                 Text(AppStrings.trCode(context, appLanguageCode, "from_label"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                                 val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
                                 val srcName = if (isArabicLang) srcLangObj.nameAr else srcLangObj.nameEn
-                                Text("${srcLangObj.flag} $srcName", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_002", srcLangObj.flag, srcName), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -641,7 +633,7 @@ fun SettingsScreen(
                                 Text(AppStrings.trCode(context, appLanguageCode, "to_label"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                                 val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
                                 val tgtName = if (isArabicLang) tgtLangObj.nameAr else tgtLangObj.nameEn
-                                Text("${tgtLangObj.flag} $tgtName", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_003", tgtLangObj.flag, tgtName), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -815,7 +807,7 @@ fun SettingsScreen(
             onDismissRequest = { activeDialog = null },
             title = {
                 Text(
-                    "تخطيط لوحة المفاتيح والأعمدة",
+                    AppStrings.trCode(context, appLanguageCode, "layouts"),
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
@@ -827,7 +819,7 @@ fun SettingsScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        "عدد الأعمدة وترتيب الأحرف العربي:",
+                        AppStrings.trCode(context, appLanguageCode, "layouts_dialog_title"),
                         color = Color(0xFF00E5FF),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -894,7 +886,7 @@ fun SettingsScreen(
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "تغيير وترتيب الأحرف يدوياً...",
+                            AppStrings.trCode(context, appLanguageCode, "custom_layout_manual"),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1019,7 +1011,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("صف الأرقام العلوي", color = Color.White, fontSize = 12.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_004"), color = Color.White, fontSize = 12.sp)
                         Switch(
                             checked = settings.numberRowEnabled,
                             onCheckedChange = { updateSettings(settings.copy(numberRowEnabled = it)) }
@@ -1032,8 +1024,8 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("تثبيت الأرقام الإنجليزية (123)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("كتابة 123 مع الأحرف العربية", color = Color(0xFF00E5FF), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_005"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_006"), color = Color(0xFF00E5FF), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.forceEnglishNumbers,
@@ -1046,7 +1038,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("الرموز والأحرف البديلة", color = Color.White, fontSize = 12.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_007"), color = Color.White, fontSize = 12.sp)
                         Switch(
                             checked = settings.showDualHints,
                             onCheckedChange = { updateSettings(settings.copy(showDualHints = it)) }
@@ -1058,7 +1050,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("الرجوع التلقائي للأحرف بعد الإرسال", color = Color.White, fontSize = 12.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_008"), color = Color.White, fontSize = 12.sp)
                         Switch(
                             checked = settings.autoReturnToLettersOnSend,
                             onCheckedChange = { updateSettings(settings.copy(autoReturnToLettersOnSend = it)) }
@@ -1084,10 +1076,10 @@ fun SettingsScreen(
                                 backspaceKeyScale = 1.15f
                             )
                         )
-                        Toast.makeText(context, "تمت استعادة الإعدادات الافتراضية (10 أعمدة) ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_009"), Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("إعادة ضبط الأحجام", color = Color(0xFF94A3B8))
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_010"), color = Color(0xFF94A3B8))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1100,7 +1092,7 @@ fun SettingsScreen(
             onDismissRequest = { activeDialog = "LAYOUTS" },
             title = {
                 Text(
-                    "تغيير وترتيب الأحرف يدوياً",
+                    AppStrings.trCode(context, appLanguageCode, "custom_layout_manual"),
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
@@ -1112,14 +1104,14 @@ fun SettingsScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        "اكتب أو رتّب الحروف التي تريدها في كل صف من صفوف الكيبورد (افصل بينها بمسافة أو بدون مسافة):",
+                        AppStrings.trCode(context, appLanguageCode, "layouts_desc"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.5.sp,
                         lineHeight = 16.sp
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text("الصف الأول (الأعلى):", color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_011"), color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = customRow1Input,
                         onValueChange = { customRow1Input = it },
@@ -1134,7 +1126,7 @@ fun SettingsScreen(
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("الصف الثاني (الأوسط):", color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_012"), color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = customRow2Input,
                         onValueChange = { customRow2Input = it },
@@ -1149,7 +1141,7 @@ fun SettingsScreen(
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("الصف الثالث (الأسفل قبل المسطرة):", color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_013"), color = Color(0xFF00E5FF), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = customRow3Input,
                         onValueChange = { customRow3Input = it },
@@ -1164,7 +1156,7 @@ fun SettingsScreen(
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text("قوالب سريعة:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_014"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1181,7 +1173,7 @@ fun SettingsScreen(
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                             border = BorderStroke(1.dp, Color(0xFF00E5FF))
                         ) {
-                            Text("10 أعمدة (الصورة)", fontSize = 9.5.sp, color = Color(0xFF00E5FF))
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_015"), fontSize = 9.5.sp, color = Color(0xFF00E5FF))
                         }
 
                         OutlinedButton(
@@ -1195,7 +1187,7 @@ fun SettingsScreen(
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                             border = BorderStroke(1.dp, Color(0xFF28364F))
                         ) {
-                            Text("11 عمود", fontSize = 9.5.sp, color = Color.White)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_016"), fontSize = 9.5.sp, color = Color.White)
                         }
 
                         OutlinedButton(
@@ -1209,7 +1201,7 @@ fun SettingsScreen(
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                             border = BorderStroke(1.dp, Color(0xFF28364F))
                         ) {
-                            Text("12 عمود", fontSize = 9.5.sp, color = Color.White)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_017"), fontSize = 9.5.sp, color = Color.White)
                         }
                     }
                 }
@@ -1226,15 +1218,15 @@ fun SettingsScreen(
                             )
                         )
                         activeDialog = "LAYOUTS"
-                        Toast.makeText(context, "تم حفظ الترتيب المخصص للأحرف بنجاح ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_018"), Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("حفظ الترتيب", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_019"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { activeDialog = "LAYOUTS" }) {
-                    Text("إلغاء", color = Color(0xFF94A3B8))
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_020"), color = Color(0xFF94A3B8))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1360,7 +1352,7 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .clickable {
                                 val count = prefs.forceSyncAndRepairClipboard(context)
-                                Toast.makeText(context, "تم إصلاح ومزامنة نصوص الحافظة بنجاح ($count نصوص) ✓", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_021", count), Toast.LENGTH_SHORT).show()
                             }
                     ) {
                         Row(
@@ -1381,7 +1373,7 @@ fun SettingsScreen(
                         onClick = {
                             prefs.clearClipboardHistory()
                             val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
-                            Toast.makeText(context, if (isArabicLang) "تم مسح النصوص غير المثبتة" else "Unpinned clips cleared", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, if (isArabicLang) AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_002") else "Unpinned clips cleared", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
@@ -1412,7 +1404,7 @@ fun SettingsScreen(
             text = {
                 Column(modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 450.dp)) {
                     Text(
-                        text = "أضف اختصاراتك السريعة؛ عند كتابة رمز الاختصار (مثل: سلام) سيظهر النص الكامل فوراً في شريط الاقتراحات:",
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_022"),
                         color = Color(0xFF94A3B8),
                         fontSize = 11.5.sp,
                         lineHeight = 16.sp
@@ -1427,7 +1419,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = newTrigger,
                             onValueChange = { newTrigger = it },
-                            placeholder = { Text("الرمز: سلام", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_023"), fontSize = 11.sp, color = Color(0xFF64748B)) },
                             modifier = Modifier.weight(1.1f),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
@@ -1442,7 +1434,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = newExpansion,
                             onValueChange = { newExpansion = it },
-                            placeholder = { Text("النص الكامل البديل", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_024"), fontSize = 11.sp, color = Color(0xFF64748B)) },
                             modifier = Modifier.weight(1.8f),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
@@ -1465,7 +1457,7 @@ fun SettingsScreen(
                                 shortcutsList = prefs.getShortcuts()
                                 newTrigger = ""
                                 newExpansion = ""
-                                Toast.makeText(context, "تمت إضافة الاختصار بنجاح", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_025"), Toast.LENGTH_SHORT).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(42.dp),
@@ -1474,12 +1466,12 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("إضافة الاختصار الجديد ➕", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_026"), color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Text("قائمة الاختصارات المحفوظة (${shortcutsList.size}):", color = Color(0xFFCBD5E1), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_027", shortcutsList.size), color = Color(0xFFCBD5E1), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(6.dp))
 
                     LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -1511,7 +1503,7 @@ fun SettingsScreen(
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text("➔ يُستبدل بـ:", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_028"), color = Color(0xFF94A3B8), fontSize = 11.sp)
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
@@ -1558,7 +1550,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("إظهار صف الأرقام العلوي", color = Color.White, fontSize = 13.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_029"), color = Color.White, fontSize = 13.sp)
                         Switch(
                             checked = settings.numberRowEnabled,
                             onCheckedChange = { updateSettings(settings.copy(numberRowEnabled = it)) }
@@ -1570,7 +1562,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("تثبيت الأرقام الإنجليزية (123)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_005"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 if (settings.forceEnglishNumbers) "الأرقام تظهر وتُكتب إنجليزية (123) حتى مع العربي ✓" else "الأرقام هندية / مشرقية (١٢٣)",
                                 color = Color(0xFF00E5FF),
@@ -1587,7 +1579,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("إظهار صف الإيموجي العلوي السريع", color = Color.White, fontSize = 13.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_030"), color = Color.White, fontSize = 13.sp)
                         Switch(
                             checked = settings.topQuickEmojiRowEnabled,
                             onCheckedChange = { updateSettings(settings.copy(topQuickEmojiRowEnabled = it)) }
@@ -1600,8 +1592,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("شريط الأدوات العلوي (Toolbar)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("إظهار أو إخفاء شريط الأدوات بالكامل أعلى لوحة المفاتيح", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_031"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_032"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.toolbarEnabled,
@@ -1627,7 +1619,7 @@ fun SettingsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.Mood, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("تخصيص الابتسامات في الصف العلوي...", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_033"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF8E9BAE), modifier = Modifier.size(16.dp))
                             }
@@ -1649,8 +1641,8 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("حجم شريط الابتسامات", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text("${(settings.emojiBarHeightFactor * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_034"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_035", (settings.emojiBarHeightFactor * 100).toInt()), color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Spacer(modifier = Modifier.height(6.dp))
@@ -1711,7 +1703,7 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(6.dp))
 
                             // معاينة مباشرة لشريط الابتسامات
-                            Text("معاينة مباشرة لشريط الابتسامات:", color = Color(0xFF8E9BAE), fontSize = 10.5.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_036"), color = Color(0xFF8E9BAE), fontSize = 10.5.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 modifier = Modifier
@@ -1743,7 +1735,7 @@ fun SettingsScreen(
 
                     // التحكم في حجم الفيسات والإيموجي
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                        Text("التحكم في حجم الفيسات والإيموجي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_037"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1801,7 +1793,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("تبديل مكان الحافظة مكان الإيموجي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_038"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 if (settings.swapClipboardAndEmoji) "الحافظة على اليسار [📋] والإيموجي على اليمين [😊]" else "الإيموجي على اليسار [😊] والحافظة على اليمين [📋]",
                                 color = Color(0xFF00E5FF),
@@ -1823,7 +1815,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("موضع زر الإدخال (Enter)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_039"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 if (settings.enterKeyOnLeft) "على اليسار (معكوس)" else "على اليمين (الافتراضي القياسي)",
                                 color = Color(0xFF00E5FF),
@@ -1839,7 +1831,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("تم", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_040"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -1857,7 +1849,7 @@ fun SettingsScreen(
             containerColor = Color(0xFF141926),
             title = {
                 Text(
-                    text = "تخصيص شريط الابتسامات العلوي",
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_041"),
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -1866,7 +1858,7 @@ fun SettingsScreen(
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "اضغط على أي ابتسامة لحذفها، أو اختر من القائمة أدناه لإضافتها للشريط:",
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_042"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -1912,7 +1904,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = newCustomEmoji,
                             onValueChange = { newCustomEmoji = it },
-                            placeholder = { Text("اكتب إيموجي أو رمزاً...", fontSize = 11.sp, color = Color(0xFF8E9BAE)) },
+                            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_043"), fontSize = 11.sp, color = Color(0xFF8E9BAE)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f).height(50.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -1932,13 +1924,13 @@ fun SettingsScreen(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
                         ) {
-                            Text("إضافة", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_044"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text("مقترحات سريعة:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_045"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(4.dp))
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -1971,7 +1963,7 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
                 ) {
-                    Text("حفظ", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_046"), color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1980,7 +1972,7 @@ fun SettingsScreen(
                         topEmojisList = mutableListOf("👑", "💋", "😂", "❤️", "🔥", "🥺", "✨", "🤍", "😍", "👍")
                     }
                 ) {
-                    Text("استعادة الافتراضي", color = Color(0xFF8E9BAE))
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_047"), color = Color(0xFF8E9BAE))
                 }
             }
         )
@@ -1996,13 +1988,13 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Tune, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("تخصيص شريط الأدوات العلوي", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_048"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
                 Column(modifier = Modifier.heightIn(max = 420.dp)) {
                     Text(
-                        "اختر الأدوات التي تريد ظهورها في الشريط أعلى الكيبورد لتقليل الزحمة وجعل الكيبورد خفيفاً وسريعاً:",
+                        AppStrings.trCode(context, appLanguageCode, "customize_toolbar_desc"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.5.sp
                     )
@@ -2023,7 +2015,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF).copy(alpha = 0.18f)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("⚡ خفيف (5)", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_049"), color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -2036,7 +2028,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26334A)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("📝 كتابة (5)", color = Color.White, fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_050"), color = Color.White, fontSize = 11.sp)
                         }
 
                         Button(
@@ -2049,7 +2041,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26334A)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("🌟 الكل (12)", color = Color.White, fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_051"), color = Color.White, fontSize = 11.sp)
                         }
                     }
 
@@ -2147,8 +2139,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("إظهار الاقتراحات", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("شريط الاقتراحات الذكية أعلى لوحة المفاتيح", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_052"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_053"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.suggestionsEnabled,
@@ -2164,8 +2156,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("التصحيح التلقائي الذكي", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("تصحيح الأخطاء الإملائية والشائعة تلقائياً", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_054"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_055"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Switch(
                             checked = settings.autoCorrection,
@@ -2181,8 +2173,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("أحرف كبيرة تلقائياً", color = Color.White, fontSize = 13.sp)
-                            Text("تكبير الحرف الأول بعد علامات الترقيم في الإنجليزية", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_056"), color = Color.White, fontSize = 13.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_057"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Checkbox(
                             checked = settings.autoCapitalization,
@@ -2198,8 +2190,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("نقطة عند النقر المزدوج على المسافة", color = Color.White, fontSize = 13.sp)
-                            Text("إدراج نقطة ومسافة تلقائياً عند الضغط مرتين", color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_058"), color = Color.White, fontSize = 13.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_059"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
                         }
                         Checkbox(
                             checked = settings.doubleSpacePeriod,
@@ -2238,7 +2230,7 @@ fun SettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Spellcheck, contentDescription = null, tint = Color(0xFF00E5FF))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("التدقيق الإملائي الصارم والنبرات", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_060"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             },
             text = {
@@ -2258,7 +2250,7 @@ fun SettingsScreen(
                                 .clickable { isSpellCheckMode = true }
                         ) {
                             Text(
-                                text = "التصحيح الإملائي الصارم",
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_061"),
                                 color = if (isSpellCheckMode) Color.Black else Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -2274,7 +2266,7 @@ fun SettingsScreen(
                                 .clickable { isSpellCheckMode = false }
                         ) {
                             Text(
-                                text = "تغيير النبرة",
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_062"),
                                 color = if (!isSpellCheckMode) Color.Black else Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -2289,7 +2281,7 @@ fun SettingsScreen(
                         value = testText,
                         onValueChange = { testText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("اكتب نصاً للفحص والتصحيح") },
+                        label = { Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_063")) },
                         maxLines = 2
                     )
 
@@ -2307,7 +2299,7 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "المدخل: ${stats.inputWordCount} ⟵ المخرج: ${stats.outputWordCount} كلمة",
+                                text = AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_064", stats.inputWordCount, stats.outputWordCount),
                                 color = Color(0xFF38BDF8),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
@@ -2317,7 +2309,7 @@ fun SettingsScreen(
                                 color = Color(0xFF10B981).copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = "تطابق الحجم 100% ✓",
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_065"),
                                     color = Color(0xFF34D399),
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
@@ -2328,13 +2320,13 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "شروط صارمة: تصحيح حروف الكلمات فقط بدون إضافة كلمات أو إكمال جمل.",
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_066"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 10.sp
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("النتيجة المصححة إملائياً:", color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_067"), color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -2348,7 +2340,7 @@ fun SettingsScreen(
                         }
                     } else {
                         // Tone selection
-                        Text("اختر النبرة المطلوبة:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_068"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
 
                         LazyColumn(modifier = Modifier.height(130.dp)) {
@@ -2379,7 +2371,7 @@ fun SettingsScreen(
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("النتيجة بالنبرة المختارة:", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_069"), color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -2396,7 +2388,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("إغلاق", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_019"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -2415,7 +2407,7 @@ fun SettingsScreen(
             text = {
                 Column(modifier = Modifier.height(340.dp)) {
                     Text(
-                        text = "أضف كلماتك ومصطلحاتك الخاصة ليتعلمها الكيبورد ولا يصححها:",
+                        text = AppStrings.trCode(context, appLanguageCode, "dict_add_desc"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.sp
                     )
@@ -2428,7 +2420,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = newWordInput,
                             onValueChange = { newWordInput = it },
-                            placeholder = { Text("اكتب كلمة جديدة...", fontSize = 11.sp) },
+                            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "dict_input_hint"), fontSize = 11.sp) },
                             modifier = Modifier.weight(1f).height(46.dp),
                             singleLine = true
                         )
@@ -2438,7 +2430,7 @@ fun SettingsScreen(
                                     val added = userDict.addWord(newWordInput)
                                     if (added) {
                                         wordsList = userDict.getUserWords()
-                                        Toast.makeText(context, "تمت إضافة '${newWordInput.trim()}' للقاموس ✓", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "${AppStrings.trCode(context, appLanguageCode, "dict_word_added")} (${newWordInput.trim()})", Toast.LENGTH_SHORT).show()
                                         newWordInput = ""
                                     }
                                 }
@@ -2446,17 +2438,17 @@ fun SettingsScreen(
                             modifier = Modifier.height(46.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
                         ) {
-                            Text("إضافة +", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "dict_add_btn"), color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text("الكلمات المحفوظة (${wordsList.size}):", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${AppStrings.trCode(context, appLanguageCode, "dict_saved_words")} (${wordsList.size}):", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
 
                     if (wordsList.isEmpty()) {
                         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("لا توجد كلمات شخصية مضافة بعد.\nيمكنك إضافة كلمات هنا أو مباشرة أثناء الكتابة!", color = Color(0xFF8E9BAE), fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "dict_empty_msg"), color = Color(0xFF8E9BAE), fontSize = 11.sp)
                         }
                     } else {
                         LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -2479,7 +2471,7 @@ fun SettingsScreen(
                                             },
                                             modifier = Modifier.size(24.dp)
                                         ) {
-                                            Icon(Icons.Default.Delete, contentDescription = "حذف", tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Delete, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_015"), tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 }
@@ -2525,7 +2517,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "أصوات واهتزازات الكيبورد",
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_070"),
                         color = dText,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
@@ -2554,8 +2546,8 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("أصوات النقر أثناء الكتابة", color = dText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                        Text("تشغيل نغمة صوتية واقعية عند لمس كل زر", color = dSub, fontSize = 10.sp)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_071"), color = dText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_072"), color = dSub, fontSize = 10.sp)
                                     }
                                     Switch(
                                         checked = settings.soundEnabled,
@@ -2571,7 +2563,7 @@ fun SettingsScreen(
 
                                 if (settings.soundEnabled) {
                                     Spacer(modifier = Modifier.height(10.dp))
-                                    Text("اختر صوت الكيبورد المفضل لديك:", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_073"), color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
                                     Spacer(modifier = Modifier.height(6.dp))
 
                                     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -2626,7 +2618,7 @@ fun SettingsScreen(
                                                         },
                                                         modifier = Modifier.size(28.dp)
                                                     ) {
-                                                        Icon(Icons.Default.VolumeUp, contentDescription = "تجربة", tint = dAccent, modifier = Modifier.size(16.dp))
+                                                        Icon(Icons.Default.VolumeUp, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_074"), tint = dAccent, modifier = Modifier.size(16.dp))
                                                     }
                                                 }
                                             }
@@ -2638,8 +2630,8 @@ fun SettingsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("مستوى صوت المفاتيح", color = dText, fontSize = 11.sp)
-                                        Text("${(settings.soundVolume * 100).toInt()}%", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_075"), color = dText, fontSize = 11.sp)
+                                        Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_076", (settings.soundVolume * 100).toInt()), color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                     Slider(
                                         value = settings.soundVolume,
@@ -2670,8 +2662,8 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("الاهتزاز اللمسي (Haptic Feedback)", color = dText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                        Text("اهتزاز ملموس ومريح عند الضغط على الأحرف", color = dSub, fontSize = 10.sp)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_077"), color = dText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_078"), color = dSub, fontSize = 10.sp)
                                     }
                                     Switch(
                                         checked = settings.vibrationEnabled,
@@ -2693,7 +2685,7 @@ fun SettingsScreen(
 
                                 if (settings.vibrationEnabled) {
                                     Spacer(modifier = Modifier.height(10.dp))
-                                    Text("قوة الاهتزاز السريعة:", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_079"), color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
                                     Spacer(modifier = Modifier.height(6.dp))
 
                                     // Quick Presets (خفيف، متوسط آيفون، قوي، قوي جداً)
@@ -2748,8 +2740,8 @@ fun SettingsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("تعديل دقيق بالمللي ثانية:", color = dText, fontSize = 11.sp)
-                                        Text("${settings.vibrationDurationMs} ms", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_080"), color = dText, fontSize = 11.sp)
+                                        Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_081", settings.vibrationDurationMs), color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                     Slider(
                                         value = settings.vibrationDurationMs.toFloat(),
@@ -2782,8 +2774,8 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
-                                Text("إحساس وتوقيت الضغط على الأزرار:", color = dText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Text("اختر بين الاستجابة السلسة المتوازنة (مثل آيفون 16) أو الفائقة السرعة:", color = dSub, fontSize = 10.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_082"), color = dText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_083"), color = dSub, fontSize = 10.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Row(
@@ -2801,8 +2793,8 @@ fun SettingsScreen(
                                             .clickable { updateSettings(settings.copy(keyPressTimingStyle = "ios_balanced")) }
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
-                                            Text("🍏 آيفون iOS 16", color = if (isIos) dAccent else dText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            Text("متوسط وسلس بدون ثقل، مريح جداً للكتابة", color = dSub, fontSize = 9.sp)
+                                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_084"), color = if (isIos) dAccent else dText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_085"), color = dSub, fontSize = 9.sp)
                                         }
                                     }
 
@@ -2817,8 +2809,8 @@ fun SettingsScreen(
                                             .clickable { updateSettings(settings.copy(keyPressTimingStyle = "ultra_fast")) }
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
-                                            Text("⚡ فائق السرعة", color = if (isFast) dAccent else dText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            Text("استجابة فورية 0ms للمحترفين", color = dSub, fontSize = 9.sp)
+                                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_086"), color = if (isFast) dAccent else dText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_087"), color = dSub, fontSize = 9.sp)
                                         }
                                     }
                                 }
@@ -2830,8 +2822,8 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("معاينة الحرف العائم (Popup Preview)", color = dText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                        Text("ظهور فقاعة الحرف بانسيابية فوق المفتاح عند اللمس", color = dSub, fontSize = 9.5.sp)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_088"), color = dText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_089"), color = dSub, fontSize = 9.5.sp)
                                     }
                                     Switch(
                                         checked = settings.keyPopupEnabled,
@@ -2878,7 +2870,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "سرعة الكتابة واستجابة الأزرار",
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_090"),
                         color = dText,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
@@ -2901,8 +2893,8 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
-                                Text("أنماط سرعة الاستجابة الجاهزة:", color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-                                Text("اختر النمط المناسب لأسلوب كتابتك:", color = dSub, fontSize = 10.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_091"), color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_092"), color = dSub, fontSize = 10.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 val speedPresets = listOf(
@@ -2968,7 +2960,7 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
-                                Text("تخصيص دقيق بالمللي ثانية:", color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_093"), color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(6.dp))
 
                                 // Slider 1: سرعة تكرار الحذف
@@ -2976,8 +2968,8 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("سرعة تكرار الحذف (Backspace Repeat)", color = dText, fontSize = 11.sp)
-                                    Text("${settings.keyRepeatSpeedMs} ms", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_094"), color = dText, fontSize = 11.sp)
+                                    Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_095", settings.keyRepeatSpeedMs), color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Slider(
                                     value = settings.keyRepeatSpeedMs.toFloat(),
@@ -2994,8 +2986,8 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("تأخير الضغط المطول للحركات والرموز", color = dText, fontSize = 11.sp)
-                                    Text("${settings.longPressDelayMs} ms", color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_096"), color = dText, fontSize = 11.sp)
+                                    Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_097", settings.longPressDelayMs), color = dAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Slider(
                                     value = settings.longPressDelayMs.toFloat(),
@@ -3017,7 +3009,7 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
-                                Text("الرجوع التلقائي للأحرف (Auto-Return to Letters):", color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_098"), color = dText, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(6.dp))
 
                                 // Toggle 1: بعد الإرسال
@@ -3027,8 +3019,8 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("الرجوع للحروف فوراً عند الضغط على إرسال", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
-                                        Text("العودة التلقائية للوحة الحروف بعد إرسال الرسائل والإيموجي", color = dSub, fontSize = 9.5.sp)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_099"), color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_100"), color = dSub, fontSize = 9.5.sp)
                                     }
                                     Switch(
                                         checked = settings.autoReturnToLettersOnSend,
@@ -3045,8 +3037,8 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("الرجوع للحروف بعد إدراج نصوص الشريط والاختصارات", color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
-                                        Text("العودة للأحرف بعد إدراج الكليشات أو الحافظة أو النصوص السريعة", color = dSub, fontSize = 9.5.sp)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_101"), color = dText, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_102"), color = dSub, fontSize = 9.5.sp)
                                     }
                                     Switch(
                                         checked = settings.autoReturnToLettersOnShortcut,
@@ -3064,7 +3056,7 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = dAccent),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("تم وحفظ سرعة الكتابة ✓", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_103"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             },
             containerColor = dBg
@@ -3096,7 +3088,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("${AppStrings.trCode(context, appLanguageCode, "dim_toolbar_height")} (📋🌐🧮✨):", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${settings.toolbarHeightDp} dp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_104", settings.toolbarHeightDp), color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = settings.toolbarHeightDp.toFloat(),
@@ -3114,7 +3106,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("${AppStrings.trCode(context, appLanguageCode, "dim_keys_height")}:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${settings.keyHeightDp} dp (${(settings.keyHeightFactor * 100).toInt()}%)", color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_105", settings.keyHeightDp, (settings.keyHeightFactor * 100).toInt()), color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = settings.keyHeightDp.toFloat(),
@@ -3176,7 +3168,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("${AppStrings.trCode(context, appLanguageCode, "dim_font_size")}:", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${settings.keyFontSizeSp} sp", color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_106", settings.keyFontSizeSp), color = Color(0xFF00E5FF), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = settings.keyFontSizeSp.toFloat(),
@@ -3226,7 +3218,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("${AppStrings.trCode(context, appLanguageCode, "dim_quick_emoji_size")}:", color = Color.White, fontSize = 12.5.sp)
-                        Text("${(settings.emojiBarHeightFactor * 100).toInt()}%", color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_035", (settings.emojiBarHeightFactor * 100).toInt()), color = Color(0xFF00E5FF), fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = settings.emojiBarHeightFactor,
@@ -3260,7 +3252,7 @@ fun SettingsScreen(
                                     backspaceKeyScale = 1.15f
                                 )
                             )
-                            Toast.makeText(context, if (isRtlLang) "تمت استعادة الإعدادات الافتراضية للكيبورد ✓" else "Default keyboard dimensions restored ✓", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, if (isRtlLang) AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_107") else "Default keyboard dimensions restored ✓", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -3293,7 +3285,7 @@ fun SettingsScreen(
                                 keyButtonScale = 1.0f
                             )
                         )
-                        Toast.makeText(context, if (com.example.util.LocaleHelper.isRtlLanguage(appLanguageCode)) "تمت استعادة الحجم الافتراضي ✓" else "Default size restored ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, if (com.example.util.LocaleHelper.isRtlLanguage(appLanguageCode)) AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_108") else "Default size restored ✓", Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text(AppStrings.trCode(context, appLanguageCode, "dim_reset"), color = Color(0xFF94A3B8))
@@ -3320,7 +3312,7 @@ fun SettingsScreen(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("النسخ الاحتياطي والاستعادة الكاملة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_109"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -3337,7 +3329,7 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f).clickable { backupTab = "EXPORT" }
                         ) {
                             Text(
-                                text = "📤 إنشاء نسخة احتياطية",
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_110"),
                                 color = if (backupTab == "EXPORT") Color(0xFF00E5FF) else Color.White,
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -3353,7 +3345,7 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f).clickable { backupTab = "IMPORT" }
                         ) {
                             Text(
-                                text = "📥 استعادة نسخة سابقة",
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_111"),
                                 color = if (backupTab == "IMPORT") Color(0xFF00E5FF) else Color.White,
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -3367,7 +3359,7 @@ fun SettingsScreen(
 
                     if (backupTab == "EXPORT") {
                         Text(
-                            text = "تشمل النسخة الاحتياطية كافة إعدادات التطبيق بالكامل:\n• الثيمات المخصصة وحجم الكيبورد\n• إعدادات الصوت والاهتزاز وحجم الفيسات\n• نصوص الحافظة والاختصارات المحفوظة\n• شريط الابتسامات المخصص وقاموس الكلمات",
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_112"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.5.sp,
                             lineHeight = 17.sp
@@ -3381,13 +3373,13 @@ fun SettingsScreen(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                                 val clip = android.content.ClipData.newPlainText("TurboKeyboardBackup", backup)
                                 clipboard?.setPrimaryClip(clip)
-                                Toast.makeText(context, "📋 تم نسخ كود النسخة الاحتياطية للحافظة بنجاح!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_113"), Toast.LENGTH_LONG).show()
                             },
                             modifier = Modifier.fillMaxWidth().height(42.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
                         ) {
-                            Text("📋 نسخ كود النسخة الاحتياطية", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_114"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -3412,11 +3404,11 @@ fun SettingsScreen(
                             shape = RoundedCornerShape(10.dp),
                             border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.7f))
                         ) {
-                            Text("📤 مشاركة وحفظ النسخة الاحتياطية", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_115"), color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     } else {
                         Text(
-                            text = "قم بلصق كود النسخة الاحتياطية في الحقل أدناه لاستعادة جميع البيانات والإعدادات فوراً:",
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_116"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.5.sp
                         )
@@ -3433,13 +3425,13 @@ fun SettingsScreen(
                                     val text = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
                                     if (text.isNotBlank()) {
                                         restoreCodeInput = text
-                                        Toast.makeText(context, "تم لصق كود النسخة!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_117"), Toast.LENGTH_SHORT).show()
                                     } else {
-                                        Toast.makeText(context, "الحافظة فارغة", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_118"), Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             ) {
-                                Text("📋 لصق من الحافظة", color = Color(0xFF38BDF8), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_119"), color = Color(0xFF38BDF8), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                             }
                         }
 
@@ -3448,7 +3440,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = restoreCodeInput,
                             onValueChange = { restoreCodeInput = it },
-                            placeholder = { Text("الصق كود النسخة الاحتياطية هنا...", color = Color(0xFF64748B), fontSize = 11.sp) },
+                            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_120"), color = Color(0xFF64748B), fontSize = 11.sp) },
                             modifier = Modifier.fillMaxWidth().height(120.dp),
                             maxLines = 6,
                             colors = OutlinedTextFieldDefaults.colors(
@@ -3466,7 +3458,7 @@ fun SettingsScreen(
                         Button(
                             onClick = {
                                 if (restoreCodeInput.isBlank()) {
-                                    Toast.makeText(context, "يرجى لصق كود النسخة أولاً", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_121"), Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
                                 isRestoring = true
@@ -3480,10 +3472,10 @@ fun SettingsScreen(
                                             customRow1Input = reloadedSettings.customArabicRow1.ifBlank { "ض ص ق ف غ ع ه خ ح ج" }
                                             customRow2Input = reloadedSettings.customArabicRow2.ifBlank { "ش س ي ب ل ا ت ن م ك" }
                                             customRow3Input = reloadedSettings.customArabicRow3.ifBlank { "ظ ط ذ د ز ر و ة ث" }
-                                            Toast.makeText(context, "✅ تم استعادة كافة الإعدادات والبيانات بنجاح!", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_122"), Toast.LENGTH_LONG).show()
                                             activeDialog = null
                                         } else {
-                                            Toast.makeText(context, "❌ كود النسخة غير صالح أو تالف", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_123"), Toast.LENGTH_LONG).show()
                                         }
                                     }
                                 }
@@ -3496,9 +3488,9 @@ fun SettingsScreen(
                             if (isRestoring) {
                                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("جاري استعادة البيانات بأمان...", color = Color.White, fontSize = 12.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_124"), color = Color.White, fontSize = 12.sp)
                             } else {
-                                Text("✅ استعادة كافة البيانات والإعدادات الآن", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_125"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }
@@ -3506,7 +3498,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("إغلاق", color = Color.White)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_019"), color = Color.White)
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -3526,13 +3518,13 @@ fun SettingsScreen(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("قنوات التليجرام الرسمية", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "telegram_channels_title"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "تابع آخر التحديثات والإصدارات والدعم الفني عبر قنواتنا الرسمية على تليجرام:",
+                        text = AppStrings.trCode(context, appLanguageCode, "telegram_channels_desc"),
                         color = Color(0xFF94A3B8),
                         fontSize = 12.sp,
                         lineHeight = 17.sp
@@ -3562,11 +3554,11 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("📢 القناة الأولى: قناة أبو صالح الرسمية", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "telegram_channel_1"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 Text("t.me/Abu2Saleh", color = Color(0xFF38BDF8), fontSize = 11.sp)
                             }
                             Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0088CC)) {
-                                Text("انضمام", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                                Text(AppStrings.trCode(context, appLanguageCode, "telegram_join_btn"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
                             }
                         }
                     }
@@ -3596,11 +3588,11 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("🚀 القناة الثانية: قناة المطور والدعم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "telegram_channel_2"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 Text("t.me/+OWBdNfDNS8MzYzQ0", color = Color(0xFF38BDF8), fontSize = 11.sp)
                             }
                             Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0088CC)) {
-                                Text("انضمام", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                                Text(AppStrings.trCode(context, appLanguageCode, "telegram_join_btn"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
                             }
                         }
                     }
@@ -3608,7 +3600,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { activeDialog = null }) {
-                    Text("إغلاق", color = Color.White)
+                    Text(AppStrings.trCode(context, appLanguageCode, "action_close"), color = Color.White)
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -3724,42 +3716,42 @@ fun SettingsScreen(
                             ) {
                                 if (settings.showQuickActionUndoRedo) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF10B981).copy(alpha = 0.2f), border = BorderStroke(0.8.dp, Color(0xFF10B981))) {
-                                        Text("استعادة", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_126"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionPaste) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("لصق", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_127"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionCopy) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("نسخ", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionCut) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("قص", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_128"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionSelectAll) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("تحديد الكل", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_129"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionReadText) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("قراءة", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_130"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionClearAll) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("مسح الكل", color = Color(0xFFEF4444), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_131"), color = Color(0xFFEF4444), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                                 if (settings.showQuickActionClipboard) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF1C2230)) {
-                                        Text("الحافظة", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_132"), color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
                             }
@@ -3792,7 +3784,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E283A)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("تفعيل الكل", color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_133"), color = Color(0xFF00E5FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -3813,7 +3805,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E283A)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("تعطيل الكل", color = Color(0xFFEF4444), fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_134"), color = Color(0xFFEF4444), fontSize = 11.sp)
                         }
 
                         Button(
@@ -3835,7 +3827,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E283A)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("الافتراضي", color = Color.White, fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_135"), color = Color.White, fontSize = 11.sp)
                         }
                     }
 
@@ -3849,8 +3841,8 @@ fun SettingsScreen(
                     ) {
                         item {
                             MenuToggleItem(
-                                title = "شريط الإجراءات السريعة بالكامل",
-                                subtitle = "إظهار أو إخفاء سطر القوائم السريعة فوق الأزرار",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_136"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_137"),
                                 icon = Icons.Outlined.ViewStream,
                                 isChecked = settings.showQuickActionsRow,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionsRow = it)) }
@@ -3858,8 +3850,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر مسح الكل",
-                                subtitle = "مسح جميع النصوص المكتوبة دفعة واحدة بنقرة",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_138"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_139"),
                                 icon = Icons.Default.DeleteSweep,
                                 isChecked = settings.showQuickActionClearAll,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionClearAll = it)) }
@@ -3867,8 +3859,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر قراءة النص (الناطق الصوتي)",
-                                subtitle = "قراءة النص المكتوب بصوت الجوال عالي الجودة",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_140"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_141"),
                                 icon = Icons.Default.VolumeUp,
                                 isChecked = settings.showQuickActionReadText,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionReadText = it)) }
@@ -3876,8 +3868,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر لصق",
-                                subtitle = "لصق النص الأخير من الحافظة مباشرة",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_142"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_143"),
                                 icon = Icons.Default.ContentPaste,
                                 isChecked = settings.showQuickActionPaste,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionPaste = it)) }
@@ -3885,8 +3877,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر نسخ",
-                                subtitle = "نسخ النص المحدد أو كل النص بنقرة واحدة",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_144"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_145"),
                                 icon = Icons.Outlined.ContentCopy,
                                 isChecked = settings.showQuickActionCopy,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionCopy = it)) }
@@ -3894,8 +3886,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر قص",
-                                subtitle = "قص النص إلى الحافظة وحذفه من حقل الإدخال",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_146"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_147"),
                                 icon = Icons.Outlined.ContentCut,
                                 isChecked = settings.showQuickActionCut,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionCut = it)) }
@@ -3903,8 +3895,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر تحديد الكل",
-                                subtitle = "تحديد كافة النصوص في حقل الإدخال بنقرة واحدة",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_148"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_149"),
                                 icon = Icons.Outlined.SelectAll,
                                 isChecked = settings.showQuickActionSelectAll,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionSelectAll = it)) }
@@ -3912,8 +3904,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "زر استعادة بعد الحذف (تراجع)",
-                                subtitle = "إظهار زر التراجع والاستعادة فوراً عند مسح أي نص",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_150"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_151"),
                                 icon = Icons.Default.Undo,
                                 isChecked = settings.showQuickActionUndoRedo,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionUndoRedo = it)) }
@@ -3921,8 +3913,8 @@ fun SettingsScreen(
                         }
                         item {
                             MenuToggleItem(
-                                title = "أيقونة الحافظة السريعة",
-                                subtitle = "زر سريع في الشريط لفتح حافظة النصوص ومحتوياتها",
+                                title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_152"),
+                                subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_153"),
                                 icon = Icons.Outlined.ContentPasteGo,
                                 isChecked = settings.showQuickActionClipboard,
                                 onCheckedChange = { updateSettings(settings.copy(showQuickActionClipboard = it)) }

@@ -132,7 +132,7 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
         return ImeActionInfo(
             actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
             icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-            contentDescription = "سطر جديد",
+            contentDescription = "Return",
             isNewline = true
         )
     }
@@ -170,7 +170,7 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
     return ImeActionInfo(
         actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
         icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-        contentDescription = "سطر جديد",
+        contentDescription = "Return",
         isNewline = true
     )
 }
@@ -1286,14 +1286,14 @@ fun TurboKeyboardView(
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
-                            text = "استعادة إعدادات الكيبورد الأصلية",
+                            text = AppStrings.tr("ui_turbo_keyboard_view_002"),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "هل تريد استعادة إعدادات الكيبورد الأصلية؟\nسيتم إعادة الثيم والتخطيط والألوان وحجم الأزرار وشريط الأدوات إلى الوضع الافتراضي كما كان عند التثبيت لأول مرة.\n\n✓ لن يتم حذف كلماتك الشخصية أو نصوص الحافظة.",
+                            text = AppStrings.tr("ui_turbo_keyboard_view_003"),
                             color = Color(0xFFCAD5E2),
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
@@ -1309,7 +1309,7 @@ fun TurboKeyboardView(
                                 border = BorderStroke(1.dp, Color(0xFF334155)),
                                 modifier = Modifier.weight(1f).height(42.dp)
                             ) {
-                                Text("إلغاء", color = Color(0xFF94A3B8), fontSize = 13.sp)
+                                Text(AppStrings.tr("ui_settings_screen_020"), color = Color(0xFF94A3B8), fontSize = 13.sp)
                             }
                             Button(
                                 onClick = {
@@ -1325,7 +1325,7 @@ fun TurboKeyboardView(
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
                                 modifier = Modifier.weight(1f).height(42.dp)
                             ) {
-                                Text("استعادة", color = Color(0xFF090D15), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(AppStrings.tr("ui_settings_screen_126"), color = Color(0xFF090D15), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     }
@@ -1406,7 +1406,7 @@ fun TurboKeyboardView(
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color(activeTheme.accentColor), modifier = Modifier.size(18.dp))
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (themesSearchQuery.isEmpty()) {
-                        Text("ابحث بالكيبورد عن ثيم بالاسم...", color = Color(activeTheme.subtextColor).copy(alpha = 0.7f), fontSize = 12.sp)
+                        Text(AppStrings.tr("ui_turbo_keyboard_view_004"), color = Color(activeTheme.subtextColor).copy(alpha = 0.7f), fontSize = 12.sp)
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -1433,7 +1433,7 @@ fun TurboKeyboardView(
                     }
                 }
                 TextButton(onClick = { activeSubView = KeyboardSubView.NONE }) {
-                    Text("تم", color = Color(activeTheme.accentColor), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.tr("ui_settings_screen_040"), color = Color(activeTheme.accentColor), fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -1615,12 +1615,12 @@ fun TurboKeyboardView(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Tune,
-                            contentDescription = "إظهار شريط الأدوات",
+                            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_005"),
                             tint = Color(activeTheme.accentColor),
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
-                            text = "إظهار شريط الأدوات",
+                            text = AppStrings.tr("ui_turbo_keyboard_view_005"),
                             color = Color(activeTheme.keyTextColor),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium
@@ -1789,7 +1789,7 @@ fun TurboKeyboardView(
                                 if (!customTopEmojis.contains(trimmed)) {
                                     customTopEmojis = (customTopEmojis + trimmed)
                                     prefs.saveCustomTopEmojis(customTopEmojis)
-                                    android.widget.Toast.makeText(context, "تمت إضافة $trimmed لشريط الابتسامات العلوي ✨", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, AppStrings.trf(context, "ui_turbo_keyboard_view_007", trimmed), android.widget.Toast.LENGTH_SHORT).show()
                                     performFeedback(isSpecial = true)
                                 }
                             },
@@ -1855,7 +1855,7 @@ fun TurboKeyboardView(
                                         prefs.saveCustomTopEmojis(customTopEmojis)
                                     }
                                     customizerInputText = trimmed
-                                    android.widget.Toast.makeText(context, "تمت إضافة $trimmed لشريط الابتسامات العلوي ✨", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, AppStrings.trf(context, "ui_turbo_keyboard_view_007", trimmed), android.widget.Toast.LENGTH_SHORT).show()
                                     performFeedback(isSpecial = true)
                                 } else {
                                     sendText(" $sticker ")
@@ -2168,7 +2168,7 @@ fun TurboKeyboardView(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "تخصيص الابتسامات",
+                            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_011"),
                             tint = Color(activeTheme.accentColor),
                             modifier = Modifier.size(17.dp)
                         )
@@ -2293,12 +2293,12 @@ fun TurboKeyboardView(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(actionIcon, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
-                            Text("خيارات أداة: $actionTitle", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(AppStrings.trf("ui_turbo_keyboard_view_012", actionTitle), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("تحكم في هذا الزر أو في شريط الأدوات فوق الأحرف بالكامل:", fontSize = 12.sp, color = Color.Gray)
+                            Text(AppStrings.tr("ui_turbo_keyboard_view_013"), fontSize = 12.sp, color = Color.Gray)
                             
                             // 1. حذف هذا الزر فقط
                             Button(
@@ -2325,7 +2325,7 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("حذف زر $actionTitle من الشريط", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(AppStrings.trf("ui_turbo_keyboard_view_014", actionTitle), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
 
                             // 2. إخفاء وحذف الشريط بالكامل
@@ -2342,7 +2342,7 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(Icons.Default.VisibilityOff, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("إخفاء وحذف شريط الأدوات بالكامل", color = Color(0xFFEF4444), fontSize = 12.sp)
+                                Text(AppStrings.tr("ui_turbo_keyboard_view_015"), color = Color(0xFFEF4444), fontSize = 12.sp)
                             }
 
                             // 3. إدارة وتخصيص كل الأدوات
@@ -2355,14 +2355,14 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(Icons.Default.Tune, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("إدارة وتخصيص جميع الأدوات...", color = Color(0xFF0084FF), fontSize = 12.sp)
+                                Text(AppStrings.tr("ui_turbo_keyboard_view_016"), color = Color(0xFF0084FF), fontSize = 12.sp)
                             }
                         }
                     },
                     confirmButton = {},
                     dismissButton = {
                         TextButton(onClick = { quickActionItemForOptions = null }) {
-                            Text("إلغاء", color = Color.Gray)
+                            Text(AppStrings.tr("ui_settings_screen_020"), color = Color.Gray)
                         }
                     }
                 )
@@ -2476,8 +2476,8 @@ fun TurboKeyboardView(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
-                                        Icon(Icons.Default.Close, contentDescription = "إخفاء الشريط", tint = Color(0xFFEF4444), modifier = Modifier.size(11.dp))
-                                        Text("إخفاء الشريط", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_turbo_keyboard_view_017"), tint = Color(0xFFEF4444), modifier = Modifier.size(11.dp))
+                                        Text(AppStrings.tr("ui_turbo_keyboard_view_017"), color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
 
@@ -2496,8 +2496,8 @@ fun TurboKeyboardView(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
-                                        Icon(Icons.Default.Tune, contentDescription = "تخصيص", tint = Color(activeTheme.accentColor), modifier = Modifier.size(11.dp))
-                                        Text("تخصيص", color = Color(activeTheme.keyTextColor), fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                                        Icon(Icons.Default.Tune, contentDescription = AppStrings.tr("ui_turbo_keyboard_view_018"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(11.dp))
+                                        Text(AppStrings.tr("ui_turbo_keyboard_view_018"), color = Color(activeTheme.keyTextColor), fontSize = 9.sp, fontWeight = FontWeight.Medium)
                                     }
                                 }
 
@@ -2526,9 +2526,9 @@ fun TurboKeyboardView(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            Icon(Icons.Default.Undo, contentDescription = "استعادة", tint = Color(0xFF10B981), modifier = Modifier.size(13.dp))
+                                            Icon(Icons.Default.Undo, contentDescription = AppStrings.tr("ui_settings_screen_126"), tint = Color(0xFF10B981), modifier = Modifier.size(13.dp))
                                             Text(
-                                                text = "استعادة: $lastDeletedText",
+                                                text = AppStrings.trf("ui_turbo_keyboard_view_019", lastDeletedText),
                                                 color = Color(activeTheme.keyTextColor),
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -2687,9 +2687,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.ContentCopy, contentDescription = "نسخ", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.ContentCopy, contentDescription = AppStrings.tr("ui_clipboard_screen_018"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("نسخ", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.tr("ui_clipboard_screen_018"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2732,9 +2732,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.ContentCut, contentDescription = "قص", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.ContentCut, contentDescription = AppStrings.tr("ui_settings_screen_128"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("قص", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.tr("ui_settings_screen_128"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2760,9 +2760,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.SelectAll, contentDescription = "تحديد الكل", tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.SelectAll, contentDescription = AppStrings.tr("ui_settings_screen_129"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text("تحديد الكل", color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.tr("ui_settings_screen_129"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2783,7 +2783,7 @@ fun TurboKeyboardView(
                                          ) {
                                              Icon(
                                                  Icons.Default.Tune,
-                                                 contentDescription = "خيارات وتخصيص الأدوات",
+                                                 contentDescription = AppStrings.tr("ui_turbo_keyboard_view_020"),
                                                  tint = Color(activeTheme.accentColor),
                                                  modifier = Modifier.size(12.dp)
                                              )
@@ -2809,7 +2809,7 @@ fun TurboKeyboardView(
                                          ) {
                                              Icon(
                                                  Icons.Default.Close,
-                                                 contentDescription = "إخفاء شريط الأدوات",
+                                                 contentDescription = AppStrings.tr("ui_turbo_keyboard_view_021"),
                                                  tint = Color(0xFFEF4444),
                                                  modifier = Modifier.size(12.dp)
                                              )
@@ -3292,7 +3292,7 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Language,
-                                    contentDescription = "تبديل اللغة",
+                                    contentDescription = AppStrings.tr("ui_turbo_keyboard_view_022"),
                                     tint = Color(activeTheme.accentColor),
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -3331,7 +3331,7 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.ContentPaste,
-                                    contentDescription = "الحافظة",
+                                    contentDescription = AppStrings.tr("ui_settings_screen_132"),
                                     tint = Color(activeTheme.accentColor),
                                     modifier = Modifier.size(19.dp)
                                 )
@@ -3487,14 +3487,14 @@ fun TurboKeyboardView(
                                 ) {
                                     if (isCursorTrackpadActive) {
                                         Text(
-                                            text = "⟵  تحريك المؤشر (تراك باد)  ⟶",
+                                            text = AppStrings.tr("ui_turbo_keyboard_view_023"),
                                             color = Color(activeTheme.accentColor),
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     } else {
                                         Text(
-                                            text = "◀  $spacebarLabel  ▶",
+                                            text = AppStrings.trf("ui_turbo_keyboard_view_024", spacebarLabel),
                                             color = Color(activeTheme.keyTextColor).copy(alpha = 0.9f),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium
@@ -3618,7 +3618,7 @@ fun TurboKeyboardView(
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("ـَ", color = Color(activeTheme.accentColor), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.tr("ui_turbo_keyboard_view_025"), color = Color(activeTheme.accentColor), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
 
@@ -3807,7 +3807,7 @@ fun TurboKeyboardView(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = "Close",
+                                                contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
                                                 tint = Color.White,
                                                 modifier = Modifier.size(16.dp)
                                             )
@@ -3815,7 +3815,7 @@ fun TurboKeyboardView(
 
                                         // Title: الحروف العائمة (ي) =
                                         Text(
-                                            text = "الحروف العائمة (${longPressChar}) =",
+                                            text = AppStrings.trf("ui_turbo_keyboard_view_026", longPressChar ?: ""),
                                             color = Color(activeTheme.keyTextColor),
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold
@@ -4403,7 +4403,7 @@ fun BackspaceKeyButton(
         val iconSize = (19.dp * backspaceScale).coerceIn(16.dp, 28.dp)
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
-            contentDescription = "Backspace",
+            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_027"),
             tint = Color(theme.keyTextColor),
             modifier = Modifier.size(iconSize)
         )
@@ -4475,7 +4475,7 @@ fun CustomizeTopEmojisInlinePanel(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
+                            contentDescription = AppStrings.tr("ui_clipboard_screen_019"),
                             tint = Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -4487,13 +4487,13 @@ fun CustomizeTopEmojisInlinePanel(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "تخصيص شريط الابتسامات العلوي",
+                            text = AppStrings.tr("ui_settings_screen_041"),
                             color = Color(theme.keyTextColor),
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "اضغط على أي ابتسامة لحذفها، أو اختر من القائمة لإضافتها",
+                            text = AppStrings.tr("ui_turbo_keyboard_view_028"),
                             color = Color(theme.subtextColor),
                             fontSize = 9.5.sp
                         )
@@ -4510,7 +4510,7 @@ fun CustomizeTopEmojisInlinePanel(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Tune,
-                            contentDescription = "الحجم والارتفاع",
+                            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_029"),
                             tint = if (showSliders) Color(0xFF0084FF) else Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -4540,7 +4540,7 @@ fun CustomizeTopEmojisInlinePanel(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "حذف",
+                                    contentDescription = AppStrings.tr("ui_clipboard_screen_015"),
                                     tint = Color(0xFFEF4444),
                                     modifier = Modifier.size(12.dp)
                                 )
@@ -4573,7 +4573,7 @@ fun CustomizeTopEmojisInlinePanel(
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(AppStrings.tr("ui_settings_screen_044"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     // 2. Input Box with Direct Paste & Clear
@@ -4597,7 +4597,7 @@ fun CustomizeTopEmojisInlinePanel(
                             ) {
                                 if (inputText.isEmpty()) {
                                     Text(
-                                        text = "اكتب بالكيبورد أو اختر من الرموز أدناه...",
+                                        text = AppStrings.tr("ui_turbo_keyboard_view_030"),
                                         color = Color(theme.subtextColor).copy(alpha = 0.75f),
                                         fontSize = 10.5.sp,
                                         maxLines = 1,
@@ -4628,9 +4628,9 @@ fun CustomizeTopEmojisInlinePanel(
                                     if (!clip.isNullOrEmpty()) {
                                         onInputTextChange(clip)
                                         onAddEmoji(clip)
-                                        android.widget.Toast.makeText(context, "تم لصق وإضافة: $clip", android.widget.Toast.LENGTH_SHORT).show()
+                                        android.widget.Toast.makeText(context, AppStrings.trf(context, "ui_turbo_keyboard_view_031", clip), android.widget.Toast.LENGTH_SHORT).show()
                                     } else {
-                                        android.widget.Toast.makeText(context, "الحافظة فارغة", android.widget.Toast.LENGTH_SHORT).show()
+                                        android.widget.Toast.makeText(context, AppStrings.tr(context, "ui_settings_screen_118"), android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             ) {
@@ -4641,11 +4641,11 @@ fun CustomizeTopEmojisInlinePanel(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.ContentPaste,
-                                        contentDescription = "لصق",
+                                        contentDescription = AppStrings.tr("ui_settings_screen_127"),
                                         tint = Color(0xFF0084FF),
                                         modifier = Modifier.size(13.dp)
                                     )
-                                    Text("لصق", color = Color(0xFF0084FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.tr("ui_settings_screen_127"), color = Color(0xFF0084FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
 
@@ -4659,7 +4659,7 @@ fun CustomizeTopEmojisInlinePanel(
                                         .clickable { onInputTextChange("") },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Close, contentDescription = "مسح", tint = Color(theme.subtextColor), modifier = Modifier.size(12.dp))
+                                    Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_clipboard_screen_003"), tint = Color(theme.subtextColor), modifier = Modifier.size(12.dp))
                                 }
                             }
                         }
@@ -4735,7 +4735,7 @@ fun CustomizeTopEmojisInlinePanel(
                                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(13.dp))
-                                    Text("لوحة الإيموجي", color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.tr("ui_turbo_keyboard_view_032"), color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -4756,8 +4756,8 @@ fun CustomizeTopEmojisInlinePanel(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("ارتفاع الشريط: ${(heightFactor * 100).toInt()}%", color = Color(theme.keyTextColor), fontSize = 10.sp)
-                            Text("حجم الأيقونات: ${(buttonSizeFactor * 100).toInt()}%", color = Color(0xFF0084FF), fontSize = 10.sp)
+                            Text(AppStrings.trf("ui_turbo_keyboard_view_033", (heightFactor * 100).toInt()), color = Color(theme.keyTextColor), fontSize = 10.sp)
+                            Text(AppStrings.trf("ui_turbo_keyboard_view_034", (buttonSizeFactor * 100).toInt()), color = Color(0xFF0084FF), fontSize = 10.sp)
                         }
                         Slider(
                             value = heightFactor,
@@ -4788,7 +4788,7 @@ fun CustomizeTopEmojisInlinePanel(
                         onClick = { onResetDefaults() },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
+                        Text(AppStrings.tr("ui_settings_screen_047"), color = Color(theme.subtextColor), fontSize = 11.sp)
                     }
 
                     if (onOpenEmojiPicker != null) {
@@ -4801,7 +4801,7 @@ fun CustomizeTopEmojisInlinePanel(
                                 horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
                                 Icon(Icons.Outlined.Mood, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(14.dp))
-                                Text("إضافة من الإيموجي", color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.tr("ui_turbo_keyboard_view_035"), color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -4818,7 +4818,7 @@ fun CustomizeTopEmojisInlinePanel(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Text("حفظ الابتسامات", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                            Text(AppStrings.tr("ui_turbo_keyboard_view_036"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                         }
                     }
                 }
@@ -4866,7 +4866,7 @@ fun QuickActionsManagerInlinePanel(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
+                            contentDescription = AppStrings.tr("ui_clipboard_screen_019"),
                             tint = Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -4877,13 +4877,13 @@ fun QuickActionsManagerInlinePanel(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "حذف وإدارة شريط الأدوات فوق الأحرف",
+                            text = AppStrings.tr("ui_turbo_keyboard_view_037"),
                             color = Color(theme.keyTextColor),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "مسح الكل، قراءة، لصق، الحافظة، نسخ، قص، تحديد الكل",
+                            text = AppStrings.tr("ui_turbo_keyboard_view_038"),
                             color = Color(theme.subtextColor),
                             fontSize = 9.sp
                         )
@@ -5042,7 +5042,7 @@ fun QuickActionsManagerInlinePanel(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
-                                                contentDescription = "حذف من الشريط",
+                                                contentDescription = AppStrings.tr("ui_turbo_keyboard_view_039"),
                                                 tint = Color(0xFFEF4444),
                                                 modifier = Modifier.size(13.dp)
                                             )
@@ -5087,7 +5087,7 @@ fun QuickActionsManagerInlinePanel(
                         },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text("استعادة الافتراضي", color = Color(theme.subtextColor), fontSize = 11.sp)
+                        Text(AppStrings.tr("ui_settings_screen_047"), color = Color(theme.subtextColor), fontSize = 11.sp)
                     }
 
                     Button(
@@ -5102,7 +5102,7 @@ fun QuickActionsManagerInlinePanel(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                            Text("تم وحفظ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text(AppStrings.tr("ui_turbo_keyboard_view_040"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
                     }
                 }

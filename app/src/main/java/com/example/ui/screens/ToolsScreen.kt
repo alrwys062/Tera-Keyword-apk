@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.AppStrings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,7 +68,7 @@ fun ToolsScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -245,7 +246,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AutoAwesome,
-                            contentDescription = "Decoration",
+                            contentDescription = AppStrings.tr(context, "ui_tools_screen_001"),
                             tint = Color(0xFF00E5FF),
                             modifier = Modifier.size(26.dp)
                         )
@@ -301,7 +302,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Spellcheck,
-                            contentDescription = "Spell Check",
+                            contentDescription = AppStrings.tr(context, "ui_tools_screen_002"),
                             tint = Color(0xFF10B981),
                             modifier = Modifier.size(26.dp)
                         )
@@ -438,7 +439,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Psychology,
-                            contentDescription = "AI Assistant",
+                            contentDescription = AppStrings.tr(context, "ui_tools_screen_003"),
                             tint = Color(0xFF818CF8),
                             modifier = Modifier.size(26.dp)
                         )
@@ -500,7 +501,7 @@ fun ToolsScreen(
                                 ) {
                                     val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && com.example.util.AppStrings.getLang(context) == "ar"))
                                     val toneName = if (isArabicLang) tone.nameAr else tone.nameEn
-                                    Text("${tone.icon} $toneName", color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
+                                    Text(AppStrings.trf(context, "ui_tools_screen_004", tone.icon, toneName), color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
                                 }
                             }
                         }
@@ -612,7 +613,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
-                            contentDescription = "Telegram",
+                            contentDescription = AppStrings.tr(context, "ui_tools_screen_005"),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -620,13 +621,13 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "قنوات التليجرام والتواصل",
+                            text = AppStrings.tr(context, "ui_tools_screen_006"),
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "تواصل معنا مباشرة عبر قنواتنا الرسمية",
+                            text = AppStrings.tr(context, "ui_tools_screen_007"),
                             color = Color(0xFF94A3B8),
                             fontSize = 11.5.sp
                         )
@@ -661,7 +662,7 @@ fun ToolsScreen(
                     ) {
                         Column {
                             Text(
-                                text = "📢 القناة الأولى: قناة أبو صالح الرسمية",
+                                text = AppStrings.tr(context, "ui_tools_screen_008"),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -677,7 +678,7 @@ fun ToolsScreen(
                             color = Color(0xFF0088CC)
                         ) {
                             Text(
-                                text = "دخول القناة",
+                                text = AppStrings.tr(context, "ui_tools_screen_009"),
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -715,7 +716,7 @@ fun ToolsScreen(
                     ) {
                         Column {
                             Text(
-                                text = "🚀 القناة الثانية: قناة المطور والدعم",
+                                text = AppStrings.tr(context, "ui_tools_screen_010"),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -731,7 +732,7 @@ fun ToolsScreen(
                             color = Color(0xFF0088CC)
                         ) {
                             Text(
-                                text = "دخول القناة",
+                                text = AppStrings.tr(context, "ui_tools_screen_009"),
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -767,7 +768,7 @@ fun ToolsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "شريط أدوات قابل للتخصيص",
+                        text = AppStrings.tr(context, "ui_tools_screen_011"),
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -775,7 +776,7 @@ fun ToolsScreen(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "بإمكانك تعديل الأدوات والترتيب في شريط الكيبورد حسب احتياجك",
+                    text = AppStrings.tr(context, "ui_tools_screen_012"),
                     color = Color(0xFF8E9BAE),
                     fontSize = 12.sp
                 )

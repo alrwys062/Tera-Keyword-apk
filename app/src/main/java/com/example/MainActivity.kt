@@ -19,6 +19,8 @@ class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Step 1: Configure App Check with launch intent before any UI or Firebase operations
+        com.example.util.configureAppCheck(this, intent)
         try {
             com.example.sound.KeyboardSoundEngine.initialize(this)
         } catch (_: Exception) {}

@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import com.example.util.AppStrings
 import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,6 +45,7 @@ fun CustomThemeBuilderScreen(
     onThemeSavedAndApplied: (KeyboardTheme) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var themeName by remember { mutableStateOf("ثيمي الخاص") }
 
     val colorPalette = listOf(
@@ -84,7 +87,7 @@ fun CustomThemeBuilderScreen(
         KeyboardTheme(
             id = "custom_" + UUID.randomUUID().toString().take(8),
             nameAr = themeName.ifBlank { "ثيم مخصص" },
-            nameEn = "Custom Theme",
+            nameEn = AppStrings.tr(context, "ui_custom_theme_builder_screen_001"),
             isCustom = true,
             backgroundColor = bgColor,
             keyBackgroundColor = keyColor,
@@ -127,13 +130,13 @@ fun CustomThemeBuilderScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
 
             Text(
-                text = "صانع الثيمات بالصور والألوان",
+                text = AppStrings.tr(context, "ui_custom_theme_builder_screen_002"),
                 color = Color.White,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
@@ -150,7 +153,7 @@ fun CustomThemeBuilderScreen(
                 shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Text("حفظ وتطبيق", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(AppStrings.tr(context, "ui_custom_theme_builder_screen_003"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
 
@@ -158,7 +161,7 @@ fun CustomThemeBuilderScreen(
 
         // Live interactive preview
         Text(
-            text = "معاينة حية للكيبورد",
+            text = AppStrings.tr(context, "ui_custom_theme_builder_screen_004"),
             color = Color(0xFF8E9BAE),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
@@ -186,7 +189,7 @@ fun CustomThemeBuilderScreen(
         OutlinedTextField(
             value = themeName,
             onValueChange = { themeName = it },
-            label = { Text("اسم الثيم", color = Color(0xFF8E9BAE)) },
+            label = { Text(AppStrings.tr(context, "ui_custom_theme_builder_screen_005"), color = Color(0xFF8E9BAE)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -221,7 +224,7 @@ fun CustomThemeBuilderScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "خلفية الكيبورد بصورة مخصصة",
+                            text = AppStrings.tr(context, "ui_custom_theme_builder_screen_006"),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
@@ -235,7 +238,7 @@ fun CustomThemeBuilderScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Remove photo",
+                                contentDescription = AppStrings.tr(context, "ui_custom_theme_builder_screen_007"),
                                 tint = Color(0xFFFF5252),
                                 modifier = Modifier.size(18.dp)
                             )
@@ -255,7 +258,7 @@ fun CustomThemeBuilderScreen(
                     ) {
                         AsyncImage(
                             model = selectedImageUri,
-                            contentDescription = "Background Preview",
+                            contentDescription = AppStrings.tr(context, "ui_custom_theme_builder_screen_008"),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -269,7 +272,7 @@ fun CustomThemeBuilderScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "نسبة تعتيم الصورة لإبراز الحروف (${(backgroundDim * 100).toInt()}%)",
+                        text = AppStrings.trf(context, "ui_custom_theme_builder_screen_009", (backgroundDim * 100).toInt()),
                         color = Color(0xFF8E9BAE),
                         fontSize = 12.sp
                     )
@@ -309,7 +312,7 @@ fun CustomThemeBuilderScreen(
 
         // Key Transparency / Opacity Slider
         Text(
-            text = "شفافية الأزرار (${(keyOpacity * 100).toInt()}%)",
+            text = AppStrings.trf(context, "ui_custom_theme_builder_screen_010", (keyOpacity * 100).toInt()),
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
@@ -353,7 +356,7 @@ fun CustomThemeBuilderScreen(
 
         // Key Corner Radius Slider
         Text(
-            text = "استدارة حواف مربعات الأزرار (${cornerRadius.toInt()} dp)",
+            text = AppStrings.trf(context, "ui_custom_theme_builder_screen_011", cornerRadius.toInt()),
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold

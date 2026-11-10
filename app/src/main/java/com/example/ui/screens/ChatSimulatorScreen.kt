@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.AppStrings
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
@@ -55,8 +56,8 @@ fun ChatSimulatorScreen(
     var messages by remember {
         mutableStateOf(
             listOf(
-                ChatMessage(text = "مرحبا! كيف حالك اليوم؟", isFromMe = false),
-                ChatMessage(text = "أنا بخير، شكراً! 😊", isFromMe = true)
+                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_001"), isFromMe = false),
+                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_002"), isFromMe = true)
             )
         )
     }
@@ -91,7 +92,7 @@ fun ChatSimulatorScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -104,7 +105,7 @@ fun ChatSimulatorScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "تجربة كيبورد برو التفاعلية",
+                    text = AppStrings.tr(context, "ui_chat_simulator_screen_004"),
                     color = Color(0xFF00E5FF),
                     fontSize = 10.sp
                 )
@@ -117,13 +118,13 @@ fun ChatSimulatorScreen(
                         isEnglishMockup = !isEnglishMockup
                         messages = if (isEnglishMockup) {
                             listOf(
-                                ChatMessage(text = "Hello! How are you?", isFromMe = false),
-                                ChatMessage(text = "I'm good, thank you! 😊", isFromMe = true)
+                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_005"), isFromMe = false),
+                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_006"), isFromMe = true)
                             )
                         } else {
                             listOf(
-                                ChatMessage(text = "مرحبا! كيف حالك اليوم؟", isFromMe = false),
-                                ChatMessage(text = "أنا بخير، شكراً! 😊", isFromMe = true)
+                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_001"), isFromMe = false),
+                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_002"), isFromMe = true)
                             )
                         }
                     }
@@ -145,7 +146,7 @@ fun ChatSimulatorScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "Avatar",
+                        contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_007"),
                         tint = Color(0xFF8E9BAE),
                         modifier = Modifier.size(20.dp)
                     )
@@ -167,7 +168,7 @@ fun ChatSimulatorScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "لوحة مفاتيح نظام أندرويد:",
+                    text = AppStrings.tr(context, "ui_chat_simulator_screen_008"),
                     color = Color(0xFF8E9BAE),
                     fontSize = 11.sp
                 )
@@ -179,7 +180,7 @@ fun ChatSimulatorScreen(
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                Toast.makeText(context, "افتح إعدادات لوحة المفاتيح لتفعيل Turbo Keyboard", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, AppStrings.tr(context, "ui_chat_simulator_screen_009"), Toast.LENGTH_SHORT).show()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)),
@@ -187,7 +188,7 @@ fun ChatSimulatorScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(28.dp)
                     ) {
-                        Text("1. تفعيل في النظام", fontSize = 10.sp, color = Color.White)
+                        Text(AppStrings.tr(context, "ui_chat_simulator_screen_010"), fontSize = 10.sp, color = Color.White)
                     }
 
                     Button(
@@ -200,7 +201,7 @@ fun ChatSimulatorScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(28.dp)
                     ) {
-                        Text("2. اختيار كافتراضي", fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.tr(context, "ui_chat_simulator_screen_011"), fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -302,7 +303,7 @@ fun ChatSimulatorScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
-                            contentDescription = "Send",
+                            contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_012"),
                             tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )

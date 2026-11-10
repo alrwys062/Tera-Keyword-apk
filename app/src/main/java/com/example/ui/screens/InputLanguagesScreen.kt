@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.AppStrings
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -72,7 +73,7 @@ fun InputLanguagesScreen(
             InputLanguagesManager.installLanguage(context, lang.code)
             downloadingProgress.remove(lang.code)
             refreshLists()
-            Toast.makeText(context, "تم تنزيل وتثبيت لغة ${lang.nameAr} بنجاح!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_001", lang.nameAr), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -98,7 +99,7 @@ fun InputLanguagesScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -107,13 +108,13 @@ fun InputLanguagesScreen(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "لغات الإدخال ولوحات المفاتيح",
+                    text = AppStrings.tr(context, "ui_input_languages_screen_002"),
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "جميع لغات العالم مع التنزيل والتطبيق",
+                    text = AppStrings.tr(context, "ui_input_languages_screen_003"),
                     color = Color(0xFF00E5FF),
                     fontSize = 11.sp
                 )
@@ -160,13 +161,13 @@ fun InputLanguagesScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "السحب على المسافة للتبديل",
+                            text = AppStrings.tr(context, "ui_input_languages_screen_004"),
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "مرر إصبعك على مفتاح المسافة لتبديل لغة الكتابة",
+                            text = AppStrings.tr(context, "ui_input_languages_screen_005"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -229,7 +230,7 @@ fun InputLanguagesScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("ابحث عن أي لغة بالعالم (فرنسية، روسية، كورية، ألمانية...)", color = Color(0xFF8E9BAE), fontSize = 11.sp) },
+            placeholder = { Text(AppStrings.tr(context, "ui_input_languages_screen_006"), color = Color(0xFF8E9BAE), fontSize = 11.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -247,7 +248,7 @@ fun InputLanguagesScreen(
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Clear", tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Close, contentDescription = AppStrings.tr(context, "ui_input_languages_screen_007"), tint = Color.LightGray, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -272,7 +273,7 @@ fun InputLanguagesScreen(
             ) {
                 item {
                     Text(
-                        text = "اللغات المفعلة يتم التبديل بينها عبر السحب على المسافة أو زر اللغة:",
+                        text = AppStrings.tr(context, "ui_input_languages_screen_008"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -332,7 +333,7 @@ fun InputLanguagesScreen(
                                                 color = Color(0xFF10B981).copy(alpha = 0.2f)
                                             ) {
                                                 Text(
-                                                    text = "مفعلة حالياً بالكيبورد",
+                                                    text = AppStrings.tr(context, "ui_input_languages_screen_009"),
                                                     color = Color(0xFF10B981),
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold,
@@ -342,7 +343,7 @@ fun InputLanguagesScreen(
                                         }
                                     }
                                     Text(
-                                        text = "${lang.nameAr} (${lang.nameEn})",
+                                        text = AppStrings.trf(context, "ui_input_languages_screen_010", lang.nameAr, lang.nameEn),
                                         color = Color(0xFF8E9BAE),
                                         fontSize = 11.sp
                                     )
@@ -362,11 +363,11 @@ fun InputLanguagesScreen(
                                                 InputLanguagesManager.toggleLanguageActive(context, lang.code)
                                             }
                                             refreshLists()
-                                            Toast.makeText(context, "تم تطبيق لغة ${lang.nameNative} على الكيبورد!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_011", lang.nameNative), Toast.LENGTH_SHORT).show()
                                         },
                                         colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF00E5FF))
                                     ) {
-                                        Text("تطبيق", fontSize = 11.sp)
+                                        Text(AppStrings.tr(context, "ui_input_languages_screen_012"), fontSize = 11.sp)
                                     }
                                 }
 
@@ -389,13 +390,13 @@ fun InputLanguagesScreen(
                                         onClick = {
                                             InputLanguagesManager.uninstallLanguage(context, lang.code)
                                             refreshLists()
-                                            Toast.makeText(context, "تم حذف لغة ${lang.nameAr}", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_013", lang.nameAr), Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.size(30.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Delete,
-                                            contentDescription = "Uninstall",
+                                            contentDescription = AppStrings.tr(context, "ui_input_languages_screen_014"),
                                             tint = Color(0xFFEF4444).copy(alpha = 0.7f),
                                             modifier = Modifier.size(16.dp)
                                         )
@@ -421,7 +422,7 @@ fun InputLanguagesScreen(
             ) {
                 item {
                     Text(
-                        text = "اضغط تحميل على أي لغة لإضافتها فوراً وتطبيقها على لوحة المفاتيح:",
+                        text = AppStrings.tr(context, "ui_input_languages_screen_015"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -475,7 +476,7 @@ fun InputLanguagesScreen(
                                             }
                                         }
                                         Text(
-                                            text = "${lang.nameAr} • الحجم: ${lang.size}",
+                                            text = AppStrings.trf(context, "ui_input_languages_screen_016", lang.nameAr, lang.size),
                                             color = Color(0xFF8E9BAE),
                                             fontSize = 11.sp
                                         )
@@ -501,7 +502,7 @@ fun InputLanguagesScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = "مثبتة",
+                                                    text = AppStrings.tr(context, "ui_input_languages_screen_017"),
                                                     color = Color(0xFF10B981),
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold
@@ -514,10 +515,10 @@ fun InputLanguagesScreen(
                                             onClick = {
                                                 InputLanguagesManager.setCurrentLanguageCode(context, lang.code)
                                                 refreshLists()
-                                                Toast.makeText(context, "تم تطبيق لغة ${lang.nameNative} على الكيبورد!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_011", lang.nameNative), Toast.LENGTH_SHORT).show()
                                             }
                                         ) {
-                                            Text("تطبيق", color = Color(0xFF00E5FF), fontSize = 11.sp)
+                                            Text(AppStrings.tr(context, "ui_input_languages_screen_012"), color = Color(0xFF00E5FF), fontSize = 11.sp)
                                         }
                                     }
                                 } else if (progress != null) {
@@ -527,7 +528,7 @@ fun InputLanguagesScreen(
                                         modifier = Modifier.width(100.dp)
                                     ) {
                                         Text(
-                                            text = "جاري التنزيل ${(progress * 100).toInt()}%",
+                                            text = AppStrings.trf(context, "ui_input_languages_screen_018", (progress * 100).toInt()),
                                             color = Color(0xFF00E5FF),
                                             fontSize = 10.sp
                                         )
@@ -558,7 +559,7 @@ fun InputLanguagesScreen(
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = "تحميل",
+                                            text = AppStrings.tr(context, "ui_input_languages_screen_019"),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )

@@ -55,7 +55,7 @@ object LocaleHelper {
 
     fun setAppLanguageCode(context: Context, code: String) {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        sp.edit().putString(KEY_APP_LANGUAGE, code).apply()
+        sp.edit().putString(KEY_APP_LANGUAGE, code).commit()
         _appLanguageFlow.value = code
     }
 

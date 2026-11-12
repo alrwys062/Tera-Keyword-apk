@@ -37,22 +37,15 @@ jobs:
           gradle-version: '9.3.1'
 
       - name: Restore permanent debug keystore
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
-          if [ -f "./debug.keystore.base64" ]; then
-            echo "Restoring permanent debug keystore from debug.keystore.base64..."
-            base64 -d ./debug.keystore.base64 > ./debug.keystore
-          elif [ -f "./debug.keystore" ]; then
-            echo "Permanent ./debug.keystore already exists."
-          else
-            echo "ERROR: Permanent debug keystore missing!"
+          if [ -z "$DEBUG_KEYSTORE_BASE64" ]; then
+            echo "ERROR: secret DEBUG_KEYSTORE_BASE64 is missing. Add it in GitHub Settings > Secrets and variables > Actions."
             exit 1
           fi
-
-          if [ ! -f ./debug.keystore ]; then
-            echo "ERROR: ./debug.keystore does not exist!"
-            exit 1
-          fi
-          echo "Permanent debug keystore verified."
+          echo "$DEBUG_KEYSTORE_BASE64" | base64 --decode > ./debug.keystore
+          echo "Permanent debug keystore restored."
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon

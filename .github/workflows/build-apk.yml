@@ -23,11 +23,10 @@ jobs:
       - name: Verify Java environment
         run: |
           java -version
-          echo "JAVA_HOME: $JAVA_HOME"
           JAVA_MAJOR=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F. '{if ($1=="1") print $2; else print $1}')
           echo "Active Java major version: $JAVA_MAJOR"
           if [ -z "$JAVA_MAJOR" ] || [ "$JAVA_MAJOR" -lt 17 ]; then
-            echo "ERROR: Active Java major version must be 17 or higher. Found: $JAVA_MAJOR"
+            echo "ERROR: Java 17 or higher is required."
             exit 1
           fi
 
@@ -36,16 +35,14 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Restore permanent debug keystore
-        env:
-          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+      - name: Check debug keystore
         run: |
-          if [ -z "$DEBUG_KEYSTORE_BASE64" ]; then
-            echo "ERROR: secret DEBUG_KEYSTORE_BASE64 is missing. Add it in GitHub Settings > Secrets and variables > Actions."
+          if [ -f ./debug.keystore ]; then
+            echo "Using debug.keystore committed in the repository."
+          else
+            echo "ERROR: debug.keystore is missing from the repository."
             exit 1
           fi
-          echo "$DEBUG_KEYSTORE_BASE64" | base64 --decode > ./debug.keystore
-          echo "Permanent debug keystore restored."
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
@@ -57,7 +54,6 @@ jobs:
             echo "Successfully verified target APK: $TARGET_APK"
           else
             echo "ERROR: Missing expected debug APK: $TARGET_APK"
-            echo "Searching only inside app/build/outputs/apk:"
             find app/build/outputs/apk -type f -name "*.apk" 2>/dev/null || true
             exit 1
           fi

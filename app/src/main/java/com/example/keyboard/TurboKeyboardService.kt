@@ -76,6 +76,7 @@ open class TurboKeyboardService : InputMethodService(),
             val customPrefs = getSharedPreferences("turbo_keyboard_prefs", MODE_PRIVATE)
             preferenceChangeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
                 try {
+                    PreferencesManager.invalidateCache()
                     val p = PreferencesManager(this@TurboKeyboardService)
                     keyboardSettingsState.value = p.getSettings()
                     keyboardThemeState.value = p.getActiveTheme()
@@ -162,9 +163,18 @@ open class TurboKeyboardService : InputMethodService(),
                 val currentTheme by keyboardThemeState
                 val currentLang by keyboardLanguageState
                 val currentSessionId by inputSessionSignal
+                val appLang by com.example.util.LocaleHelper.appLanguageFlow.collectAsState()
+                val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
                 val prefs = remember { PreferencesManager(this@TurboKeyboardService) }
 
-                val layoutDir = com.example.util.LocaleHelper.getLayoutDirection(this@TurboKeyboardService)
+                LaunchedEffect(prefsVersion) {
+                    try {
+                        keyboardSettingsState.value = prefs.getSettings()
+                        keyboardThemeState.value = prefs.getActiveTheme()
+                    } catch (_: Exception) {}
+                }
+
+                val layoutDir = com.example.util.LocaleHelper.getLayoutDirectionForCode(this@TurboKeyboardService, appLang)
                 androidx.compose.runtime.CompositionLocalProvider(
                     androidx.compose.ui.platform.LocalLayoutDirection provides layoutDir
                 ) {
@@ -228,6 +238,7 @@ open class TurboKeyboardService : InputMethodService(),
         activeInputConnectionState.value = currentInputConnection
         activeEditorInfoState.value = attribute ?: currentInputEditorInfo
         try {
+            PreferencesManager.invalidateCache()
             val prefs = PreferencesManager(this@TurboKeyboardService)
             keyboardSettingsState.value = prefs.getSettings()
             keyboardThemeState.value = prefs.getActiveTheme()
@@ -261,6 +272,7 @@ open class TurboKeyboardService : InputMethodService(),
         activeInputConnectionState.value = currentInputConnection
         activeEditorInfoState.value = info ?: currentInputEditorInfo
         try {
+            PreferencesManager.invalidateCache()
             val prefs = PreferencesManager(this@TurboKeyboardService)
             keyboardSettingsState.value = prefs.getSettings()
             keyboardThemeState.value = prefs.getActiveTheme()
@@ -285,6 +297,7 @@ open class TurboKeyboardService : InputMethodService(),
         setupWindowDecorOwners()
         activeInputConnectionState.value = currentInputConnection
         try {
+            PreferencesManager.invalidateCache()
             val prefs = PreferencesManager(this@TurboKeyboardService)
             keyboardSettingsState.value = prefs.getSettings()
             keyboardThemeState.value = prefs.getActiveTheme()
@@ -529,7 +542,14 @@ open class TurboKeyboardService : InputMethodService(),
         try {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "تحدث الآن لكتابة النص...")
+                putExtra(
+                    RecognizerIntent.EXTRA_PROMPT,
+                    com.example.util.AppStrings.trCode(
+                        this@TurboKeyboardService,
+                        com.example.util.LocaleHelper.getAppLanguageCode(this@TurboKeyboardService),
+                        "ui_keyboard_sub_views_047"
+                    )
+                )
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)

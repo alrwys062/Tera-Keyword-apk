@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
+import com.example.util.AppStrings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -65,7 +67,7 @@ fun KeyboardNumericPad(
     theme: KeyboardTheme,
     isPhoneField: Boolean,
     actionInfo: ImeActionInfo,
-    rowHeight: Dp = 48.dp,
+    rowHeight: Dp = 39.dp,
     currentLanguageName: String = "ع",
     isArabicDefault: Boolean = true,
     forceEnglishNumbers: Boolean = false,
@@ -74,8 +76,10 @@ fun KeyboardNumericPad(
     onActionClick: () -> Unit,
     onSwitchToAlphabet: () -> Unit,
     onFeedback: (durationMs: Long, isSpecial: Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    appLanguageCode: String = "auto"
 ) {
+    val context = LocalContext.current
     var isArabicDigits by remember(forceEnglishNumbers) {
         mutableStateOf(!forceEnglishNumbers && isArabicDefault)
     }
@@ -118,13 +122,13 @@ fun KeyboardNumericPad(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             // Quick Symbols Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(30.dp)
+                .height(26.dp)
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -132,8 +136,8 @@ fun KeyboardNumericPad(
             quickSymbols.forEach { sym ->
                 Surface(
                     modifier = Modifier
-                        .height(28.dp)
-                        .widthIn(min = 34.dp)
+                        .height(24.dp)
+                        .widthIn(min = 32.dp)
                         .clip(RoundedCornerShape(cornerRadius))
                         .clickable {
                             onFeedback(0L, false)
@@ -143,11 +147,11 @@ fun KeyboardNumericPad(
                     color = keyBg.copy(alpha = 0.85f),
                     border = BorderStroke(0.8.dp, borderCol)
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 7.dp)) {
                         Text(
                             text = sym,
                             color = textColor,
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -390,9 +394,9 @@ fun KeyboardNumericPad(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Backspace,
-                    contentDescription = "حذف",
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "delete_action"),
                     tint = textColor,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(21.dp)
                 )
             }
         }

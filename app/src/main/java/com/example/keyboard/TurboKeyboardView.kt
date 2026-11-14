@@ -127,7 +127,11 @@ fun isPhoneInputType(editorInfo: EditorInfo?): Boolean {
     return (editorInfo.inputType and InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_PHONE
 }
 
-fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
+fun resolveImeAction(
+    editorInfo: EditorInfo?,
+    context: Context? = null,
+    appLanguageCode: String = "auto"
+): ImeActionInfo {
     if (editorInfo == null) {
         return ImeActionInfo(
             actionId = EditorInfo.IME_ACTION_UNSPECIFIED,
@@ -153,16 +157,19 @@ fun resolveImeAction(editorInfo: EditorInfo?): ImeActionInfo {
 
     // إذا كان حقل بحث: يظهر زر البحث دائماً
     if (action == EditorInfo.IME_ACTION_SEARCH || editorInfo.actionId == EditorInfo.IME_ACTION_SEARCH || isSearchType || isSearchKeyword) {
-        return ImeActionInfo(EditorInfo.IME_ACTION_SEARCH, Icons.Default.Search, "بحث", false)
+        val desc = context?.let { AppStrings.trCode(it, appLanguageCode, "search_action") } ?: "Search"
+        return ImeActionInfo(EditorInfo.IME_ACTION_SEARCH, Icons.Default.Search, desc, false)
     }
 
     // إذا كان حقل نصوص أحادي السطر لنموذج (التالي / السابق)
     if (!isMultiLine) {
         if (action == EditorInfo.IME_ACTION_NEXT || editorInfo.actionId == EditorInfo.IME_ACTION_NEXT) {
-            return ImeActionInfo(EditorInfo.IME_ACTION_NEXT, Icons.AutoMirrored.Filled.ArrowForward, "التالي", false)
+            val desc = context?.let { AppStrings.trCode(it, appLanguageCode, "next_action") } ?: "Next"
+            return ImeActionInfo(EditorInfo.IME_ACTION_NEXT, Icons.AutoMirrored.Filled.ArrowForward, desc, false)
         }
         if (action == EditorInfo.IME_ACTION_PREVIOUS || editorInfo.actionId == EditorInfo.IME_ACTION_PREVIOUS) {
-            return ImeActionInfo(EditorInfo.IME_ACTION_PREVIOUS, Icons.AutoMirrored.Filled.ArrowBack, "السابق", false)
+            val desc = context?.let { AppStrings.trCode(it, appLanguageCode, "prev_action") } ?: "Previous"
+            return ImeActionInfo(EditorInfo.IME_ACTION_PREVIOUS, Icons.AutoMirrored.Filled.ArrowBack, desc, false)
         }
     }
 
@@ -214,7 +221,18 @@ fun TurboKeyboardView(
     val prefs = remember { prefsManager ?: PreferencesManager(context) }
     var currentSettings by remember { mutableStateOf(settings) }
     LaunchedEffect(settings) { currentSettings = settings }
-    val appLangCode = remember { LocaleHelper.getAppLanguageCode(context) }
+
+    val flowAppLang by LocaleHelper.appLanguageFlow.collectAsState()
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
+    val appLangCode = flowAppLang
+    val resolvedUiLang = remember(appLangCode) {
+        if (appLangCode == "auto" || appLangCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLangCode)
+    }
+    val isArUi = resolvedUiLang == "ar"
+    val uiLayoutDir = remember(appLangCode) {
+        LocaleHelper.getLayoutDirectionForCode(context, appLangCode)
+    }
 
     var currentLangCode by remember(initialLanguageCode) {
         mutableStateOf(initialLanguageCode ?: InputLanguagesManager.getCurrentLanguageCode(context))
@@ -237,8 +255,8 @@ fun TurboKeyboardView(
     var activeSubView by remember { mutableStateOf(KeyboardSubView.NONE) }
     var activeTranslationPickerForSource by remember { mutableStateOf<Boolean?>(null) }
 
-    val currentImeAction = remember(editorInfo, getCurrentEditorInfo) {
-        resolveImeAction(getCurrentEditorInfo?.invoke() ?: editorInfo)
+    val currentImeAction = remember(editorInfo, getCurrentEditorInfo, appLangCode) {
+        resolveImeAction(getCurrentEditorInfo?.invoke() ?: editorInfo, context, appLangCode)
     }
 
     // Auto-detect number and phone input types (التعرف على إدخال الأرقام والهاتف تلقائياً)
@@ -263,20 +281,20 @@ fun TurboKeyboardView(
     val isPortrait = configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val screenHeightDp = configuration.screenHeightDp
 
+    // Compact height (-18%) while keeping comfortable touch targets & inter-key spacing
     val baseKeyHeight = remember(isPortrait, screenHeightDp) {
         if (isPortrait) {
             when {
-                screenHeightDp < 640 -> 39.dp
-                screenHeightDp < 760 -> 42.dp
-                screenHeightDp < 900 -> 44.dp
-                else -> 46.dp
+                screenHeightDp < 640 -> 32.dp
+                screenHeightDp < 760 -> 34.5.dp
+                screenHeightDp < 900 -> 36.5.dp
+                else -> 38.dp
             }
         } else {
-            // Landscape mode - AI auto-resize to prevent screen obstruction in games & landscape apps
             when {
-                screenHeightDp < 360 -> 22.dp
-                screenHeightDp < 440 -> 25.dp
-                else -> 28.dp
+                screenHeightDp < 360 -> 18.dp
+                screenHeightDp < 440 -> 20.5.dp
+                else -> 23.dp
             }
         }
     }
@@ -284,13 +302,13 @@ fun TurboKeyboardView(
     val calculatedKeyHeight = remember(baseKeyHeight, currentSettings.keyHeightFactor, currentSettings.keyButtonScale, isPortrait) {
         (baseKeyHeight * currentSettings.keyHeightFactor * currentSettings.keyButtonScale)
             .coerceIn(
-                minimumValue = if (isPortrait) 24.dp else 18.dp,
-                maximumValue = if (isPortrait) 85.dp else 40.dp
+                minimumValue = if (isPortrait) 22.dp else 16.dp,
+                maximumValue = if (isPortrait) 72.dp else 34.dp
             )
     }
 
     val calculatedNumberKeyHeight = remember(calculatedKeyHeight) {
-        (calculatedKeyHeight * 0.84f).coerceAtLeast(20.dp)
+        (calculatedKeyHeight * 0.84f).coerceAtLeast(19.dp)
     }
 
     val calculatedKeyboardHeight = remember(
@@ -302,20 +320,20 @@ fun TurboKeyboardView(
         isPortrait,
         screenHeightDp
     ) {
-        val numRowH = if (currentSettings.numberRowEnabled) (calculatedKeyHeight * 0.88f + 3.dp) else 0.dp
-        val emojiRowH = if (currentSettings.topQuickEmojiRowEnabled) ((if (isPortrait) 34.dp else 24.dp) * currentSettings.emojiBarHeightFactor + 3.dp) else 0.dp
-        val suggH = if (currentSettings.suggestionsEnabled) (if (isPortrait) 34.dp else 24.dp) else 0.dp
-        val rowsHValue = (calculatedKeyHeight + 3.dp) * 5
+        val numRowH = if (currentSettings.numberRowEnabled) (calculatedKeyHeight * 0.84f + 2.dp) else 0.dp
+        val emojiRowH = if (currentSettings.topQuickEmojiRowEnabled) ((if (isPortrait) 25.dp else 21.dp) * currentSettings.emojiBarHeightFactor + 2.dp) else 0.dp
+        val suggH = if (currentSettings.suggestionsEnabled) (if (isPortrait) 29.dp else 23.dp) else 0.dp
+        val rowsHValue = (calculatedKeyHeight + 2.5.dp) * 5
         val rawHeight = numRowH + emojiRowH + suggH + rowsHValue
         if (!isPortrait) {
-            val maxLandscapeHeight = (screenHeightDp * 0.42f).dp.coerceAtLeast(130.dp)
-            rawHeight.coerceIn(120.dp, maxLandscapeHeight)
+            val maxLandscapeHeight = (screenHeightDp * 0.40f).dp.coerceAtLeast(120.dp)
+            rawHeight.coerceIn(112.dp, maxLandscapeHeight)
         } else {
-            rawHeight.coerceAtLeast(220.dp)
+            rawHeight.coerceAtLeast(180.dp)
         }
     }
 
-    val rowsH = remember(calculatedKeyHeight) { (calculatedKeyHeight + 3.dp) * 5 }
+    val rowsH = remember(calculatedKeyHeight) { (calculatedKeyHeight + 2.5.dp) * 5 }
 
     var customTopEmojis by remember { mutableStateOf(prefs.getCustomTopEmojis()) }
     var isCustomizeTopEmojisOpen by remember { mutableStateOf(false) }
@@ -327,6 +345,7 @@ fun TurboKeyboardView(
     var pendingSwipeDownJob by remember { mutableStateOf<Job?>(null) }
     var pendingSwipeUpJob by remember { mutableStateOf<Job?>(null) }
     var spacePressCountForProactivePrediction by remember { mutableIntStateOf(0) }
+    var lastSpaceTapTime by remember { mutableLongStateOf(0L) }
 
     // Search queries for sub-drawers (lifted up for sendText redirection)
     var emojiSearchQuery by remember { mutableStateOf("") }
@@ -375,6 +394,13 @@ fun TurboKeyboardView(
         mutableStateOf(theme)
     }
 
+    LaunchedEffect(prefsVersion) {
+        currentSettings = prefs.getSettings()
+        activeTheme = prefs.getActiveTheme()
+        customTopEmojis = prefs.getCustomTopEmojis()
+        userWords = userDict.getUserWords()
+    }
+
     var allThemes by remember {
         val reversedPresets = com.example.model.ThemePresets.allPresets.reversed()
         val custom = try { prefs.getCustomThemes() } catch (_: Exception) { emptyList() }
@@ -421,19 +447,7 @@ fun TurboKeyboardView(
     // Prediction suggestions + auto-correction + contextual next-word predictions (computed on background thread for 0ms UI lag)
     var suggestions by remember {
         mutableStateOf<List<PredictionEngine.PredictionResult>>(
-            if (isArabic) {
-                listOf(
-                    PredictionEngine.PredictionResult("مرحبا"),
-                    PredictionEngine.PredictionResult("السلام عليكم"),
-                    PredictionEngine.PredictionResult("صباح الخير")
-                )
-            } else {
-                listOf(
-                    PredictionEngine.PredictionResult("Hello"),
-                    PredictionEngine.PredictionResult("Thanks"),
-                    PredictionEngine.PredictionResult("Good")
-                )
-            }
+            PredictionEngine.getDefaultSuggestionsForLang(isArabic, currentLangCode)
         )
     }
 
@@ -458,7 +472,8 @@ fun TurboKeyboardView(
                     isArabic = isArabic,
                     userWords = userWords,
                     prevWord = prevToken,
-                    userDict = userDict
+                    userDict = userDict,
+                    langCode = currentLangCode
                 )
                 if (shortcutMatch != null) {
                     listOf(PredictionEngine.PredictionResult(shortcutMatch.expansion)) + baseList.take(2)
@@ -476,25 +491,7 @@ fun TurboKeyboardView(
                         langCode = currentLangCode
                     )
                 } else {
-                    if (isArabic) {
-                        listOf(
-                            PredictionEngine.PredictionResult("السلام عليكم"),
-                            PredictionEngine.PredictionResult("مرحبا"),
-                            PredictionEngine.PredictionResult("صباح الخير")
-                        )
-                    } else if (currentLangCode.startsWith("pt")) {
-                        listOf(
-                            PredictionEngine.PredictionResult("olá"),
-                            PredictionEngine.PredictionResult("bom dia"),
-                            PredictionEngine.PredictionResult("obrigado")
-                        )
-                    } else {
-                        listOf(
-                            PredictionEngine.PredictionResult("Hello"),
-                            PredictionEngine.PredictionResult("Thanks"),
-                            PredictionEngine.PredictionResult("Good")
-                        )
-                    }
+                    PredictionEngine.getDefaultSuggestionsForLang(isArabic, currentLangCode)
                 }
             }
         }
@@ -1128,24 +1125,23 @@ fun TurboKeyboardView(
                 val hasArabic = textToTranslate.any { it in '\u0600'..'\u06FF' || it in '\u0750'..'\u077F' }
                 val source = if (hasArabic) "ar" else "en"
                 val target = if (hasArabic) "en" else "ar"
-                val targetName = if (target == "en") "الإنجليزية" else "العربية"
 
-                translateHoldMessage = "جاري الترجمة إلى $targetName..."
+                translateHoldMessage = AppStrings.trCode(context, appLangCode, "translating_msg")
                 performFeedback(durationMs = 45L, isSpecial = true)
 
                 val result = TranslationEngine.translate(textToTranslate, source, target)
 
                 if (result.isNotBlank()) {
                     replaceAllText(result)
-                    translateHoldMessage = "تمت الترجمة إلى $targetName بنجاح ✓"
+                    translateHoldMessage = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_001")
                     performFeedback(durationMs = 35L, isSpecial = true)
                 } else {
-                    translateHoldMessage = "تعذر الترجمة، تأكد من الاتصال بالإنترنت"
+                    translateHoldMessage = AppStrings.trCode(context, appLangCode, "no_text_to_translate")
                 }
                 delay(1600)
                 translateHoldMessage = ""
             } else {
-                translateHoldMessage = "اكتب نصاً أولاً للترجمة!"
+                translateHoldMessage = AppStrings.trCode(context, appLangCode, "no_text_to_translate")
                 performFeedback(durationMs = 25L, isSpecial = true)
                 delay(1300)
                 translateHoldMessage = ""
@@ -1200,7 +1196,9 @@ fun TurboKeyboardView(
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val availableWidthDp = maxWidth
+        Box(modifier = Modifier.fillMaxWidth()) {
         if (!activeTheme.backgroundImageUri.isNullOrBlank()) {
             AsyncImage(
                 model = activeTheme.backgroundImageUri,
@@ -1286,14 +1284,14 @@ fun TurboKeyboardView(
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
-                            text = AppStrings.tr("ui_turbo_keyboard_view_002"),
+                            text = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_002"),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = AppStrings.tr("ui_turbo_keyboard_view_003"),
+                            text = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_003"),
                             color = Color(0xFFCAD5E2),
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
@@ -1309,7 +1307,7 @@ fun TurboKeyboardView(
                                 border = BorderStroke(1.dp, Color(0xFF334155)),
                                 modifier = Modifier.weight(1f).height(42.dp)
                             ) {
-                                Text(AppStrings.tr("ui_settings_screen_020"), color = Color(0xFF94A3B8), fontSize = 13.sp)
+                                Text(AppStrings.trCode(context, appLangCode, "ui_settings_screen_020"), color = Color(0xFF94A3B8), fontSize = 13.sp)
                             }
                             Button(
                                 onClick = {
@@ -1318,14 +1316,14 @@ fun TurboKeyboardView(
                                     activeTheme = newTheme
                                     onThemeChanged?.invoke(newTheme)
                                     showResetSettingsDialog = false
-                                    resetSuccessToast = "تمت استعادة الإعدادات الأصلية بنجاح ✓"
+                                    resetSuccessToast = AppStrings.trCode(context, appLangCode, "ui_settings_screen_126")
                                     performFeedback(isSpecial = true)
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
                                 modifier = Modifier.weight(1f).height(42.dp)
                             ) {
-                                Text(AppStrings.tr("ui_settings_screen_126"), color = Color(0xFF090D15), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(AppStrings.trCode(context, appLangCode, "ui_settings_screen_126"), color = Color(0xFF090D15), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     }
@@ -1381,7 +1379,7 @@ fun TurboKeyboardView(
                 .padding(horizontal = currentSettings.sideMarginDp.dp)
                 .padding(bottom = currentSettings.bottomMarginDp.dp)
                 .then(
-                    if (isFloating) Modifier.widthIn(max = 350.dp).align(Alignment.BottomCenter)
+                    if (isFloating) Modifier.widthIn(max = (availableWidthDp * 0.90f).coerceAtMost(350.dp)).align(Alignment.BottomCenter)
                     else Modifier
                 )
                 .then(if (containerBorder != null) Modifier.border(containerBorder, containerShape) else Modifier)
@@ -1406,7 +1404,7 @@ fun TurboKeyboardView(
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color(activeTheme.accentColor), modifier = Modifier.size(18.dp))
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (themesSearchQuery.isEmpty()) {
-                        Text(AppStrings.tr("ui_turbo_keyboard_view_004"), color = Color(activeTheme.subtextColor).copy(alpha = 0.7f), fontSize = 12.sp)
+                        Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_004"), color = Color(activeTheme.subtextColor).copy(alpha = 0.7f), fontSize = 12.sp)
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -1433,7 +1431,7 @@ fun TurboKeyboardView(
                     }
                 }
                 TextButton(onClick = { activeSubView = KeyboardSubView.NONE }) {
-                    Text(AppStrings.tr("ui_settings_screen_040"), color = Color(activeTheme.accentColor), fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLangCode, "ui_settings_screen_040"), color = Color(activeTheme.accentColor), fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -1493,7 +1491,7 @@ fun TurboKeyboardView(
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = themeItem.nameAr,
+                            text = if (isArUi) themeItem.nameAr else themeItem.nameEn,
                             color = if (isSelected) Color(themeItem.accentColor) else Color(activeTheme.keyTextColor),
                             fontSize = 9.sp,
                             maxLines = 1,
@@ -1586,7 +1584,9 @@ fun TurboKeyboardView(
                     val updated = currentSettings.copy(showQuickActionsRow = !currentSettings.showQuickActionsRow)
                     currentSettings = updated
                     prefs.saveSettings(updated)
-                    resetSuccessToast = if (updated.showQuickActionsRow) "تم إظهار شريط الأدوات فوق الأحرف ✓" else "تم إخفاء وحذف شريط الأدوات فوق الأحرف ✓"
+                    if (!updated.showQuickActionsRow) {
+                        resetSuccessToast = AppStrings.trCode(context, appLangCode, "quick_bar_hidden_toast")
+                    }
                     performFeedback(isSpecial = true)
                 }
             )
@@ -1615,12 +1615,12 @@ fun TurboKeyboardView(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Tune,
-                            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_005"),
+                            contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_005"),
                             tint = Color(activeTheme.accentColor),
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
-                            text = AppStrings.tr("ui_turbo_keyboard_view_005"),
+                            text = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_005"),
                             color = Color(activeTheme.keyTextColor),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium
@@ -1631,10 +1631,12 @@ fun TurboKeyboardView(
         }
 
         // 2. SECOND SECTION: Suggestions & Candidate Bar (Below Toolbar, Above Keys/Emojis)
-        if (!isThemesMode && activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.suggestionsEnabled && !isCustomizeTopEmojisOpen) {
+        if (!isThemesMode && activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && currentSettings.suggestionsEnabled && !isCustomizeTopEmojisOpen) {
             KeyboardSuggestionsBar(
                 theme = activeTheme,
                 suggestions = suggestions,
+                appLanguageCode = appLangCode,
+                typingLangCode = currentLangCode,
                 onSuggestionClick = { word ->
                     performFeedback()
                     val ic = getCurrentInputConnection?.invoke() ?: inputConnection
@@ -1688,6 +1690,7 @@ fun TurboKeyboardView(
                 theme = activeTheme,
                 sourceLang = translationSource,
                 targetLang = translationTarget,
+                appLanguageCode = appLangCode,
                 onSwapLanguages = {
                     val tmp = translationSource
                     translationSource = translationTarget
@@ -1718,6 +1721,8 @@ fun TurboKeyboardView(
             InlineDecorationBar(
                 theme = activeTheme,
                 activeStyleId = activeDecorationStyle,
+                appLanguageCode = appLangCode,
+                keyboardHeight = calculatedKeyboardHeight,
                 onSelectStyle = { styleId ->
                     activeDecorationStyle = styleId
                     prefs.setActiveDecorationStyle(styleId)
@@ -1738,6 +1743,7 @@ fun TurboKeyboardView(
                 isSource = activeTranslationPickerForSource == true,
                 selectedCode = if (activeTranslationPickerForSource == true) translationSource else translationTarget,
                 keyboardHeight = calculatedKeyboardHeight,
+                appLanguageCode = appLangCode,
                 onSelectLanguage = { selectedCode ->
                     if (activeTranslationPickerForSource == true) {
                         translationSource = selectedCode
@@ -1766,6 +1772,7 @@ fun TurboKeyboardView(
                             keyboardHeight = calculatedKeyboardHeight,
                             hideAbcKey = currentSettings.hideEmojiAbcKey,
                             backspaceScale = currentSettings.backspaceKeyScale,
+                            appLanguageCode = appLangCode,
                             searchQuery = emojiSearchQuery,
                             onSearchQueryChange = { emojiSearchQuery = it },
                             isCustomizeMode = isCustomizeTopEmojisOpen,
@@ -1782,6 +1789,9 @@ fun TurboKeyboardView(
                                     prefs.addRecentEmoji(emoji)
                                     commitEmojiDirectly(emoji)
                                     performFeedback()
+                                    if (currentSettings.autoReturnAfterEmojiInsert) {
+                                        activeSubView = KeyboardSubView.NONE
+                                    }
                                 }
                             },
                             onEmojiLongPress = { emoji ->
@@ -1789,7 +1799,7 @@ fun TurboKeyboardView(
                                 if (!customTopEmojis.contains(trimmed)) {
                                     customTopEmojis = (customTopEmojis + trimmed)
                                     prefs.saveCustomTopEmojis(customTopEmojis)
-                                    android.widget.Toast.makeText(context, AppStrings.trf(context, "ui_turbo_keyboard_view_007", trimmed), android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_007", trimmed), android.widget.Toast.LENGTH_SHORT).show()
                                     performFeedback(isSpecial = true)
                                 }
                             },
@@ -1847,6 +1857,8 @@ fun TurboKeyboardView(
                         StickersPickerView(
                             theme = activeTheme,
                             prefs = prefs,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onStickerSelected = { sticker ->
                                 if (isCustomizeTopEmojisOpen) {
                                     val trimmed = sticker.trim()
@@ -1855,7 +1867,7 @@ fun TurboKeyboardView(
                                         prefs.saveCustomTopEmojis(customTopEmojis)
                                     }
                                     customizerInputText = trimmed
-                                    android.widget.Toast.makeText(context, AppStrings.trf(context, "ui_turbo_keyboard_view_007", trimmed), android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_007", trimmed), android.widget.Toast.LENGTH_SHORT).show()
                                     performFeedback(isSpecial = true)
                                 } else {
                                     sendText(" $sticker ")
@@ -1877,6 +1889,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.GIF -> {
                         GifPickerView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onGifSelected = {
                                 sendText(" $it ")
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -1895,6 +1909,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.PHOTOS -> {
                         MediaPickerView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onMediaSelected = { mediaText ->
                                 sendText(" $mediaText ")
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -1911,12 +1927,11 @@ fun TurboKeyboardView(
                         )
                     }
                     KeyboardSubView.CLIPBOARD -> {
-                        // Clipboard matching Screenshot 21:
-                        // 2-column grid, closes on paste, maintains scroll position, saves forever, maintains exact keyboard height
                         ClipboardDrawer(
                             theme = activeTheme,
                             prefs = prefs,
                             keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onItemInserted = { text ->
                                 sendText(text)
                                 if (currentSettings.autoReturnToLettersOnShortcut || currentSettings.clipboardCloseOnPaste) {
@@ -1936,6 +1951,8 @@ fun TurboKeyboardView(
                         AiToneDrawer(
                             theme = activeTheme,
                             currentText = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onReplaceText = {
                                 replaceAllText(it)
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -1959,6 +1976,8 @@ fun TurboKeyboardView(
                         VoiceInputView(
                             theme = activeTheme,
                             isArabic = isArabic,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onInsertText = {
                                 sendText(it)
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -1977,6 +1996,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.PHRASES -> {
                         DecoratedPhrasesView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onPhraseSelected = { phrase ->
                                 sendText(phrase)
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -1995,6 +2016,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.CALCULATOR -> {
                         CalculatorPadView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onInsertText = { mathText ->
                                 sendText(mathText)
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -2014,6 +2037,8 @@ fun TurboKeyboardView(
                         QuickSettingsView(
                             theme = activeTheme,
                             settings = currentSettings,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onUpdateSettings = { newSet ->
                                 currentSettings = newSet
                                 prefs.saveSettings(newSet)
@@ -2032,6 +2057,8 @@ fun TurboKeyboardView(
                         CustomizeToolbarDrawer(
                             theme = activeTheme,
                             visibleTools = currentSettings.visibleToolbarTools,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onUpdateTools = { newTools ->
                                 val updated = currentSettings.copy(visibleToolbarTools = newTools)
                                 currentSettings = updated
@@ -2043,6 +2070,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.TELEGRAM_CHANNELS -> {
                         TelegramChannelsSubView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onClose = { activeSubView = KeyboardSubView.NONE }
                         )
                     }
@@ -2050,6 +2079,8 @@ fun TurboKeyboardView(
                         TtsSpeechSubView(
                             theme = activeTheme,
                             currentText = getCurrentText?.invoke()?.ifBlank { currentComposingText } ?: currentComposingText,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onClose = {
                                 activeSubView = KeyboardSubView.NONE
                                 isSymbolsMode = false
@@ -2060,6 +2091,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.PASSWORD_MANAGER -> {
                         KeyboardPassSubView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onInsertText = { textToInsert ->
                                 sendText(textToInsert)
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -2078,6 +2111,8 @@ fun TurboKeyboardView(
                     KeyboardSubView.MY_STICKERS -> {
                         MyStickersSubView(
                             theme = activeTheme,
+                            keyboardHeight = calculatedKeyboardHeight,
+                            appLanguageCode = appLangCode,
                             onStickerSelected = { sticker ->
                                 sendText(sticker)
                                 if (currentSettings.autoReturnToLettersOnShortcut) {
@@ -2099,13 +2134,9 @@ fun TurboKeyboardView(
             }
         }
 
-
-
         // Quick Shortcuts / Emojis Row (Customizable for user - Hidden while customizer panel is active to avoid duplicate bars)
-        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && settings.topQuickEmojiRowEnabled && !isCustomizeTopEmojisOpen) {
-            val config = androidx.compose.ui.platform.LocalConfiguration.current
-            val isPort = config.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
-            val dynamicRowHeight = (if (isPort) 30.dp else 26.dp) * currentSettings.emojiBarHeightFactor
+        if (activeTranslationPickerForSource == null && activeSubView == KeyboardSubView.NONE && !isNumberPadMode && currentSettings.topQuickEmojiRowEnabled && !isCustomizeTopEmojisOpen) {
+            val dynamicRowHeight = (if (isPortrait) 25.dp else 21.dp) * currentSettings.emojiBarHeightFactor
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2168,9 +2199,9 @@ fun TurboKeyboardView(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_011"),
+                            contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_011"),
                             tint = Color(activeTheme.accentColor),
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -2257,15 +2288,17 @@ fun TurboKeyboardView(
                 },
                 onOpenEmojiPicker = {
                     activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
-                }
+                },
+                appLanguageCode = appLangCode
             )
         }
 
-        // Panel to Manage & Delete Quick Actions Above Keys (مسح الكل، قراءة، لصق، الحافظة...)
+        // Panel to Manage & Delete Quick Actions Above Keys
         if (isManageQuickActionsOpen) {
             QuickActionsManagerInlinePanel(
                 theme = activeTheme,
                 settings = currentSettings,
+                appLanguageCode = appLangCode,
                 onUpdateSettings = { updated ->
                     currentSettings = updated
                     prefs.saveSettings(updated)
@@ -2277,30 +2310,29 @@ fun TurboKeyboardView(
         // Quick Options Popup for specific clicked tool
         if (quickActionItemForOptions != null) {
             val (actionTitle, actionIcon) = when (quickActionItemForOptions) {
-                "clear_all" -> "مسح الكل" to Icons.Default.DeleteSweep
-                "read_text" -> "قراءة النص" to Icons.Default.VolumeUp
-                "paste" -> "لصق" to Icons.Default.ContentPaste
-                "clipboard" -> "الحافظة" to Icons.Default.ContentPaste
-                "copy" -> "نسخ" to Icons.Default.ContentCopy
-                "cut" -> "قص" to Icons.Default.ContentCut
-                "select_all" -> "تحديد الكل" to Icons.Default.SelectAll
-                "undo_redo" -> "استعادة بعد الحذف" to Icons.Default.Undo
-                else -> "أداة" to Icons.Default.Tune
+                "clear_all" -> AppStrings.trCode(context, appLangCode, "clear_all") to Icons.Default.DeleteSweep
+                "read_text" -> AppStrings.trCode(context, appLangCode, "read_text") to Icons.Default.VolumeUp
+                "paste" -> AppStrings.trCode(context, appLangCode, "paste") to Icons.Default.ContentPaste
+                "clipboard" -> AppStrings.trCode(context, appLangCode, "clipboard_label") to Icons.Default.ContentPaste
+                "copy" -> AppStrings.trCode(context, appLangCode, "ui_clipboard_screen_018") to Icons.Default.ContentCopy
+                "cut" -> AppStrings.trCode(context, appLangCode, "ui_settings_screen_128") to Icons.Default.ContentCut
+                "select_all" -> AppStrings.trCode(context, appLangCode, "ui_settings_screen_129") to Icons.Default.SelectAll
+                "undo_redo" -> AppStrings.trCode(context, appLangCode, "undo_short") to Icons.Default.Undo
+                else -> AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_018") to Icons.Default.Tune
             }
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            CompositionLocalProvider(LocalLayoutDirection provides uiLayoutDir) {
                 AlertDialog(
                     onDismissRequest = { quickActionItemForOptions = null },
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(actionIcon, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
-                            Text(AppStrings.trf("ui_turbo_keyboard_view_012", actionTitle), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_012", actionTitle), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(AppStrings.tr("ui_turbo_keyboard_view_013"), fontSize = 12.sp, color = Color.Gray)
-                            
-                            // 1. حذف هذا الزر فقط
+                            Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_013"), fontSize = 12.sp, color = Color.Gray)
+
                             Button(
                                 onClick = {
                                     val updated = when (quickActionItemForOptions) {
@@ -2316,7 +2348,7 @@ fun TurboKeyboardView(
                                     }
                                     currentSettings = updated
                                     prefs.saveSettings(updated)
-                                    resetSuccessToast = "تم حذف زر $actionTitle من الشريط ✓"
+                                    resetSuccessToast = AppStrings.trfCode(context, appLangCode, "tool_hidden_toast", actionTitle)
                                     quickActionItemForOptions = null
                                     performFeedback(isSpecial = true)
                                 },
@@ -2325,16 +2357,15 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(AppStrings.trf("ui_turbo_keyboard_view_014", actionTitle), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_014", actionTitle), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
 
-                            // 2. إخفاء وحذف الشريط بالكامل
                             OutlinedButton(
                                 onClick = {
                                     val updated = currentSettings.copy(showQuickActionsRow = false)
                                     currentSettings = updated
                                     prefs.saveSettings(updated)
-                                    resetSuccessToast = "تم إخفاء وحذف شريط الأدوات بالكامل ✓"
+                                    resetSuccessToast = AppStrings.trCode(context, appLangCode, "quick_bar_hidden_toast")
                                     quickActionItemForOptions = null
                                     performFeedback(isSpecial = true)
                                 },
@@ -2342,10 +2373,9 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(Icons.Default.VisibilityOff, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(AppStrings.tr("ui_turbo_keyboard_view_015"), color = Color(0xFFEF4444), fontSize = 12.sp)
+                                Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_015"), color = Color(0xFFEF4444), fontSize = 12.sp)
                             }
 
-                            // 3. إدارة وتخصيص كل الأدوات
                             TextButton(
                                 onClick = {
                                     quickActionItemForOptions = null
@@ -2355,14 +2385,14 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(Icons.Default.Tune, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(AppStrings.tr("ui_turbo_keyboard_view_016"), color = Color(0xFF0084FF), fontSize = 12.sp)
+                                Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_016"), color = Color(0xFF0084FF), fontSize = 12.sp)
                             }
                         }
                     },
                     confirmButton = {},
                     dismissButton = {
                         TextButton(onClick = { quickActionItemForOptions = null }) {
-                            Text(AppStrings.tr("ui_settings_screen_020"), color = Color.Gray)
+                            Text(AppStrings.trCode(context, appLangCode, "ui_settings_screen_020"), color = Color.Gray)
                         }
                     }
                 )
@@ -2399,15 +2429,15 @@ fun TurboKeyboardView(
                 val effectiveEi = getCurrentEditorInfo?.invoke() ?: editorInfo
                 val isPhone = isPhoneInputType(effectiveEi)
                 val numRowHeight = remember(calculatedKeyHeight, isPortrait) {
-                    if (isPortrait) (calculatedKeyHeight * 1.15f).coerceIn(36.dp, 85.dp)
-                    else 36.dp
+                    if (isPortrait) (calculatedKeyHeight * 1.15f).coerceIn(32.dp, 72.dp)
+                    else 32.dp
                 }
                 KeyboardNumericPad(
                     theme = activeTheme,
                     isPhoneField = isPhone,
                     actionInfo = currentImeAction,
                     rowHeight = numRowHeight,
-                    currentLanguageName = if (isArabic) "ع" else "En",
+                    currentLanguageName = if (isArabic) AppStrings.trCode(context, appLangCode, "arabic_lang_tag") else "En",
                     isArabicDefault = isArabic,
                     forceEnglishNumbers = currentSettings.forceEnglishNumbers,
                     onSendText = { text ->
@@ -2424,18 +2454,19 @@ fun TurboKeyboardView(
                     },
                     onFeedback = { dur, isSpec ->
                         performFeedback(dur, isSpec)
-                    }
+                    },
+                    appLanguageCode = appLangCode
                 )
             } else {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 1.5.dp, vertical = 2.dp)
+                        .padding(horizontal = 1.5.dp, vertical = 1.5.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(if (isPortrait) 3.5.dp else 2.dp)
+                        verticalArrangement = Arrangement.spacedBy(if (isPortrait) 2.5.dp else 1.5.dp)
                     ) {
                         // 0. Quick Actions Row & Undo / Restore Chip
                         val hasUndo = lastDeletedText.isNotEmpty()
@@ -2452,13 +2483,12 @@ fun TurboKeyboardView(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(28.dp)
+                                    .height(if (isPortrait) 24.dp else 20.dp)
                                     .horizontalScroll(rememberScrollState())
                                     .padding(horizontal = 4.dp, vertical = 1.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // زر إخفاء وحذف شريط الأدوات بالكامل بلمسة واحدة
                                 Surface(
                                     shape = RoundedCornerShape(7.dp),
                                     color = Color(0xFFEF4444).copy(alpha = 0.15f),
@@ -2467,7 +2497,7 @@ fun TurboKeyboardView(
                                         val updated = currentSettings.copy(showQuickActionsRow = false)
                                         currentSettings = updated
                                         prefs.saveSettings(updated)
-                                        resetSuccessToast = "تم إخفاء شريط الأدوات فوق الأحرف ✓ (يمكنك إعادته من الإعدادات)"
+                                        resetSuccessToast = AppStrings.trCode(context, appLangCode, "quick_bar_hidden_toast")
                                         performFeedback(isSpecial = true)
                                     }
                                 ) {
@@ -2476,12 +2506,11 @@ fun TurboKeyboardView(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
-                                        Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_turbo_keyboard_view_017"), tint = Color(0xFFEF4444), modifier = Modifier.size(11.dp))
-                                        Text(AppStrings.tr("ui_turbo_keyboard_view_017"), color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_017"), tint = Color(0xFFEF4444), modifier = Modifier.size(11.dp))
+                                        Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_017"), color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
 
-                                // زر تخصيص وحذف عناصر محددة من الشريط
                                 Surface(
                                     shape = RoundedCornerShape(7.dp),
                                     color = Color(activeTheme.keyBackgroundColor),
@@ -2496,12 +2525,11 @@ fun TurboKeyboardView(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
-                                        Icon(Icons.Default.Tune, contentDescription = AppStrings.tr("ui_turbo_keyboard_view_018"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(11.dp))
-                                        Text(AppStrings.tr("ui_turbo_keyboard_view_018"), color = Color(activeTheme.keyTextColor), fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                                        Icon(Icons.Default.Tune, contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_018"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(11.dp))
+                                        Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_018"), color = Color(activeTheme.keyTextColor), fontSize = 9.sp, fontWeight = FontWeight.Medium)
                                     }
                                 }
 
-                                // 1. استعادة بعد الحذف (Undo / Restore)
                                 if (hasUndo && currentSettings.showQuickActionUndoRedo) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
@@ -2526,9 +2554,9 @@ fun TurboKeyboardView(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            Icon(Icons.Default.Undo, contentDescription = AppStrings.tr("ui_settings_screen_126"), tint = Color(0xFF10B981), modifier = Modifier.size(13.dp))
+                                            Icon(Icons.Default.Undo, contentDescription = AppStrings.trCode(context, appLangCode, "ui_settings_screen_126"), tint = Color(0xFF10B981), modifier = Modifier.size(13.dp))
                                             Text(
-                                                text = AppStrings.trf("ui_turbo_keyboard_view_019", lastDeletedText),
+                                                text = AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_019", lastDeletedText),
                                                 color = Color(activeTheme.keyTextColor),
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -2679,7 +2707,7 @@ fun TurboKeyboardView(
                                                         if (textToCopy.isNotBlank()) {
                                                             val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                                                             cm?.setPrimaryClip(android.content.ClipData.newPlainText("text", textToCopy))
-                                                            resetSuccessToast = "تم نسخ النص ✓"
+                                                            resetSuccessToast = AppStrings.trCode(context, appLangCode, "ui_keyboard_sub_views_012")
                                                             performFeedback(isSpecial = true)
                                                         }
                                                     }
@@ -2687,9 +2715,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.ContentCopy, contentDescription = AppStrings.tr("ui_clipboard_screen_018"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.ContentCopy, contentDescription = AppStrings.trCode(context, appLangCode, "ui_clipboard_screen_018"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text(AppStrings.tr("ui_clipboard_screen_018"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "ui_clipboard_screen_018"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2714,7 +2742,7 @@ fun TurboKeyboardView(
                                                             cm?.setPrimaryClip(android.content.ClipData.newPlainText("text", sel))
                                                             lastDeletedText = sel
                                                             ic?.commitText("", 1)
-                                                            resetSuccessToast = "تم قص النص ✓"
+                                                            resetSuccessToast = AppStrings.trCode(context, appLangCode, "ui_keyboard_sub_views_012")
                                                             performFeedback(isDelete = true)
                                                         } else {
                                                             val before = ic?.getTextBeforeCursor(2000, 0)?.toString() ?: ""
@@ -2723,7 +2751,7 @@ fun TurboKeyboardView(
                                                                 cm?.setPrimaryClip(android.content.ClipData.newPlainText("text", before))
                                                                 lastDeletedText = before
                                                                 ic?.deleteSurroundingText(before.length, 0)
-                                                                resetSuccessToast = "تم قص النص ✓"
+                                                                resetSuccessToast = AppStrings.trCode(context, appLangCode, "ui_keyboard_sub_views_012")
                                                                 performFeedback(isDelete = true)
                                                             }
                                                         }
@@ -2732,9 +2760,9 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.ContentCut, contentDescription = AppStrings.tr("ui_settings_screen_128"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.ContentCut, contentDescription = AppStrings.trCode(context, appLangCode, "ui_settings_screen_128"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text(AppStrings.tr("ui_settings_screen_128"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "ui_settings_screen_128"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
@@ -2760,14 +2788,14 @@ fun TurboKeyboardView(
                                             }
                                         ) {
                                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.SelectAll, contentDescription = AppStrings.tr("ui_settings_screen_129"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
+                                                Icon(Icons.Default.SelectAll, contentDescription = AppStrings.trCode(context, appLangCode, "ui_settings_screen_129"), tint = Color(activeTheme.accentColor), modifier = Modifier.size(12.dp))
                                                 Spacer(Modifier.width(2.dp))
-                                                Text(AppStrings.tr("ui_settings_screen_129"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                                Text(AppStrings.trCode(context, appLangCode, "ui_settings_screen_129"), color = Color(activeTheme.keyTextColor), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                             }
                                         }
                                     }
 
-                                    // 9. زر تخصيص / حذف الأدوات (⚙️)
+                                    // 9. زر تخصيص / حذف الأدوات
                                     Surface(
                                          shape = RoundedCornerShape(8.dp),
                                          color = Color(activeTheme.keyBackgroundColor),
@@ -2783,14 +2811,14 @@ fun TurboKeyboardView(
                                          ) {
                                              Icon(
                                                  Icons.Default.Tune,
-                                                 contentDescription = AppStrings.tr("ui_turbo_keyboard_view_020"),
+                                                 contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_020"),
                                                  tint = Color(activeTheme.accentColor),
                                                  modifier = Modifier.size(12.dp)
                                              )
                                          }
                                     }
 
-                                    // 10. زر حذف / إخفاء الشريط بالكامل (❌)
+                                    // 10. زر حذف / إخفاء الشريط بالكامل
                                     Surface(
                                          shape = RoundedCornerShape(8.dp),
                                          color = Color(0xFFEF4444).copy(alpha = 0.15f),
@@ -2800,7 +2828,7 @@ fun TurboKeyboardView(
                                              currentSettings = updated
                                              prefs.saveSettings(updated)
                                              performFeedback(durationMs = 35L, isSpecial = true)
-                                             resetSuccessToast = "تم إخفاء شريط الأدوات (يمكنك إعادته من الإعدادات) ✓"
+                                             resetSuccessToast = AppStrings.trCode(context, appLangCode, "quick_bar_hidden_toast")
                                          }
                                     ) {
                                          Box(
@@ -2809,7 +2837,7 @@ fun TurboKeyboardView(
                                          ) {
                                              Icon(
                                                  Icons.Default.Close,
-                                                 contentDescription = AppStrings.tr("ui_turbo_keyboard_view_021"),
+                                                 contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_021"),
                                                  tint = Color(0xFFEF4444),
                                                  modifier = Modifier.size(12.dp)
                                              )
@@ -3197,7 +3225,170 @@ fun TurboKeyboardView(
                             horizontalArrangement = Arrangement.spacedBy(2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 1. ModeChange key 123!#() on FAR LEFT
+                            val renderEnterKey: @Composable () -> Unit = {
+                                var isEnterPressed by remember { mutableStateOf(false) }
+                                val enterScale by animateFloatAsState(
+                                    targetValue = if (isEnterPressed) 0.95f else 1.0f,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                    label = "enter_scale"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1.25f)
+                                        .fillMaxHeight()
+                                        .graphicsLayer { scaleX = enterScale; scaleY = enterScale }
+                                        .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                        .background(
+                                            if (activeTheme.id == "liquid_glass_blur") {
+                                                Brush.verticalGradient(listOf(Color(0xFF3B82F6), Color(0xFF2563EB)))
+                                            } else {
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        Color(activeTheme.enterButtonColor),
+                                                        Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
+                                                    )
+                                                )
+                                            }
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (activeTheme.id == "liquid_glass_blur") Color(0xFF60A5FA).copy(alpha = 0.85f) else Color(activeTheme.accentColor).copy(alpha = 0.7f),
+                                            RoundedCornerShape(activeTheme.cornerRadius.dp)
+                                        )
+                                        .pointerInput(currentSettings.enterLongPressTranslateEnabled) {
+                                            awaitEachGesture {
+                                                val down = awaitFirstDown(requireUnconsumed = false)
+                                                isEnterPressed = true
+                                                performFeedback(isSpecial = true)
+                                                var isLongPressHandled = false
+                                                val holdJob = if (currentSettings.enterLongPressTranslateEnabled) {
+                                                    coroutineScope.launch {
+                                                        delay(1500L)
+                                                        if (isActive && isEnterPressed) {
+                                                            isLongPressHandled = true
+                                                            performFeedback(durationMs = 50L, isSpecial = true)
+                                                            triggerInstantTranslate()
+                                                        }
+                                                    }
+                                                } else null
+                                                try {
+                                                    while (true) {
+                                                        val event = awaitPointerEvent()
+                                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                                        if (!change.pressed) {
+                                                            change.consume()
+                                                            break
+                                                        }
+                                                    }
+                                                } finally {
+                                                    holdJob?.cancel()
+                                                    isEnterPressed = false
+                                                    if (!isLongPressHandled) {
+                                                        sendEnter()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = currentImeAction.icon,
+                                        contentDescription = currentImeAction.contentDescription,
+                                        tint = ThemePresets.getEnterIconTint(activeTheme),
+                                        modifier = Modifier.size(21.dp)
+                                    )
+                                }
+                            }
+
+                            val renderClipboardUtility: @Composable (Float) -> Unit = { w ->
+                                var isClipPressed by remember { mutableStateOf(false) }
+                                val clipBg = if (isClipPressed || activeSubView == KeyboardSubView.CLIPBOARD) bottomKeyPressedBg else bottomKeyBg
+                                val clipScale = if (isClipPressed) 0.95f else 1.0f
+                                Box(
+                                    modifier = Modifier
+                                        .weight(w)
+                                        .fillMaxHeight()
+                                        .graphicsLayer { scaleX = clipScale; scaleY = clipScale }
+                                        .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                        .background(clipBg)
+                                        .border(
+                                            1.dp,
+                                            if (activeSubView == KeyboardSubView.CLIPBOARD) Color(activeTheme.accentColor) else bottomKeyBorderColor,
+                                            RoundedCornerShape(activeTheme.cornerRadius.dp)
+                                        )
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    isClipPressed = true
+                                                    performFeedback(isSpecial = true)
+                                                    tryAwaitRelease()
+                                                    isClipPressed = false
+                                                },
+                                                onTap = {
+                                                    activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
+                                                }
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentPaste,
+                                        contentDescription = AppStrings.trCode(context, appLangCode, "ui_settings_screen_132"),
+                                        tint = Color(activeTheme.accentColor),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            val renderEmojiUtility: @Composable (Float) -> Unit = { w ->
+                                var isEmPressed by remember { mutableStateOf(false) }
+                                val emBg by animateColorAsState(
+                                    targetValue = if (isEmPressed || activeSubView == KeyboardSubView.EMOJI) bottomKeyPressedBg else bottomKeyBg,
+                                    animationSpec = tween(durationMillis = if (isEmPressed) 20 else 90),
+                                    label = "emoji_slot_bg"
+                                )
+                                val emScale by animateFloatAsState(
+                                    targetValue = if (isEmPressed) 0.95f else 1.0f,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
+                                    label = "emoji_slot_scale"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(w)
+                                        .fillMaxHeight()
+                                        .graphicsLayer { scaleX = emScale; scaleY = emScale }
+                                        .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                        .background(emBg)
+                                        .border(
+                                            1.dp,
+                                            if (activeSubView == KeyboardSubView.EMOJI) Color(activeTheme.accentColor) else bottomKeyBorderColor,
+                                            RoundedCornerShape(activeTheme.cornerRadius.dp)
+                                        )
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    isEmPressed = true
+                                                    performFeedback(isSpecial = true)
+                                                    tryAwaitRelease()
+                                                    isEmPressed = false
+                                                },
+                                                onTap = {
+                                                    activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
+                                                }
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "😊", fontSize = 17.sp)
+                                }
+                            }
+
+                            // Optional Enter Key on FAR LEFT
+                            if (currentSettings.enterKeyOnLeft) {
+                                renderEnterKey()
+                            }
+
+                            // 1. ModeChange key 123!#()
                             var isModePressed by remember { mutableStateOf(false) }
                             val modeBg = if (isModePressed) bottomKeyPressedBg else bottomKeyBg
                             val modeScale = if (isModePressed) 0.95f else 1.0f
@@ -3248,7 +3439,7 @@ fun TurboKeyboardView(
                                 )
                             }
 
-                            // 2. Dedicated Language Switcher Button [🌐 / 文A]
+                            // 2. Dedicated Language Switcher Button [🌐]
                             var isLangBtnPressed by remember { mutableStateOf(false) }
                             val langBtnBg = if (isLangBtnPressed) bottomKeyPressedBg else bottomKeyBg
                             val langBtnScale = if (isLangBtnPressed) 0.95f else 1.0f
@@ -3259,11 +3450,7 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = langBtnScale; scaleY = langBtnScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(langBtnBg)
-                                    .border(
-                                        1.dp,
-                                        bottomKeyBorderColor,
-                                        RoundedCornerShape(activeTheme.cornerRadius.dp)
-                                    )
+                                    .border(1.dp, bottomKeyBorderColor, RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .pointerInput(currentLangCode) {
                                         detectTapGestures(
                                             onPress = {
@@ -3292,52 +3479,20 @@ fun TurboKeyboardView(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Language,
-                                    contentDescription = AppStrings.tr("ui_turbo_keyboard_view_022"),
-                                    tint = Color(activeTheme.accentColor),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            // 3. Dedicated Clipboard button [📋]
-                            var isSlot3Pressed by remember { mutableStateOf(false) }
-                            val slot3Bg = if (isSlot3Pressed || activeSubView == KeyboardSubView.CLIPBOARD) bottomKeyPressedBg else bottomKeyBg
-                            val slot3Scale = if (isSlot3Pressed) 0.95f else 1.0f
-                            Box(
-                                modifier = Modifier
-                                    .weight(0.9f)
-                                    .fillMaxHeight()
-                                    .graphicsLayer { scaleX = slot3Scale; scaleY = slot3Scale }
-                                    .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(slot3Bg)
-                                    .border(
-                                        1.dp,
-                                        if (activeSubView == KeyboardSubView.CLIPBOARD) Color(activeTheme.accentColor) else bottomKeyBorderColor,
-                                        RoundedCornerShape(activeTheme.cornerRadius.dp)
-                                    )
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                isSlot3Pressed = true
-                                                performFeedback(isSpecial = true)
-                                                tryAwaitRelease()
-                                                isSlot3Pressed = false
-                                            },
-                                            onTap = {
-                                                activeSubView = if (activeSubView == KeyboardSubView.CLIPBOARD) KeyboardSubView.NONE else KeyboardSubView.CLIPBOARD
-                                            }
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.ContentPaste,
-                                    contentDescription = AppStrings.tr("ui_settings_screen_132"),
+                                    contentDescription = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_022"),
                                     tint = Color(activeTheme.accentColor),
                                     modifier = Modifier.size(19.dp)
                                 )
                             }
 
-                            // 4. Spacebar in the center with active world language name and horizontal swipe language switch & Trackpad cursor mode
+                            // 3. Left utility slot (Clipboard by default, or Emoji if swapped)
+                            if (currentSettings.swapClipboardAndEmoji) {
+                                renderEmojiUtility(0.9f)
+                            } else {
+                                renderClipboardUtility(0.9f)
+                            }
+
+                            // 4. Spacebar with language switch swipe, cursor trackpad, auto-correction & double-space period
                             var isSpacePressed by remember { mutableStateOf(false) }
                             var isCursorTrackpadActive by remember { mutableStateOf(false) }
                             val spaceBg = if (isSpacePressed) bottomKeyPressedBg else bottomKeyBg
@@ -3356,8 +3511,15 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = spaceScale; scaleY = spaceScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(spaceBg)
-                                    .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .pointerInput(currentLangCode, currentSwipeEnabled, currentSettings.numberRowEnabled) {
+                                    .border(1.dp, bottomKeyBorderColor, RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                    .pointerInput(
+                                        currentLangCode,
+                                        currentSwipeEnabled,
+                                        currentSettings.numberRowEnabled,
+                                        currentSettings.spacebarCursorControl,
+                                        currentSettings.doubleSpacePeriod,
+                                        currentSettings.autoCorrection
+                                    ) {
                                         awaitEachGesture {
                                             val down = awaitFirstDown(requireUnconsumed = false)
                                             isSpacePressed = true
@@ -3384,18 +3546,62 @@ fun TurboKeyboardView(
                                                     totalDragY = deltaY
 
                                                     val downDuration = System.currentTimeMillis() - pressStartTime
-                                                    if (!isTrackpadMode && !hasSwitchedLanguage && !hasSwitchedNumberRow && downDuration >= 360L && kotlin.math.abs(totalDragY) < 14.dp.toPx()) {
+                                                    if (currentSettings.spacebarCursorControl && !isTrackpadMode && !hasSwitchedLanguage && !hasSwitchedNumberRow && downDuration >= 360L && kotlin.math.abs(totalDragY) < 14.dp.toPx()) {
                                                         isTrackpadMode = true
                                                         isCursorTrackpadActive = true
                                                         performFeedback(durationMs = 25L, isSpecial = true)
                                                     }
 
                                                     if (!change.pressed) {
-                                                        // Pointer lifted
                                                         change.consume()
                                                         if (!isDragGesture && !hasSwitchedLanguage && !hasSwitchedNumberRow && !isTrackpadMode) {
                                                             performFeedback(isSpace = true)
-                                                            sendText(" ")
+                                                            val ic = getCurrentInputConnection?.invoke() ?: inputConnection
+                                                            val now = System.currentTimeMillis()
+                                                            var spaceHandled = false
+
+                                                            if (currentSettings.autoCorrection && currentComposingText.isNotBlank()) {
+                                                                val topCorr = suggestions.firstOrNull { it.isCorrection }?.word
+                                                                if (!topCorr.isNullOrBlank() && !topCorr.equals(currentComposingText.trim(), ignoreCase = true) && ic != null) {
+                                                                    ic.beginBatchEdit()
+                                                                    try {
+                                                                        val tb = try { ic.getTextBeforeCursor(60, 0)?.toString() ?: "" } catch (_: Exception) { "" }
+                                                                        val m = Regex("""[^\s\p{Punct}]+$""").find(tb)
+                                                                        val delLen = m?.value?.length ?: currentComposingText.trim().length
+                                                                        if (delLen > 0) ic.deleteSurroundingText(delLen, 0)
+                                                                        ic.commitText("$topCorr ", 1)
+                                                                        spaceHandled = true
+                                                                    } finally {
+                                                                        ic.endBatchEdit()
+                                                                    }
+                                                                    if (spaceHandled) currentComposingText = ""
+                                                                }
+                                                            }
+
+                                                            if (!spaceHandled && !isSymbolsMode && currentSettings.doubleSpacePeriod) {
+                                                                val tb = try { ic?.getTextBeforeCursor(3, 0)?.toString() ?: "" } catch (_: Exception) { "" }
+                                                                val validPrev = tb.length >= 2 && tb.last() == ' ' && !tb[tb.length - 2].isWhitespace() && tb[tb.length - 2] != '.'
+                                                                if ((now - lastSpaceTapTime) in 1L..450L && validPrev && ic != null) {
+                                                                    ic.beginBatchEdit()
+                                                                    try {
+                                                                        ic.deleteSurroundingText(1, 0)
+                                                                        ic.commitText(". ", 1)
+                                                                    } finally {
+                                                                        ic.endBatchEdit()
+                                                                    }
+                                                                    currentComposingText = ""
+                                                                    if (!isArabic && !isCapsLockActive && currentSettings.autoCapitalization) {
+                                                                        isShifted = true
+                                                                    }
+                                                                    lastSpaceTapTime = 0L
+                                                                    spaceHandled = true
+                                                                }
+                                                            }
+
+                                                            if (!spaceHandled) {
+                                                                sendText(" ")
+                                                                lastSpaceTapTime = now
+                                                            }
                                                             spacePressCountForProactivePrediction++
                                                         }
                                                         break
@@ -3414,11 +3620,6 @@ fun TurboKeyboardView(
                                                             isDragGesture = true
                                                         }
 
-                                                        // 1. Strict Vertical Swipe on Spacebar state machine:
-                                                        // - swipeState = 2: Full mode (Number row + Emoji row + letter keys)
-                                                        // - swipeState = 1: Number row hidden, Emoji row + letters visible
-                                                        // - swipeState = 0: Number row and Emoji row hidden, letters only
-                                                        // Swipe DOWN decrements; Swipe UP increments. Fully reversible!
                                                         if (!hasSwitchedNumberRow && !hasSwitchedLanguage && kotlin.math.abs(totalDragY) >= swipeThresholdY && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.15f) {
                                                             hasSwitchedNumberRow = true
                                                             change.consume()
@@ -3428,10 +3629,8 @@ fun TurboKeyboardView(
                                                                 else -> 0
                                                             }
                                                             if (totalDragY > 0) {
-                                                                // Swipe DOWN
                                                                 if (swipeState > 0) swipeState--
                                                             } else {
-                                                                // Swipe UP
                                                                 if (swipeState < 2) swipeState++
                                                             }
                                                             val newNum = (swipeState == 2)
@@ -3443,15 +3642,7 @@ fun TurboKeyboardView(
                                                             currentSettings = updated
                                                             prefs.saveSettings(updated)
                                                             performFeedback(durationMs = 40L, isSpecial = true)
-                                                            resetSuccessToast = when (swipeState) {
-                                                                2 -> "الوضع الكامل: أرقام + ابتسامات ✓"
-                                                                1 -> "إخفاء الأرقام • إظهار الابتسامات ✓"
-                                                                else -> "الوضع المضغوط: إخفاء الأشرطة ✓"
-                                                            }
-                                                        }
-
-                                                        // 2. Horizontal Swipe: Switches keyboard language
-                                                        else if (currentSwipeEnabled && !hasSwitchedLanguage && !hasSwitchedNumberRow && kotlin.math.abs(totalDragX) >= swipeThresholdX && kotlin.math.abs(totalDragX) > kotlin.math.abs(totalDragY) * 1.15f) {
+                                                        } else if (currentSwipeEnabled && !hasSwitchedLanguage && !hasSwitchedNumberRow && kotlin.math.abs(totalDragX) >= swipeThresholdX && kotlin.math.abs(totalDragX) > kotlin.math.abs(totalDragY) * 1.15f) {
                                                             hasSwitchedLanguage = true
                                                             change.consume()
                                                             performFeedback(isSpecial = true)
@@ -3480,24 +3671,26 @@ fun TurboKeyboardView(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                val spacebarLabel = if (currentWorldLang.code == "ar") "عربي أساسي" else if (currentWorldLang.code == "en") "English (US)" else currentWorldLang.nameNative
+                                val spacebarLabel = if (isArUi) currentWorldLang.nameAr else currentWorldLang.nameNative
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     if (isCursorTrackpadActive) {
                                         Text(
-                                            text = AppStrings.tr("ui_turbo_keyboard_view_023"),
+                                            text = AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_023"),
                                             color = Color(activeTheme.accentColor),
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     } else {
                                         Text(
-                                            text = AppStrings.trf("ui_turbo_keyboard_view_024", spacebarLabel),
+                                            text = AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_024", spacebarLabel),
                                             color = Color(activeTheme.keyTextColor).copy(alpha = 0.9f),
                                             fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
@@ -3522,14 +3715,13 @@ fun TurboKeyboardView(
                                     .graphicsLayer { scaleX = dotScale; scaleY = dotScale }
                                     .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .background(dotBg)
-                                    .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                    .border(1.dp, bottomKeyBorderColor, RoundedCornerShape(activeTheme.cornerRadius.dp))
                                     .pointerInput(Unit) {
                                         awaitEachGesture {
                                             val down = awaitFirstDown(requireUnconsumed = false)
                                             isDotPressed = true
                                             performFeedback()
                                             var isLongPressed = false
-                                            var hasDragged = false
                                             val dotVariants = listOf(".com", "www.", "https://", ".net", ".org", ".edu", "@gmail.com")
                                             val job = coroutineScope.launch {
                                                 delay(currentSettings.longPressDelayMs.toLong())
@@ -3553,7 +3745,6 @@ fun TurboKeyboardView(
                                                         val deltaX = change.position.x - down.position.x
                                                         val deltaY = change.position.y - down.position.y
                                                         if (kotlin.math.abs(deltaX) > 8.dp.toPx() || kotlin.math.abs(deltaY) > 8.dp.toPx()) {
-                                                            hasDragged = true
                                                             onDragVariantHandler(deltaX, deltaY)
                                                         }
                                                         change.consume()
@@ -3562,9 +3753,7 @@ fun TurboKeyboardView(
                                             } finally {
                                                 job.cancel()
                                                 isDotPressed = false
-                                                if (isLongPressed) {
-                                                    // Floating table stays open until explicit (X) or item tap
-                                                } else {
+                                                if (!isLongPressed) {
                                                     sendText(".")
                                                 }
                                             }
@@ -3596,7 +3785,7 @@ fun TurboKeyboardView(
                                         .graphicsLayer { scaleX = tashkeelScale; scaleY = tashkeelScale }
                                         .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
                                         .background(tashkeelBg)
-                                        .border(1.dp, Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)), RoundedCornerShape(activeTheme.cornerRadius.dp))
+                                        .border(1.dp, bottomKeyBorderColor, RoundedCornerShape(activeTheme.cornerRadius.dp))
                                         .pointerInput(Unit) {
                                             detectTapGestures(
                                                 onPress = {
@@ -3605,9 +3794,7 @@ fun TurboKeyboardView(
                                                     tryAwaitRelease()
                                                     isTashkeelPressed = false
                                                 },
-                                                onTap = {
-                                                    sendText("َ")
-                                                },
+                                                onTap = { sendText("َ") },
                                                 onLongPress = {
                                                     performFeedback(25L, isSpecial = true)
                                                     longPressChar = "َ"
@@ -3618,130 +3805,20 @@ fun TurboKeyboardView(
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(AppStrings.tr("ui_turbo_keyboard_view_025"), color = Color(activeTheme.accentColor), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.trCode(context, appLangCode, "ui_turbo_keyboard_view_025"), color = Color(activeTheme.accentColor), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
 
-                            // 6. Right slot button (Emoji or Clipboard - Swappable!)
-                            var isSlot6Pressed by remember { mutableStateOf(false) }
-                            val slot6Bg by animateColorAsState(
-                                targetValue = if (isSlot6Pressed) bottomKeyPressedBg else bottomKeyBg,
-                                animationSpec = tween(durationMillis = if (isSlot6Pressed) 20 else 90),
-                                label = "slot6_bg"
-                            )
-                            val slot6Scale by animateFloatAsState(
-                                targetValue = if (isSlot6Pressed) 0.95f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "slot6_scale"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .weight(0.85f)
-                                    .fillMaxHeight()
-                                    .graphicsLayer { scaleX = slot6Scale; scaleY = slot6Scale }
-                                    .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(slot6Bg)
-                                    .border(
-                                        1.dp,
-                                        if (activeSubView == KeyboardSubView.EMOJI) Color(activeTheme.accentColor) else Color(activeTheme.borderColor).copy(alpha = activeTheme.borderAlpha.coerceAtLeast(0.35f)),
-                                        RoundedCornerShape(activeTheme.cornerRadius.dp)
-                                    )
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                isSlot6Pressed = true
-                                                performFeedback(isSpecial = true)
-                                                tryAwaitRelease()
-                                                isSlot6Pressed = false
-                                            },
-                                            onTap = {
-                                                activeSubView = if (activeSubView == KeyboardSubView.EMOJI) KeyboardSubView.NONE else KeyboardSubView.EMOJI
-                                            }
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "😊",
-                                    fontSize = 18.sp
-                                )
+                            // 6. Right utility slot (Emoji by default, or Clipboard if swapped)
+                            if (currentSettings.swapClipboardAndEmoji) {
+                                renderClipboardUtility(0.85f)
+                            } else {
+                                renderEmojiUtility(0.85f)
                             }
 
-                            // 7. Enter key with automatic detection (Search, Send, Newline)
-                            var isEnterPressed by remember { mutableStateOf(false) }
-                            val enterScale by animateFloatAsState(
-                                targetValue = if (isEnterPressed) 0.95f else 1.0f,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 600f),
-                                label = "enter_scale"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .weight(1.25f)
-                                    .fillMaxHeight()
-                                    .graphicsLayer { scaleX = enterScale; scaleY = enterScale }
-                                    .clip(RoundedCornerShape(activeTheme.cornerRadius.dp))
-                                    .background(
-                                        if (activeTheme.id == "liquid_glass_blur") {
-                                            Brush.verticalGradient(
-                                                listOf(
-                                                    Color(0xFF3B82F6),
-                                                    Color(0xFF2563EB)
-                                                )
-                                            )
-                                        } else {
-                                            Brush.verticalGradient(
-                                                listOf(
-                                                    Color(activeTheme.enterButtonColor),
-                                                    Color(activeTheme.enterButtonColor).copy(alpha = if (isEnterPressed) 0.7f else 0.85f)
-                                                )
-                                            )
-                                        }
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (activeTheme.id == "liquid_glass_blur") Color(0xFF60A5FA).copy(alpha = 0.85f) else Color(activeTheme.accentColor).copy(alpha = 0.7f),
-                                        RoundedCornerShape(activeTheme.cornerRadius.dp)
-                                    )
-                                    .pointerInput(Unit) {
-                                        awaitEachGesture {
-                                            val down = awaitFirstDown(requireUnconsumed = false)
-                                            isEnterPressed = true
-                                            performFeedback(isSpecial = true)
-                                            var isLongPressHandled = false
-                                            val holdJob = coroutineScope.launch {
-                                                delay(1500L) // Exactly 1.5 seconds long-press as requested
-                                                if (isActive && isEnterPressed) {
-                                                    isLongPressHandled = true
-                                                    performFeedback(durationMs = 50L, isSpecial = true)
-                                                    triggerInstantTranslate()
-                                                }
-                                            }
-                                            try {
-                                                while (true) {
-                                                    val event = awaitPointerEvent()
-                                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                                    if (!change.pressed) {
-                                                        change.consume()
-                                                        break
-                                                    }
-                                                }
-                                            } finally {
-                                                holdJob.cancel()
-                                                isEnterPressed = false
-                                                if (!isLongPressHandled) {
-                                                    sendEnter()
-                                                }
-                                            }
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = currentImeAction.icon,
-                                    contentDescription = currentImeAction.contentDescription,
-                                    tint = ThemePresets.getEnterIconTint(activeTheme),
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            // 7. Enter key on FAR RIGHT (default)
+                            if (!currentSettings.enterKeyOnLeft) {
+                                renderEnterKey()
                             }
                         }
                     }
@@ -3807,7 +3884,7 @@ fun TurboKeyboardView(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                                                contentDescription = AppStrings.trCode(context, appLangCode, "ui_keyboard_sub_views_019"),
                                                 tint = Color.White,
                                                 modifier = Modifier.size(16.dp)
                                             )
@@ -3815,7 +3892,7 @@ fun TurboKeyboardView(
 
                                         // Title: الحروف العائمة (ي) =
                                         Text(
-                                            text = AppStrings.trf("ui_turbo_keyboard_view_026", longPressChar ?: ""),
+                                            text = AppStrings.trfCode(context, appLangCode, "ui_turbo_keyboard_view_026", longPressChar ?: ""),
                                             color = Color(activeTheme.keyTextColor),
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold
@@ -3961,7 +4038,8 @@ fun TurboKeyboardView(
             }
         }
     }
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(2.dp))
+}
 }
 }
 }
@@ -4046,9 +4124,11 @@ fun KeyButton(
     }
     val targetKeyColor = if (isTouching) pressedKeyColor else normalKeyColor
 
-    val keyBorderColor = remember(theme.keyStyle, theme.accentColor, theme.borderColor, theme.borderAlpha) {
+    val keyBorderColor = remember(theme.keyStyle, theme.accentColor, theme.borderColor, theme.borderAlpha, theme.backgroundColor) {
         if (theme.keyStyle == "neon") Color(theme.accentColor).copy(alpha = 0.85f)
-        else if (theme.keyStyle == "glass") Color(0x35FFFFFF)
+        else if (theme.keyStyle == "glass") {
+            if (ThemePresets.isLightColor(theme.backgroundColor)) Color(0xFF94A3B8).copy(alpha = 0.7f) else Color(0x66FFFFFF)
+        }
         else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
     }
 
@@ -4201,8 +4281,9 @@ fun KeyPreviewBubble(
     numberHint: String?,
     theme: KeyboardTheme
 ) {
-    val previewBg = Color(0xFF2A2E39)
-    val previewTextColor = Color(0xFFFFFFFF)
+    val isLight = ThemePresets.isLightColor(theme.backgroundColor)
+    val previewBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF2A2E39)
+    val previewTextColor = if (isLight) Color(0xFF0F172A) else Color(0xFFFFFFFF)
 
     Box(
         modifier = Modifier
@@ -4261,9 +4342,11 @@ fun SpecialKeyButton(
     val accentColor = remember(theme.accentColor) { Color(theme.accentColor) }
     val targetBg = if (isActive) accentColor.copy(alpha = 0.35f) else if (isPressed) pressedColor else normalColor
 
-    val borderColor = remember(theme.keyStyle, theme.borderColor, theme.borderAlpha, isActive, accentColor) {
+    val borderColor = remember(theme.keyStyle, theme.borderColor, theme.borderAlpha, theme.backgroundColor, isActive, accentColor) {
         if (isActive) accentColor
-        else if (theme.keyStyle == "glass") Color(0x35FFFFFF)
+        else if (theme.keyStyle == "glass") {
+            if (ThemePresets.isLightColor(theme.backgroundColor)) Color(0xFF94A3B8).copy(alpha = 0.7f) else Color(0x66FFFFFF)
+        }
         else Color(theme.borderColor).copy(alpha = theme.borderAlpha.coerceAtLeast(0.35f))
     }
 
@@ -4401,9 +4484,11 @@ fun BackspaceKeyButton(
         contentAlignment = Alignment.Center
     ) {
         val iconSize = (19.dp * backspaceScale).coerceIn(16.dp, 28.dp)
+        val bsContext = LocalContext.current
+        val bsLang by LocaleHelper.appLanguageFlow.collectAsState()
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
-            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_027"),
+            contentDescription = AppStrings.trCode(bsContext, bsLang, "ui_turbo_keyboard_view_027"),
             tint = Color(theme.keyTextColor),
             modifier = Modifier.size(iconSize)
         )
@@ -4425,24 +4510,28 @@ fun CustomizeTopEmojisInlinePanel(
     onResetDefaults: () -> Unit,
     onSaveAndClose: () -> Unit,
     onDismiss: () -> Unit,
-    onOpenEmojiPicker: (() -> Unit)? = null
+    onOpenEmojiPicker: (() -> Unit)? = null,
+    appLanguageCode: String = "auto"
 ) {
     val context = LocalContext.current
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val panelLayoutDir = remember(appLanguageCode) {
+        LocaleHelper.getLayoutDirectionForCode(context, appLanguageCode)
+    }
     var showSliders by remember { mutableStateOf(false) }
     var activeEmojiCat by remember { mutableIntStateOf(0) }
-    val emojiCategories = remember {
+    val emojiCategories = remember(appLanguageCode) {
         listOf(
-            "فيسات 😊" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
-            "قلوب ❤️" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
-            "تفاعلات 🔥" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
-            "رموز 🔣" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓", "«", "»", "±", "×", "÷"),
-            "حروف 🔤" to listOf("أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي"),
-            "ملصقات 🎨" to listOf("صباح الخير 🌸", "مساء الورد 🌹", "شكراً جزيلاً ✨", "جزاك الله خيراً 🤲", "ما شاء الله 💫", "بالتوفيق يا رب 🤍", "الحمد لله 🤲", "كل عام وأنتم بخير 🎉", "ʕ•́ᴥ•̀ʔ", "(•‿•)", "¯\\_(ツ)_/¯", "(｡♥‿♥｡)")
+            "${AppStrings.trCode(context, appLanguageCode, "emoji_cat_smileys")} 😊" to listOf("😂", "😍", "🥺", "😭", "🤣", "😇", "😋", "😎", "🥳", "🤔", "😴", "🙄", "😤", "🤐", "😷", "🤯", "🥶", "🥵", "😡", "🤡", "😏", "🤤", "🤭", "🤫"),
+            "${AppStrings.trCode(context, appLanguageCode, "emoji_cat_hearts")} ❤️" to listOf("❤️", "🤍", "🖤", "💖", "💔", "💕", "💓", "💗", "💘", "💙", "💚", "💛", "💜", "🤎", "🧡", "❣️", "💌", "💋", "💝", "💞"),
+            "${AppStrings.trCode(context, appLanguageCode, "emoji_cat_gestures")} 🔥" to listOf("🔥", "👏", "👍", "👎", "👑", "✨", "💯", "🤲", "🌹", "🌸", "⚡", "💎", "🕊️", "🍿", "🚀", "💡", "🌙", "☀️", "🎉", "💐"),
+            "${AppStrings.trCode(context, appLanguageCode, "emoji_cat_symbols")} 🔣" to listOf("ـ", "؛", "،", "؟", "!", "@", "#", "$", "%", "&", "*", "(", ")", "-", "+", "=", "/", ":", "•", "✓", "«", "»", "±", "×", "÷"),
+            "${AppStrings.trCode(context, appLanguageCode, "all_label")} 🔤" to listOf("أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي"),
+            "${AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_063")} 🎨" to listOf("صباح الخير 🌸", "مساء الورد 🌹", "شكراً جزيلاً ✨", "جزاك الله خيراً 🤲", "ما شاء الله 💫", "بالتوفيق يا رب 🤍", "الحمد لله 🤲", "كل عام وأنتم بخير 🎉", "ʕ•́ᴥ•̀ʔ", "(•‿•)", "¯\\_(ツ)_/¯", "(｡♥‿♥｡)")
         )
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+    CompositionLocalProvider(LocalLayoutDirection provides panelLayoutDir) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4475,7 +4564,7 @@ fun CustomizeTopEmojisInlinePanel(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = AppStrings.tr("ui_clipboard_screen_019"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_019"),
                             tint = Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -4487,13 +4576,13 @@ fun CustomizeTopEmojisInlinePanel(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = AppStrings.tr("ui_settings_screen_041"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_041"),
                             color = Color(theme.keyTextColor),
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = AppStrings.tr("ui_turbo_keyboard_view_028"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_028"),
                             color = Color(theme.subtextColor),
                             fontSize = 9.5.sp
                         )
@@ -4510,7 +4599,7 @@ fun CustomizeTopEmojisInlinePanel(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Tune,
-                            contentDescription = AppStrings.tr("ui_turbo_keyboard_view_029"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_029"),
                             tint = if (showSliders) Color(0xFF0084FF) else Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -4540,7 +4629,7 @@ fun CustomizeTopEmojisInlinePanel(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = AppStrings.tr("ui_clipboard_screen_015"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_015"),
                                     tint = Color(0xFFEF4444),
                                     modifier = Modifier.size(12.dp)
                                 )
@@ -4554,13 +4643,11 @@ fun CustomizeTopEmojisInlinePanel(
                     }
                 }
 
-                // Input Row: Add Button (Left in RTL) + Real Input Field with Paste & Clear (Right in RTL)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 1. Add button (Solid primary blue)
                     Button(
                         onClick = {
                             if (inputText.isNotBlank()) {
@@ -4573,10 +4660,9 @@ fun CustomizeTopEmojisInlinePanel(
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        Text(AppStrings.tr("ui_settings_screen_044"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_044"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    // 2. Input Box with Direct Paste & Clear
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(theme.keyBackgroundColor),
@@ -4590,14 +4676,13 @@ fun CustomizeTopEmojisInlinePanel(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            // Text input area (supports real typing & cursor & system copy/paste)
                             Box(
                                 modifier = Modifier.weight(1f),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 if (inputText.isEmpty()) {
                                     Text(
-                                        text = AppStrings.tr("ui_turbo_keyboard_view_030"),
+                                        text = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_030"),
                                         color = Color(theme.subtextColor).copy(alpha = 0.75f),
                                         fontSize = 10.5.sp,
                                         maxLines = 1,
@@ -4618,7 +4703,6 @@ fun CustomizeTopEmojisInlinePanel(
                                 )
                             }
 
-                            // Paste button (زر لصق من الحافظة مباشرة)
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = Color(0xFF0084FF).copy(alpha = 0.12f),
@@ -4628,9 +4712,9 @@ fun CustomizeTopEmojisInlinePanel(
                                     if (!clip.isNullOrEmpty()) {
                                         onInputTextChange(clip)
                                         onAddEmoji(clip)
-                                        android.widget.Toast.makeText(context, AppStrings.trf(context, "ui_turbo_keyboard_view_031", clip), android.widget.Toast.LENGTH_SHORT).show()
+                                        android.widget.Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_turbo_keyboard_view_031", clip), android.widget.Toast.LENGTH_SHORT).show()
                                     } else {
-                                        android.widget.Toast.makeText(context, AppStrings.tr(context, "ui_settings_screen_118"), android.widget.Toast.LENGTH_SHORT).show()
+                                        android.widget.Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_118"), android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             ) {
@@ -4641,15 +4725,14 @@ fun CustomizeTopEmojisInlinePanel(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.ContentPaste,
-                                        contentDescription = AppStrings.tr("ui_settings_screen_127"),
+                                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_127"),
                                         tint = Color(0xFF0084FF),
                                         modifier = Modifier.size(13.dp)
                                     )
-                                    Text(AppStrings.tr("ui_settings_screen_127"), color = Color(0xFF0084FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_127"), color = Color(0xFF0084FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
 
-                            // Clear button (X) when input is not empty
                             if (inputText.isNotEmpty()) {
                                 Box(
                                     modifier = Modifier
@@ -4659,7 +4742,7 @@ fun CustomizeTopEmojisInlinePanel(
                                         .clickable { onInputTextChange("") },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_clipboard_screen_003"), tint = Color(theme.subtextColor), modifier = Modifier.size(12.dp))
+                                    Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_003"), tint = Color(theme.subtextColor), modifier = Modifier.size(12.dp))
                                 }
                             }
                         }
@@ -4735,7 +4818,7 @@ fun CustomizeTopEmojisInlinePanel(
                                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(13.dp))
-                                    Text(AppStrings.tr("ui_turbo_keyboard_view_032"), color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_032"), color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -4756,8 +4839,8 @@ fun CustomizeTopEmojisInlinePanel(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(AppStrings.trf("ui_turbo_keyboard_view_033", (heightFactor * 100).toInt()), color = Color(theme.keyTextColor), fontSize = 10.sp)
-                            Text(AppStrings.trf("ui_turbo_keyboard_view_034", (buttonSizeFactor * 100).toInt()), color = Color(0xFF0084FF), fontSize = 10.sp)
+                            Text(AppStrings.trfCode(context, appLanguageCode, "ui_turbo_keyboard_view_033", (heightFactor * 100).toInt()), color = Color(theme.keyTextColor), fontSize = 10.sp)
+                            Text(AppStrings.trfCode(context, appLanguageCode, "ui_turbo_keyboard_view_034", (buttonSizeFactor * 100).toInt()), color = Color(0xFF0084FF), fontSize = 10.sp)
                         }
                         Slider(
                             value = heightFactor,
@@ -4776,7 +4859,7 @@ fun CustomizeTopEmojisInlinePanel(
                     }
                 }
 
-                // Bottom Actions Row matching Screenshot: Save button on left, Restore Default on right
+                // Bottom Actions Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4788,7 +4871,7 @@ fun CustomizeTopEmojisInlinePanel(
                         onClick = { onResetDefaults() },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        Text(AppStrings.tr("ui_settings_screen_047"), color = Color(theme.subtextColor), fontSize = 11.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_047"), color = Color(theme.subtextColor), fontSize = 11.sp)
                     }
 
                     if (onOpenEmojiPicker != null) {
@@ -4801,7 +4884,7 @@ fun CustomizeTopEmojisInlinePanel(
                                 horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
                                 Icon(Icons.Outlined.Mood, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(14.dp))
-                                Text(AppStrings.tr("ui_turbo_keyboard_view_035"), color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_035"), color = Color(0xFF0084FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -4818,7 +4901,7 @@ fun CustomizeTopEmojisInlinePanel(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Text(AppStrings.tr("ui_turbo_keyboard_view_036"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_036"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                         }
                     }
                 }
@@ -4832,9 +4915,14 @@ fun QuickActionsManagerInlinePanel(
     theme: KeyboardTheme,
     settings: KeyboardSettings,
     onUpdateSettings: (KeyboardSettings) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    appLanguageCode: String = "auto"
 ) {
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+    val context = LocalContext.current
+    val panelLayoutDir = remember(appLanguageCode) {
+        LocaleHelper.getLayoutDirectionForCode(context, appLanguageCode)
+    }
+    CompositionLocalProvider(LocalLayoutDirection provides panelLayoutDir) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4866,7 +4954,7 @@ fun QuickActionsManagerInlinePanel(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = AppStrings.tr("ui_clipboard_screen_019"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_019"),
                             tint = Color(theme.keyTextColor),
                             modifier = Modifier.size(16.dp)
                         )
@@ -4877,13 +4965,13 @@ fun QuickActionsManagerInlinePanel(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = AppStrings.tr("ui_turbo_keyboard_view_037"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_037"),
                             color = Color(theme.keyTextColor),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = AppStrings.tr("ui_turbo_keyboard_view_038"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_038"),
                             color = Color(theme.subtextColor),
                             fontSize = 9.sp
                         )
@@ -4926,7 +5014,8 @@ fun QuickActionsManagerInlinePanel(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
                                 imageVector = if (settings.showQuickActionsRow) Icons.Default.Delete else Icons.Default.CheckCircle,
@@ -4936,13 +5025,13 @@ fun QuickActionsManagerInlinePanel(
                             )
                             Column {
                                 Text(
-                                    text = if (settings.showQuickActionsRow) "حذف وإخفاء شريط الأدوات بالكامل" else "إظهار شريط الأدوات فوق الأحرف",
+                                    text = AppStrings.trCode(context, appLanguageCode, if (settings.showQuickActionsRow) "ui_turbo_keyboard_view_015" else "ui_turbo_keyboard_view_005"),
                                     color = if (settings.showQuickActionsRow) Color(0xFFEF4444) else Color(0xFF10B981),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.5.sp
                                 )
                                 Text(
-                                    text = if (settings.showQuickActionsRow) "اضغط هنا لإزالة الشريط بالكامل فوراً" else "الشريط مخفي حالياً، اضغط لتفعيله",
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_038"),
                                     color = Color(theme.subtextColor),
                                     fontSize = 9.sp
                                 )
@@ -4959,28 +5048,28 @@ fun QuickActionsManagerInlinePanel(
 
                 // Grid / List of Individual Action Buttons for Deletion / Toggle
                 val items = listOf(
-                    Triple("مسح الكل", Icons.Default.DeleteSweep, settings.showQuickActionClearAll) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "clear_all"), Icons.Default.DeleteSweep, settings.showQuickActionClearAll) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionClearAll = enabled))
                     },
-                    Triple("قراءة النص", Icons.Default.VolumeUp, settings.showQuickActionReadText) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "read_text"), Icons.Default.VolumeUp, settings.showQuickActionReadText) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionReadText = enabled))
                     },
-                    Triple("لصق", Icons.Default.ContentPaste, settings.showQuickActionPaste) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "paste"), Icons.Default.ContentPaste, settings.showQuickActionPaste) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionPaste = enabled))
                     },
-                    Triple("الحافظة", Icons.Default.ContentPaste, settings.showQuickActionClipboard) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "clipboard_label"), Icons.Default.ContentPaste, settings.showQuickActionClipboard) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionClipboard = enabled))
                     },
-                    Triple("نسخ", Icons.Default.ContentCopy, settings.showQuickActionCopy) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"), Icons.Default.ContentCopy, settings.showQuickActionCopy) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionCopy = enabled))
                     },
-                    Triple("قص", Icons.Default.ContentCut, settings.showQuickActionCut) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_128"), Icons.Default.ContentCut, settings.showQuickActionCut) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionCut = enabled))
                     },
-                    Triple("تحديد الكل", Icons.Default.SelectAll, settings.showQuickActionSelectAll) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_129"), Icons.Default.SelectAll, settings.showQuickActionSelectAll) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionSelectAll = enabled))
                     },
-                    Triple("استعادة بعد الحذف", Icons.Default.Undo, settings.showQuickActionUndoRedo) to { enabled: Boolean ->
+                    Triple(AppStrings.trCode(context, appLanguageCode, "undo_short"), Icons.Default.Undo, settings.showQuickActionUndoRedo) to { enabled: Boolean ->
                         onUpdateSettings(settings.copy(showQuickActionUndoRedo = enabled))
                     }
                 )
@@ -5042,7 +5131,7 @@ fun QuickActionsManagerInlinePanel(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
-                                                contentDescription = AppStrings.tr("ui_turbo_keyboard_view_039"),
+                                                contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_039"),
                                                 tint = Color(0xFFEF4444),
                                                 modifier = Modifier.size(13.dp)
                                             )
@@ -5087,7 +5176,7 @@ fun QuickActionsManagerInlinePanel(
                         },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text(AppStrings.tr("ui_settings_screen_047"), color = Color(theme.subtextColor), fontSize = 11.sp)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_047"), color = Color(theme.subtextColor), fontSize = 11.sp)
                     }
 
                     Button(
@@ -5102,7 +5191,7 @@ fun QuickActionsManagerInlinePanel(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                            Text(AppStrings.tr("ui_turbo_keyboard_view_040"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_turbo_keyboard_view_040"), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
                     }
                 }

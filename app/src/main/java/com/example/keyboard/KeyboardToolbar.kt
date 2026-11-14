@@ -126,7 +126,8 @@ fun KeyboardToolbar(
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val actualHeight = toolbarHeight ?: if (isLandscape) 32.dp else if (isCompact) 48.dp else 50.dp
+    val actualHeight = toolbarHeight?.let { (it.value * 0.84f).coerceIn(26f, 44f).dp }
+        ?: if (isLandscape) 24.dp else if (isCompact) 36.dp else 40.dp
 
     Row(
         modifier = Modifier
@@ -146,6 +147,7 @@ fun KeyboardToolbar(
                 label = AppStrings.trCode(context, appLanguageCode, "tb_themes"),
                 isActive = activeSubView == KeyboardSubView.THEMES,
                 theme = theme,
+                barHeight = actualHeight,
                 onClick = onMyThemeClick,
                 onLongClick = onMyThemeLongClick,
                 longClickDelayMs = 600L
@@ -431,6 +433,7 @@ private fun ToolbarFixedItem(
     label: String,
     isActive: Boolean,
     theme: KeyboardTheme,
+    barHeight: Dp = 38.dp,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     longClickDelayMs: Long = 500L
@@ -457,9 +460,12 @@ private fun ToolbarFixedItem(
         }
     }
 
+    val itemHeight = (barHeight - 4.dp).coerceAtLeast(20.dp)
+    val iconSize = (barHeight.value * 0.42f).coerceIn(12f, 17f).dp
+
     val itemModifier = Modifier
-        .widthIn(min = if (isLandscape) 38.dp else 46.dp, max = if (isLandscape) 48.dp else 56.dp)
-        .height(if (isLandscape) 28.dp else 46.dp)
+        .widthIn(min = if (isLandscape) 36.dp else 44.dp, max = if (isLandscape) 46.dp else 54.dp)
+        .height(itemHeight)
         .clip(RoundedCornerShape(8.dp))
         .background(if (isActive) effectiveActiveColor.copy(alpha = if (isToolbarLight) 0.18f else 0.28f) else Color.Transparent)
         .border(
@@ -479,7 +485,7 @@ private fun ToolbarFixedItem(
                 Modifier.clickable(onClick = onClick)
             }
         )
-        .padding(horizontal = 2.dp, vertical = if (isLandscape) 1.dp else 2.dp)
+        .padding(horizontal = 2.dp, vertical = 1.dp)
 
     Box(
         modifier = itemModifier,
@@ -493,13 +499,12 @@ private fun ToolbarFixedItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) effectiveActiveColor else inactiveTextColor.copy(alpha = 0.92f),
-                modifier = Modifier.size(if (isLandscape) 14.dp else 19.dp)
+                modifier = Modifier.size(iconSize)
             )
-            Spacer(modifier = Modifier.height(if (isLandscape) 0.dp else 1.dp))
             Text(
                 text = label,
                 color = if (isActive) effectiveActiveColor else inactiveTextColor,
-                fontSize = if (isLandscape) 7.5.sp else 9.5.sp,
+                fontSize = if (isLandscape) 7.sp else 9.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

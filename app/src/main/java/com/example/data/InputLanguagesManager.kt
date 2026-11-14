@@ -867,7 +867,8 @@ object InputLanguagesManager {
 
     fun saveInstalledLanguages(context: Context, codes: List<String>) {
         val sp = context.getSharedPreferences("turbo_keyboard_prefs", Context.MODE_PRIVATE)
-        sp.edit().putString("installed_languages_list", codes.distinct().joinToString(",")).apply()
+        sp.edit().putString("installed_languages_list", codes.distinct().joinToString(",")).commit()
+        PreferencesManager.prefsVersionFlow.value += 1
     }
 
     fun getActiveLanguages(context: Context): List<String> {
@@ -881,7 +882,8 @@ object InputLanguagesManager {
 
     fun saveActiveLanguages(context: Context, codes: List<String>) {
         val sp = context.getSharedPreferences("turbo_keyboard_prefs", Context.MODE_PRIVATE)
-        sp.edit().putString("active_languages_list", codes.distinct().joinToString(",")).apply()
+        sp.edit().putString("active_languages_list", codes.distinct().joinToString(",")).commit()
+        PreferencesManager.prefsVersionFlow.value += 1
     }
 
     fun installLanguage(context: Context, code: String) {
@@ -935,7 +937,8 @@ object InputLanguagesManager {
 
     fun setCurrentLanguageCode(context: Context, code: String) {
         val sp = context.getSharedPreferences("turbo_keyboard_prefs", Context.MODE_PRIVATE)
-        sp.edit().putString("current_typing_language_code", code).apply()
+        sp.edit().putString("current_typing_language_code", code).commit()
+        PreferencesManager.prefsVersionFlow.value += 1
     }
 
     fun getNextActiveLanguage(context: Context, currentCode: String): WorldLanguage {

@@ -30,20 +30,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.TranslationEngine
+import com.example.util.AppStrings
 import kotlinx.coroutines.launch
 
 @Composable
 fun TranslationScreen(
+    appLanguageCode: String = "auto",
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
+    val isArUi = remember(appLanguageCode) {
+        val resolved = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
+        resolved == "ar"
+    }
 
-    var sourceLang by remember { mutableStateOf("ar") }
-    var targetLang by remember { mutableStateOf("en") }
-    var inputText by remember { mutableStateOf("مرحبا! كيف حالك اليوم؟") }
-    var translatedResult by remember { mutableStateOf("Hello! How are you today?") }
+    var sourceLang by remember(isArUi) { mutableStateOf(if (isArUi) "ar" else "en") }
+    var targetLang by remember(isArUi) { mutableStateOf(if (isArUi) "en" else "ar") }
+    var inputText by remember(isArUi) {
+        mutableStateOf(if (isArUi) "مرحبا! كيف حالك اليوم؟" else "Hello! How are you today?")
+    }
+    var translatedResult by remember(isArUi) {
+        mutableStateOf(if (isArUi) "Hello! How are you today?" else "مرحبا! كيف حالك اليوم؟")
+    }
     var isTranslating by remember { mutableStateOf(false) }
 
     var showSourcePicker by remember { mutableStateOf(false) }
@@ -76,7 +87,11 @@ fun TranslationScreen(
             },
             title = {
                 Text(
-                    text = if (showSourcePicker) "اختر لغة النص الأصلي (من)" else "اختر لغة الترجمة (إلى)",
+                    text = if (showSourcePicker) {
+                        AppStrings.trCode(context, appLanguageCode, "trans_source_picker_title")
+                    } else {
+                        AppStrings.trCode(context, appLanguageCode, "trans_target_picker_title")
+                    },
                     color = Color.White,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -87,7 +102,7 @@ fun TranslationScreen(
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("ابحث في جميع لغات العالم...", fontSize = 11.sp) },
+                        placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "trans_search_hint"), fontSize = 11.sp) },
                         modifier = Modifier.fillMaxWidth().height(46.dp),
                         singleLine = true,
                         leadingIcon = {
@@ -97,6 +112,8 @@ fun TranslationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(filtered) { langItem ->
+                            val primaryName = if (isArUi) langItem.nameAr else langItem.nameEn
+                            val secondaryName = if (isArUi) langItem.nameEn else langItem.nameAr
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -115,9 +132,9 @@ fun TranslationScreen(
                             ) {
                                 Text(langItem.flag, fontSize = 20.sp)
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Text(langItem.nameAr, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Text(primaryName, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("(${langItem.nameEn})", color = Color(0xFF8E9BAE), fontSize = 11.sp)
+                                Text("($secondaryName)", color = Color(0xFF8E9BAE), fontSize = 11.sp)
                             }
                         }
                     }
@@ -128,7 +145,7 @@ fun TranslationScreen(
                     showSourcePicker = false
                     showTargetPicker = false
                 }) {
-                    Text("إلغاء", color = Color(0xFF00E5FF))
+                    Text(AppStrings.trCode(context, appLanguageCode, "cancel"), color = Color(0xFF00E5FF))
                 }
             },
             containerColor = Color(0xFF141A28)
@@ -158,7 +175,7 @@ fun TranslationScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -166,7 +183,7 @@ fun TranslationScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "الترجمة الفورية المدمجة",
+                text = AppStrings.trCode(context, appLanguageCode, "trans_screen_title"),
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -205,7 +222,7 @@ fun TranslationScreen(
                         Text(sourceItem.flag, fontSize = 16.sp)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = sourceItem.nameAr,
+                            text = if (isArUi) sourceItem.nameAr else sourceItem.nameEn,
                             color = Color(0xFF00E5FF),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -229,7 +246,7 @@ fun TranslationScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.SwapHoriz,
-                        contentDescription = "Swap",
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "trans_btn"),
                         tint = Color(0xFF00E5FF)
                     )
                 }
@@ -247,7 +264,7 @@ fun TranslationScreen(
                         Text(targetItem.flag, fontSize = 16.sp)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = targetItem.nameAr,
+                            text = if (isArUi) targetItem.nameAr else targetItem.nameEn,
                             color = Color(0xFF00E5FF),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -268,7 +285,7 @@ fun TranslationScreen(
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "النص الأصلي:",
+                    text = AppStrings.trCode(context, appLanguageCode, "trans_original_label"),
                     color = Color(0xFF8E9BAE),
                     fontSize = 12.sp
                 )
@@ -305,7 +322,7 @@ fun TranslationScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("ترجمة فورية", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "trans_btn"), color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -327,7 +344,7 @@ fun TranslationScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "الترجمة الناتجة:",
+                        text = AppStrings.trCode(context, appLanguageCode, "trans_result_label"),
                         color = Color(0xFF00E5FF),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -339,13 +356,13 @@ fun TranslationScreen(
                             try {
                                 com.example.data.PreferencesManager(context).addClipboardItem(translatedResult)
                             } catch (_: Exception) {}
-                            Toast.makeText(context, "تم نسخ الترجمة", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "trans_copied_toast"), Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = "Copy",
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "copy_short"),
                             tint = Color(0xFF00E5FF),
                             modifier = Modifier.size(18.dp)
                         )

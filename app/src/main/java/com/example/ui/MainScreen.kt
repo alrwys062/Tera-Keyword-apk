@@ -48,13 +48,20 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember { PreferencesManager(context) }
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
     var currentTheme by remember { mutableStateOf(prefs.getActiveTheme()) }
+    LaunchedEffect(prefsVersion) {
+        currentTheme = prefs.getActiveTheme()
+    }
 
     // Live reactive language from LocaleHelper
     val flowLanguageCode by com.example.util.LocaleHelper.appLanguageFlow.collectAsState()
     val activeLanguage = if (flowLanguageCode != "auto") flowLanguageCode
                          else if (appLanguageCode != "auto") appLanguageCode
                          else com.example.util.LocaleHelper.getAppLanguageCode(context)
+    val activeLayoutDir = remember(activeLanguage) {
+        com.example.util.LocaleHelper.getLayoutDirectionForCode(context, activeLanguage)
+    }
 
     var keyboardStatus by remember {
         mutableStateOf(KeyboardStatusHelper.checkKeyboardStatus(context))
@@ -90,127 +97,136 @@ fun MainScreen(initialTarget: AppDestination? = null, appLanguageCode: String = 
         currentDestination = AppDestination.TOOLS
     }
 
-    Scaffold(
-        containerColor = Color(0xFF070A0F),
-        contentWindowInsets = WindowInsets.statusBars,
-        floatingActionButtonPosition = FabPosition.End,
-        floatingActionButton = {
-            if (currentDestination != AppDestination.CHAT_SIMULATOR && currentDestination != AppDestination.CUSTOM_THEME_BUILDER) {
-                FloatingActionButton(
-                    onClick = { currentDestination = AppDestination.CHAT_SIMULATOR },
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color.Black,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .size(54.dp)
-                        .border(2.dp, Color(0xFF38BDF8), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Keyboard,
-                        contentDescription = "Test Keyboard",
-                        modifier = Modifier.size(26.dp)
+    CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides activeLayoutDir
+    ) {
+        Scaffold(
+            containerColor = Color(0xFF070A0F),
+            contentWindowInsets = WindowInsets.statusBars,
+            floatingActionButtonPosition = FabPosition.End,
+            floatingActionButton = {
+                if (currentDestination != AppDestination.CHAT_SIMULATOR && currentDestination != AppDestination.CUSTOM_THEME_BUILDER) {
+                    FloatingActionButton(
+                        onClick = { currentDestination = AppDestination.CHAT_SIMULATOR },
+                        containerColor = Color(0xFF00E5FF),
+                        contentColor = Color.Black,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(54.dp)
+                            .border(2.dp, Color(0xFF38BDF8), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Keyboard,
+                            contentDescription = com.example.util.AppStrings.trCode(context, activeLanguage, "test_keyboard_fab"),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
+            bottomBar = {
+                if (currentDestination in listOf(AppDestination.KEYBOARD_SETUP, AppDestination.TOOLS, AppDestination.THEMES, AppDestination.SETTINGS)) {
+                    BottomNavigationBar(
+                        currentDestination = currentDestination,
+                        keyboardStatus = keyboardStatus,
+                        appLanguageCode = activeLanguage,
+                        onDestinationSelected = { currentDestination = it }
                     )
                 }
             }
-        },
-        bottomBar = {
-            if (currentDestination in listOf(AppDestination.KEYBOARD_SETUP, AppDestination.TOOLS, AppDestination.THEMES, AppDestination.SETTINGS)) {
-                BottomNavigationBar(
-                    currentDestination = currentDestination,
-                    keyboardStatus = keyboardStatus,
-                    appLanguageCode = activeLanguage,
-                    onDestinationSelected = { currentDestination = it }
-                )
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (currentDestination) {
-                AppDestination.KEYBOARD_SETUP -> {
-                    KeyboardSetupScreen(
-                        prefs = prefs,
-                        appLanguageCode = activeLanguage,
-                        onNavigateToThemes = { currentDestination = AppDestination.THEMES },
-                        onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
-                        onNavigateToChatSimulator = { currentDestination = AppDestination.CHAT_SIMULATOR },
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.TOOLS -> {
-                    ToolsScreen(
-                        appLanguageCode = activeLanguage,
-                        onNavigateToEmoji = { currentDestination = AppDestination.CHAT_SIMULATOR },
-                        onNavigateToGif = { currentDestination = AppDestination.CHAT_SIMULATOR },
-                        onNavigateToTranslate = { currentDestination = AppDestination.TRANSLATION_STUDIO },
-                        onNavigateToClipboard = { currentDestination = AppDestination.CLIPBOARD_MANAGER },
-                        onNavigateToVoice = { currentDestination = AppDestination.CHAT_SIMULATOR },
-                        onToggleNightMode = {
-                            val next = if (currentTheme.id == "cyber_pro") ThemePresets.BLACK_GOLD else ThemePresets.CYBER_PRO
-                            prefs.setCurrentTheme(next.id)
-                            currentTheme = next
-                        },
-                        onNavigateToDecoration = { currentDestination = AppDestination.DECORATION_STUDIO },
-                        onNavigateToSetup = { currentDestination = AppDestination.KEYBOARD_SETUP },
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.THEMES -> {
-                    ThemesScreen(
-                        prefs = prefs,
-                        currentThemeId = currentTheme.id,
-                        appLanguageCode = activeLanguage,
-                        onThemeApplied = { theme -> currentTheme = theme },
-                        onOpenCustomBuilder = { currentDestination = AppDestination.CUSTOM_THEME_BUILDER },
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.SETTINGS -> {
-                    SettingsScreen(
-                        prefs = prefs,
-                        initialAppLanguageCode = activeLanguage,
-                        onNavigateToThemes = { currentDestination = AppDestination.THEMES },
-                        onNavigateToClipboard = { currentDestination = AppDestination.CLIPBOARD_MANAGER },
-                        onNavigateToSetup = { currentDestination = AppDestination.KEYBOARD_SETUP },
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.CHAT_SIMULATOR -> {
-                    ChatSimulatorScreen(
-                        prefs = prefs,
-                        currentTheme = currentTheme,
-                        onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.CUSTOM_THEME_BUILDER -> {
-                    CustomThemeBuilderScreen(
-                        prefs = prefs,
-                        onThemeSavedAndApplied = { theme ->
-                            currentTheme = theme
-                            currentDestination = AppDestination.THEMES
-                        },
-                        onBack = { currentDestination = AppDestination.THEMES }
-                    )
-                }
-                AppDestination.CLIPBOARD_MANAGER -> {
-                    ClipboardScreen(
-                        prefs = prefs,
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.DECORATION_STUDIO -> {
-                    DecorationScreen(
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
-                }
-                AppDestination.TRANSLATION_STUDIO -> {
-                    TranslationScreen(
-                        onBack = { currentDestination = AppDestination.TOOLS }
-                    )
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                when (currentDestination) {
+                    AppDestination.KEYBOARD_SETUP -> {
+                        KeyboardSetupScreen(
+                            prefs = prefs,
+                            appLanguageCode = activeLanguage,
+                            onNavigateToThemes = { currentDestination = AppDestination.THEMES },
+                            onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
+                            onNavigateToChatSimulator = { currentDestination = AppDestination.CHAT_SIMULATOR },
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.TOOLS -> {
+                        ToolsScreen(
+                            appLanguageCode = activeLanguage,
+                            onNavigateToEmoji = { currentDestination = AppDestination.CHAT_SIMULATOR },
+                            onNavigateToGif = { currentDestination = AppDestination.CHAT_SIMULATOR },
+                            onNavigateToTranslate = { currentDestination = AppDestination.TRANSLATION_STUDIO },
+                            onNavigateToClipboard = { currentDestination = AppDestination.CLIPBOARD_MANAGER },
+                            onNavigateToVoice = { currentDestination = AppDestination.CHAT_SIMULATOR },
+                            onToggleNightMode = {
+                                val next = if (currentTheme.id == "cyber_pro") ThemePresets.BLACK_GOLD else ThemePresets.CYBER_PRO
+                                prefs.setCurrentTheme(next.id)
+                                currentTheme = next
+                            },
+                            onNavigateToDecoration = { currentDestination = AppDestination.DECORATION_STUDIO },
+                            onNavigateToSetup = { currentDestination = AppDestination.KEYBOARD_SETUP },
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.THEMES -> {
+                        ThemesScreen(
+                            prefs = prefs,
+                            currentThemeId = currentTheme.id,
+                            appLanguageCode = activeLanguage,
+                            onThemeApplied = { theme -> currentTheme = theme },
+                            onOpenCustomBuilder = { currentDestination = AppDestination.CUSTOM_THEME_BUILDER },
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.SETTINGS -> {
+                        SettingsScreen(
+                            prefs = prefs,
+                            initialAppLanguageCode = activeLanguage,
+                            onNavigateToThemes = { currentDestination = AppDestination.THEMES },
+                            onNavigateToClipboard = { currentDestination = AppDestination.CLIPBOARD_MANAGER },
+                            onNavigateToSetup = { currentDestination = AppDestination.KEYBOARD_SETUP },
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.CHAT_SIMULATOR -> {
+                        ChatSimulatorScreen(
+                            prefs = prefs,
+                            currentTheme = currentTheme,
+                            appLanguageCode = activeLanguage,
+                            onNavigateToSettings = { currentDestination = AppDestination.SETTINGS },
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.CUSTOM_THEME_BUILDER -> {
+                        CustomThemeBuilderScreen(
+                            prefs = prefs,
+                            appLanguageCode = activeLanguage,
+                            onThemeSavedAndApplied = { theme ->
+                                currentTheme = theme
+                                currentDestination = AppDestination.THEMES
+                            },
+                            onBack = { currentDestination = AppDestination.THEMES }
+                        )
+                    }
+                    AppDestination.CLIPBOARD_MANAGER -> {
+                        ClipboardScreen(
+                            prefs = prefs,
+                            appLanguageCode = activeLanguage,
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.DECORATION_STUDIO -> {
+                        DecorationScreen(
+                            appLanguageCode = activeLanguage,
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
+                    AppDestination.TRANSLATION_STUDIO -> {
+                        TranslationScreen(
+                            appLanguageCode = activeLanguage,
+                            onBack = { currentDestination = AppDestination.TOOLS }
+                        )
+                    }
                 }
             }
         }

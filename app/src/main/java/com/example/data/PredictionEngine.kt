@@ -108,6 +108,141 @@ object PredictionEngine {
         "olá" to listOf("tudo bem", "como vai", "amigo")
     )
 
+    private val commonKurdishWords = listOf(
+        "سڵاو", "چۆنی", "باشم", "سوپاس", "بەیانی", "باش", "ئێوارە", "شەو", "خوات", "لەگەڵ",
+        "بەخێربێیت", "زۆر", "ئەمڕۆ", "سبەینێ", "ئێستا", "بەڵێ", "نەخێر", "تکایە", "ببورە", "هاوڕێ"
+    )
+
+    private val commonFrenchWords = listOf(
+        "bonjour", "bonsoir", "salut", "merci", "beaucoup", "comment", "ça", "va", "bien", "très",
+        "oui", "non", "s'il", "plaît", "pardon", "demain", "aujourd'hui", "ami", "travail", "maison"
+    )
+
+    private val commonSpanishWords = listOf(
+        "hola", "buenos", "días", "buenas", "tardes", "noches", "gracias", "muchas", "cómo", "estás",
+        "bien", "perfecto", "por", "favor", "sí", "claro", "amigo", "mañana", "hoy", "trabajo"
+    )
+
+    private val commonPortugueseWords = listOf(
+        "olá", "oi", "bom", "dia", "boa", "tarde", "noite", "tudo", "bem", "obrigado",
+        "muito", "por", "favor", "sim", "não", "amigo", "hoje", "amanhã", "trabalho", "casa"
+    )
+
+    private val commonTurkishWords = listOf(
+        "merhaba", "selam", "nasılsın", "iyiyim", "teşekkürler", "günaydın", "iyi", "akşamlar", "geceler",
+        "evet", "hayır", "lütfen", "tamam", "harika", "arkadaş", "bugün", "yarın", "şimdi", "güzel"
+    )
+
+    private val commonPersianWords = listOf(
+        "سلام", "خوبی", "ممنون", "سپاس", "صبح", "بخیر", "عصر", "شب", "خوش", "آمدید",
+        "بله", "خیر", "لطفاً", "ببخشید", "امروز", "فردا", "الان", "دوست", "عالی", "خیلی"
+    )
+
+    private val commonRussianWords = listOf(
+        "привет", "здравствуйте", "спасибо", "хорошо", "как", "дела", "доброе", "утро", "вечер",
+        "пожалуйста", "да", "нет", "сегодня", "завтра", "друг", "отлично", "конечно", "дом", "работа"
+    )
+
+    private val kurdishNextWordPredictions = mapOf(
+        "سڵاو" to listOf("چۆنی", "باشیت", "هاوڕێ"),
+        "بەیانی" to listOf("باش", "خۆش", "پیرۆز"),
+        "زۆر" to listOf("سوپاس", "باشە", "جوانە"),
+        "خوات" to listOf("لەگەڵ", "هاوکار بێت")
+    )
+
+    private val frenchNextWordPredictions = mapOf(
+        "bonjour" to listOf("comment", "à tous", "mon ami"),
+        "merci" to listOf("beaucoup", "bien", "infiniment"),
+        "comment" to listOf("ça va", "allez-vous", "vas-tu"),
+        "s'il" to listOf("vous plaît", "te plaît")
+    )
+
+    private val spanishNextWordPredictions = mapOf(
+        "buenos" to listOf("días", "amigos"),
+        "buenas" to listOf("tardes", "noches"),
+        "muchas" to listOf("gracias", "felicidades"),
+        "cómo" to listOf("estás", "te va", "está"),
+        "por" to listOf("favor", "supuesto")
+    )
+
+    private val turkishNextWordPredictions = mapOf(
+        "iyi" to listOf("akşamlar", "geceler", "günler", "çalışmalar"),
+        "çok" to listOf("teşekkürler", "güzel", "iyi"),
+        "teşekkür" to listOf("ederim", "ediyorum")
+    )
+
+    private val persianNextWordPredictions = mapOf(
+        "صبح" to listOf("بخیر", "شما", "زیبا"),
+        "خیلی" to listOf("ممنون", "خوب", "عالی"),
+        "حال" to listOf("شما", "تو", "چطوره")
+    )
+
+    private val russianNextWordPredictions = mapOf(
+        "доброе" to listOf("утро", "время"),
+        "как" to listOf("дела", "вы", "ты"),
+        "большое" to listOf("спасибо", "счастье")
+    )
+
+    private fun getDictionaryForLang(isArabic: Boolean, langCode: String): List<String> {
+        val code = langCode.lowercase()
+        return when {
+            code.startsWith("ku") -> commonKurdishWords
+            code.startsWith("fr") -> commonFrenchWords
+            code.startsWith("es") -> commonSpanishWords
+            code.startsWith("pt") -> commonPortugueseWords
+            code.startsWith("tr") -> commonTurkishWords
+            code.startsWith("fa") -> commonPersianWords
+            code.startsWith("ru") -> commonRussianWords
+            isArabic || code == "ar" -> commonArabicWords
+            else -> commonEnglishWords
+        }
+    }
+
+    private fun getNextWordMapForLang(isArabic: Boolean, langCode: String): Map<String, List<String>> {
+        val code = langCode.lowercase()
+        return when {
+            code.startsWith("ku") -> kurdishNextWordPredictions
+            code.startsWith("fr") -> frenchNextWordPredictions
+            code.startsWith("es") -> spanishNextWordPredictions
+            code.startsWith("pt") -> portugueseNextWordPredictions
+            code.startsWith("tr") -> turkishNextWordPredictions
+            code.startsWith("fa") -> persianNextWordPredictions
+            code.startsWith("ru") -> russianNextWordPredictions
+            isArabic || code == "ar" -> arabicNextWordPredictions
+            else -> englishNextWordPredictions
+        }
+    }
+
+    fun getDefaultSuggestionsForLang(isArabic: Boolean, langCode: String): List<PredictionResult> {
+        val code = langCode.lowercase()
+        return when {
+            code.startsWith("ku") -> listOf(PredictionResult("سڵاو"), PredictionResult("سوپاس"), PredictionResult("باشم"))
+            code.startsWith("fr") -> listOf(PredictionResult("Bonjour"), PredictionResult("Merci"), PredictionResult("Salut"))
+            code.startsWith("es") -> listOf(PredictionResult("Hola"), PredictionResult("Gracias"), PredictionResult("Buenos"))
+            code.startsWith("pt") -> listOf(PredictionResult("Olá"), PredictionResult("Tudo bem"), PredictionResult("Obrigado"))
+            code.startsWith("tr") -> listOf(PredictionResult("Merhaba"), PredictionResult("Teşekkürler"), PredictionResult("İyi"))
+            code.startsWith("fa") -> listOf(PredictionResult("سلام"), PredictionResult("ممنون"), PredictionResult("خوبی"))
+            code.startsWith("ru") -> listOf(PredictionResult("Привет"), PredictionResult("Спасибо"), PredictionResult("Хорошо"))
+            isArabic || code == "ar" -> listOf(PredictionResult("السلام"), PredictionResult("مرحبا"), PredictionResult("صباح"))
+            else -> listOf(PredictionResult("Hello"), PredictionResult("How"), PredictionResult("Thanks"))
+        }
+    }
+
+    private fun getFillersForLang(isArabic: Boolean, langCode: String): List<String> {
+        val code = langCode.lowercase()
+        return when {
+            code.startsWith("ku") -> listOf("سوپاس", "باشە", "بەڵێ", "زۆر باشە")
+            code.startsWith("fr") -> listOf("Merci", "D'accord", "Oui", "Super")
+            code.startsWith("es") -> listOf("Gracias", "Claro", "Sí", "Genial")
+            code.startsWith("pt") -> listOf("Obrigado", "Tudo bem", "Sim", "Ótimo")
+            code.startsWith("tr") -> listOf("Teşekkürler", "Tamam", "Evet", "Harika")
+            code.startsWith("fa") -> listOf("ممنون", "باشه", "بله", "عالی")
+            code.startsWith("ru") -> listOf("Спасибо", "Хорошо", "Да", "Отлично")
+            isArabic || code == "ar" -> listOf("شكراً", "تمام", "نعم", "ممتاز", "أكيد")
+            else -> listOf("Okay", "Sure", "Great", "Yes", "Thanks")
+        }
+    }
+
     data class PredictionResult(
         val word: String,
         val isCorrection: Boolean = false,
@@ -139,42 +274,31 @@ object PredictionEngine {
         isArabic: Boolean,
         userWords: List<String> = emptyList(),
         prevWord: String? = null,
-        userDict: UserDictionaryManager? = null
+        userDict: UserDictionaryManager? = null,
+        langCode: String = if (isArabic) "ar" else "en"
     ): List<PredictionResult> {
         val clean = prefix.trim()
-        val dictionary = if (isArabic) commonArabicWords else commonEnglishWords
-        val nextWordMap = if (isArabic) arabicNextWordPredictions else englishNextWordPredictions
+        val dictionary = getDictionaryForLang(isArabic, langCode)
+        val nextWordMap = getNextWordMapForLang(isArabic, langCode)
         val cleanPrev = prevWord?.trim()?.replace(Regex("[،؛؟?!.,:;]+$"), "")
 
         // 1. If prefix is empty: show context-aware next-word predictions (n-gram / user history)
         if (clean.isEmpty()) {
             if (!cleanPrev.isNullOrBlank()) {
                 val learnedNext = userDict?.getLearnedNextWords(cleanPrev) ?: emptyList()
-                val staticNext = nextWordMap[cleanPrev] ?: emptyList()
+                val staticNext = nextWordMap[cleanPrev.lowercase()] ?: nextWordMap[cleanPrev] ?: emptyList()
                 val candidates = (learnedNext + staticNext).distinct()
                 if (candidates.isNotEmpty()) {
                     return candidates.take(3).map { PredictionResult(word = it) }
                 }
             }
-            return if (isArabic) {
-                listOf(
-                    PredictionResult("السلام"),
-                    PredictionResult("مرحبا"),
-                    PredictionResult("صباح")
-                )
-            } else {
-                listOf(
-                    PredictionResult("Hello"),
-                    PredictionResult("How"),
-                    PredictionResult("Thanks")
-                )
-            }
+            return getDefaultSuggestionsForLang(isArabic, langCode)
         }
 
         val results = mutableListOf<PredictionResult>()
 
-        // 2. Direct SpellCheckDictionary correction
-        val correction = SpellCheckDictionary.getCorrection(clean, isArabic)
+        // 2. Direct SpellCheckDictionary correction (Arabic & English)
+        val correction = SpellCheckDictionary.getCorrection(clean, isArabic || langCode == "ar")
         if (correction != null && !correction.equals(clean, ignoreCase = true)) {
             results.add(PredictionResult(word = correction, isCorrection = true))
         }
@@ -186,7 +310,7 @@ object PredictionEngine {
         // 4. Context-aware n-gram priority: words that follow prevWord AND start with prefix
         if (!cleanPrev.isNullOrBlank()) {
             val learnedNext = userDict?.getLearnedNextWords(cleanPrev) ?: emptyList()
-            val staticNext = nextWordMap[cleanPrev] ?: emptyList()
+            val staticNext = nextWordMap[cleanPrev.lowercase()] ?: nextWordMap[cleanPrev] ?: emptyList()
             val contextMatches = (learnedNext + staticNext).filter {
                 it.startsWith(clean, ignoreCase = true)
             }
@@ -228,7 +352,7 @@ object PredictionEngine {
         }
 
         // 8. Natural fillers if still under 3
-        val fallbackWords = if (isArabic) listOf("شكراً", "تمام", "نعم", "ممتاز", "أكيد") else listOf("Okay", "Sure", "Great", "Yes", "Thanks")
+        val fallbackWords = getFillersForLang(isArabic, langCode)
         for (fb in fallbackWords) {
             if (results.size >= 3) break
             if (results.none { it.word.equals(fb, ignoreCase = true) }) {
@@ -243,31 +367,23 @@ object PredictionEngine {
         prevWord: String,
         isArabic: Boolean,
         userDict: UserDictionaryManager? = null,
-        langCode: String = "ar"
+        langCode: String = if (isArabic) "ar" else "en"
     ): List<PredictionResult> {
         val clean = prevWord.trim().replace(Regex("[،؛؟?!.,:;]+$"), "")
         if (clean.isEmpty()) {
-            return getPredictionsWithCorrection("", isArabic, userDict = userDict)
+            return getPredictionsWithCorrection("", isArabic, userDict = userDict, langCode = langCode)
         }
         val learned = userDict?.getLearnedNextWords(clean) ?: emptyList()
-        val nextWordMap = when {
-            isArabic || langCode == "ar" -> arabicNextWordPredictions
-            langCode.startsWith("pt") -> portugueseNextWordPredictions
-            else -> englishNextWordPredictions
-        }
+        val nextWordMap = getNextWordMapForLang(isArabic, langCode)
         val staticNext = nextWordMap[clean.lowercase()] ?: nextWordMap[clean] ?: emptyList()
         val predictions = (learned + staticNext).distinct()
         if (predictions.isNotEmpty()) {
             return predictions.take(3).map { PredictionResult(word = it) }
         }
-        return when {
-            isArabic -> listOf(PredictionResult("شكراً"), PredictionResult("تمام"), PredictionResult("نعم"))
-            langCode.startsWith("pt") -> listOf(PredictionResult("obrigado"), PredictionResult("tudo bem"), PredictionResult("sim"))
-            else -> listOf(PredictionResult("Thanks"), PredictionResult("Okay"), PredictionResult("Sure"))
-        }
+        return getFillersForLang(isArabic, langCode).take(3).map { PredictionResult(it) }
     }
 
-    fun getPredictions(prefix: String, isArabic: Boolean, userWords: List<String> = emptyList()): List<String> {
-        return getPredictionsWithCorrection(prefix, isArabic, userWords).map { it.word }
+    fun getPredictions(prefix: String, isArabic: Boolean, userWords: List<String> = emptyList(), langCode: String = if (isArabic) "ar" else "en"): List<String> {
+        return getPredictionsWithCorrection(prefix, isArabic, userWords, langCode = langCode).map { it.word }
     }
 }

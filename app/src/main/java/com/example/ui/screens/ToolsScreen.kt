@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -68,7 +69,7 @@ fun ToolsScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -143,7 +144,7 @@ fun ToolsScreen(
                     }
                 }
                 Icon(
-                    imageVector = Icons.Default.ChevronRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = Color(0xFF00E5FF)
                 )
@@ -246,7 +247,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AutoAwesome,
-                            contentDescription = AppStrings.tr(context, "ui_tools_screen_001"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_001"),
                             tint = Color(0xFF00E5FF),
                             modifier = Modifier.size(26.dp)
                         )
@@ -267,7 +268,7 @@ fun ToolsScreen(
                     }
                 }
                 Icon(
-                    imageVector = Icons.Default.ChevronRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = Color(0xFF00E5FF)
                 )
@@ -302,7 +303,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Spellcheck,
-                            contentDescription = AppStrings.tr(context, "ui_tools_screen_002"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_002"),
                             tint = Color(0xFF10B981),
                             modifier = Modifier.size(26.dp)
                         )
@@ -323,7 +324,7 @@ fun ToolsScreen(
                     }
                 }
                 Icon(
-                    imageVector = Icons.Default.ChevronRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = Color(0xFF10B981)
                 )
@@ -439,7 +440,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Psychology,
-                            contentDescription = AppStrings.tr(context, "ui_tools_screen_003"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_003"),
                             tint = Color(0xFF818CF8),
                             modifier = Modifier.size(26.dp)
                         )
@@ -460,7 +461,7 @@ fun ToolsScreen(
                     }
                 }
                 Icon(
-                    imageVector = Icons.Default.ChevronRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = Color(0xFF818CF8)
                 )
@@ -501,7 +502,7 @@ fun ToolsScreen(
                                 ) {
                                     val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && com.example.util.AppStrings.getLang(context) == "ar"))
                                     val toneName = if (isArabicLang) tone.nameAr else tone.nameEn
-                                    Text(AppStrings.trf(context, "ui_tools_screen_004", tone.icon, toneName), color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
+                                    Text(AppStrings.trfCode(context, appLanguageCode, "ui_tools_screen_004", tone.icon, toneName), color = if (sel) Color(0xFF00E5FF) else Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
                                 }
                             }
                         }
@@ -613,7 +614,7 @@ fun ToolsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
-                            contentDescription = AppStrings.tr(context, "ui_tools_screen_005"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_005"),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -621,13 +622,13 @@ fun ToolsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = AppStrings.tr(context, "ui_tools_screen_006"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_006"),
                             color = Color.White,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = AppStrings.tr(context, "ui_tools_screen_007"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_007"),
                             color = Color(0xFF94A3B8),
                             fontSize = 11.5.sp
                         )
@@ -662,7 +663,7 @@ fun ToolsScreen(
                     ) {
                         Column {
                             Text(
-                                text = AppStrings.tr(context, "ui_tools_screen_008"),
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_008"),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -678,7 +679,7 @@ fun ToolsScreen(
                             color = Color(0xFF0088CC)
                         ) {
                             Text(
-                                text = AppStrings.tr(context, "ui_tools_screen_009"),
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_009"),
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -716,7 +717,7 @@ fun ToolsScreen(
                     ) {
                         Column {
                             Text(
-                                text = AppStrings.tr(context, "ui_tools_screen_010"),
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_010"),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -732,7 +733,7 @@ fun ToolsScreen(
                             color = Color(0xFF0088CC)
                         ) {
                             Text(
-                                text = AppStrings.tr(context, "ui_tools_screen_009"),
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_009"),
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -768,7 +769,7 @@ fun ToolsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = AppStrings.tr(context, "ui_tools_screen_011"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_011"),
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -776,7 +777,7 @@ fun ToolsScreen(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = AppStrings.tr(context, "ui_tools_screen_012"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_012"),
                     color = Color(0xFF8E9BAE),
                     fontSize = 12.sp
                 )

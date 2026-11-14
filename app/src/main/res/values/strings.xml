@@ -358,7 +358,7 @@
     <string name="chat_step1_enable">1. Enable in System</string>
     <string name="chat_step2_default">2. Set as Default</string>
     <string name="chat_draft_hint">Type a message or try keyboard gestures...</string>
-    <string name="manage_toolbar_title">تخصيص شريط الأدوات العلوي</string>
+    <string name="manage_toolbar_title">Customize Top Toolbar</string>
     <string name="theme_royal_titanium_luxe">Royal Titanium &amp; Ruby Luxe (World Best)</string>
     <string name="theme_crystal_light">Royal Crystal Luxe</string>
     <string name="theme_google_gboard_dynamic">Google Gboard Material You</string>

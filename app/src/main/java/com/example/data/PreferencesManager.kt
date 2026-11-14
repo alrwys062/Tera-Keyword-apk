@@ -62,6 +62,15 @@ class PreferencesManager(private val context: Context) {
         var cachedActiveTheme: KeyboardTheme? = null
         @Volatile
         var cachedCustomThemes: List<KeyboardTheme>? = null
+
+        val prefsVersionFlow = kotlinx.coroutines.flow.MutableStateFlow(0)
+
+        fun invalidateCache() {
+            cachedSettings = null
+            cachedActiveTheme = null
+            cachedCustomThemes = null
+            prefsVersionFlow.value += 1
+        }
     }
 
     init {
@@ -307,17 +316,17 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun saveVisibleToolbarTools(tools: List<String>) {
-        prefs.edit().putString("visibleToolbarTools", tools.joinToString(",")).apply()
+        prefs.edit().putString("visibleToolbarTools", tools.joinToString(",")).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun resetToFactoryDefaults(): Pair<KeyboardSettings, KeyboardTheme> {
         val defaultSettings = KeyboardSettings()
         cachedSettings = defaultSettings
-        saveSettings(defaultSettings)
         saveVisibleToolbarTools(defaultSettings.visibleToolbarTools)
+        saveSettings(defaultSettings)
 
         val defaultTheme = ThemePresets.allPresets.find { it.id == "crystal_light" } ?: ThemePresets.allPresets.first()
-        setCurrentTheme(defaultTheme.id)
         cachedActiveTheme = defaultTheme
 
         prefs.edit()
@@ -329,15 +338,17 @@ class PreferencesManager(private val context: Context) {
             .putString("activeDecorationStyle", "none")
             .putInt("arabicColumnsCount", 11)
             .putString("keyboardLayoutStyle", "11_columns")
-            .apply()
+            .commit()
 
+        prefsVersionFlow.value += 1
         return Pair(defaultSettings, defaultTheme)
     }
 
     fun saveSettings(settings: KeyboardSettings) {
         cachedSettings = settings
-        saveVisibleToolbarTools(settings.visibleToolbarTools)
+        cachedActiveTheme = null
         prefs.edit()
+            .putString("visibleToolbarTools", settings.visibleToolbarTools.joinToString(","))
             .putBoolean("vibrationEnabled", settings.vibrationEnabled)
             .putInt("vibrationDurationMs", settings.vibrationDurationMs)
             .putBoolean("soundEnabled", settings.soundEnabled)
@@ -410,7 +421,8 @@ class PreferencesManager(private val context: Context) {
             .putBoolean("showQuickActionSelectAll", settings.showQuickActionSelectAll)
             .putBoolean("showQuickActionUndoRedo", settings.showQuickActionUndoRedo)
             .putBoolean("showQuickActionClipboard", settings.showQuickActionClipboard)
-            .apply()
+            .commit()
+        prefsVersionFlow.value += 1
     }
 
     // Custom stickers persistence
@@ -427,24 +439,29 @@ class PreferencesManager(private val context: Context) {
         val existing = getCustomStickers().toMutableList()
         if (!existing.contains(stickerText)) {
             existing.add(0, stickerText)
-            prefs.edit().putString("custom_stickers_list", existing.joinToString(";;;")).apply()
+            prefs.edit().putString("custom_stickers_list", existing.joinToString(";;;")).commit()
+            prefsVersionFlow.value += 1
         }
     }
 
     fun deleteCustomSticker(stickerText: String) {
         val existing = getCustomStickers().toMutableList()
         existing.remove(stickerText)
-        prefs.edit().putString("custom_stickers_list", existing.joinToString(";;;")).apply()
+        prefs.edit().putString("custom_stickers_list", existing.joinToString(";;;")).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun setCurrentTheme(themeId: String) {
         cachedActiveTheme = null
         cachedSettings = cachedSettings?.copy(currentThemeId = themeId)
-        prefs.edit().putString("currentThemeId", themeId).apply()
+        prefs.edit().putString("currentThemeId", themeId).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun setActiveDecorationStyle(style: String) {
-        prefs.edit().putString("activeDecorationStyle", style).apply()
+        cachedSettings = cachedSettings?.copy(activeDecorationStyle = style)
+        prefs.edit().putString("activeDecorationStyle", style).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun getActiveDecorationStyle(): String {
@@ -457,7 +474,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun setLastClipboardScrollIndex(idx: Int) {
-        prefs.edit().putInt("last_clipboard_scroll_idx", idx).apply()
+        prefs.edit().putInt("last_clipboard_scroll_idx", idx).commit()
     }
 
     fun getLastClipboardScrollOffset(): Int {
@@ -465,7 +482,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun setLastClipboardScrollOffset(offset: Int) {
-        prefs.edit().putInt("last_clipboard_scroll_offset", offset).apply()
+        prefs.edit().putInt("last_clipboard_scroll_offset", offset).commit()
     }
 
     // Custom Themes storage
@@ -533,7 +550,9 @@ class PreferencesManager(private val context: Context) {
             }
             arr.put(obj)
         }
-        prefs.edit().putString("custom_themes_list", arr.toString()).apply()
+        cachedCustomThemes = current
+        prefs.edit().putString("custom_themes_list", arr.toString()).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun deleteCustomTheme(themeId: String) {
@@ -562,9 +581,12 @@ class PreferencesManager(private val context: Context) {
             }
             arr.put(obj)
         }
-        prefs.edit().putString("custom_themes_list", arr.toString()).apply()
+        cachedCustomThemes = current
+        prefs.edit().putString("custom_themes_list", arr.toString()).commit()
         if (getStringSafe("currentThemeId", "") == themeId) {
-            setCurrentTheme("iphone_white")
+            setCurrentTheme("crystal_light")
+        } else {
+            prefsVersionFlow.value += 1
         }
     }
 
@@ -910,7 +932,8 @@ class PreferencesManager(private val context: Context) {
             }
             arr.put(obj)
         }
-        prefs.edit().putString("text_shortcuts_list", arr.toString()).apply()
+        prefs.edit().putString("text_shortcuts_list", arr.toString()).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun addShortcut(trigger: String, expansion: String) {
@@ -936,7 +959,7 @@ class PreferencesManager(private val context: Context) {
         val current = getRecentEmojis().toMutableList()
         current.remove(emoji)
         current.add(0, emoji)
-        prefs.edit().putString("recent_emojis", current.take(32).joinToString(",")).apply()
+        prefs.edit().putString("recent_emojis", current.take(32).joinToString(",")).commit()
     }
 
     // Full App Backup & Restore (النسخ الاحتياطي والاستعادة لبيانات واعدادات التطبيق بالكامل)
@@ -1160,7 +1183,8 @@ class PreferencesManager(private val context: Context) {
     fun saveCustomTopEmojis(list: List<String>) {
         val arr = JSONArray()
         list.forEach { arr.put(it) }
-        prefs.edit().putString("custom_top_emojis_list", arr.toString()).apply()
+        prefs.edit().putString("custom_top_emojis_list", arr.toString()).commit()
+        prefsVersionFlow.value += 1
     }
 
     fun getEmojiSizeScale(): Float {
@@ -1168,13 +1192,16 @@ class PreferencesManager(private val context: Context) {
     }
 
     fun saveEmojiSizeScale(scale: Float) {
-        prefs.edit().putFloat("emojiSizeScale", scale).apply()
+        prefs.edit().putFloat("emojiSizeScale", scale).commit()
+        cachedSettings = cachedSettings?.copy(emojiSizeScale = scale)
+        prefsVersionFlow.value += 1
     }
 
     // "My Theme" (ثيمتي) Quick Reset and Binding
     fun setMyThemeId(themeId: String) {
-        prefs.edit().putString("myThemeId", themeId).apply()
+        prefs.edit().putString("myThemeId", themeId).commit()
         cachedSettings = cachedSettings?.copy(myThemeId = themeId)
+        prefsVersionFlow.value += 1
     }
 
     fun getMyThemeId(): String {

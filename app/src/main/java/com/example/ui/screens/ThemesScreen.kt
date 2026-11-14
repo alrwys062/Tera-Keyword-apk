@@ -49,31 +49,32 @@ fun ThemesScreen(
 ) {
     val context = LocalContext.current
     val effectiveLang: String = remember(appLanguageCode) {
-        if (appLanguageCode == "auto") LocaleHelper.getAppLanguageCode(context) else appLanguageCode
+        if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
     }
-    val isRtl: Boolean = remember(effectiveLang) { LocaleHelper.isRtlLanguage(effectiveLang) }
+    val isArUi = effectiveLang == "ar"
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf("all") }
-    var previewLanguageIsArabic by remember { mutableStateOf(false) }
+    var previewLanguageIsArabic by remember { mutableStateOf(isArUi) }
     var customThemes by remember { mutableStateOf(prefs.getCustomThemes()) }
 
-    val categories = remember(effectiveLang, isRtl) {
+    val categories = remember(effectiveLang, isArUi) {
         listOf(
             "all" to AppStrings.trCode(context, effectiveLang, "themes_cat_all"),
             "twenty_light" to AppStrings.trCode(context, effectiveLang, "themes_cat_light"),
             "twenty_premium" to AppStrings.trCode(context, effectiveLang, "themes_cat_premium"),
             "pro_styles" to AppStrings.trCode(context, effectiveLang, "themes_cat_pro"),
-            "systems" to if (isRtl) "أنظمة وهواتف" else "Systems & Phones",
-            "dark_light" to if (isRtl) "داكن وفاتح" else "Dark & Light",
-            "neon" to if (isRtl) "نيون وسايبر" else "Neon & Cyber",
-            "elegant" to if (isRtl) "فخم وراقي" else "Luxury & Elegant",
-            "gradient" to if (isRtl) "تدرجات لونية" else "Gradients",
-            "glass" to if (isRtl) "زجاجي شفاف" else "Transparent Glass",
-            "gaming" to if (isRtl) "ألعاب وجيمينج" else "Gaming",
-            "colorful" to if (isRtl) "ألوان ومرح" else "Colorful & Fun",
-            "minimal" to if (isRtl) "مينيمال" else "Minimal",
-            "custom" to if (isRtl) "مخصص" else "Custom"
+            "systems" to if (isArUi) "أنظمة وهواتف" else "Systems & Phones",
+            "dark_light" to if (isArUi) "داكن وفاتح" else "Dark & Light",
+            "neon" to if (isArUi) "نيون وسايبر" else "Neon & Cyber",
+            "elegant" to if (isArUi) "فخم وراقي" else "Luxury & Elegant",
+            "gradient" to if (isArUi) "تدرجات لونية" else "Gradients",
+            "glass" to if (isArUi) "زجاجي شفاف" else "Transparent Glass",
+            "gaming" to if (isArUi) "ألعاب وجيمينج" else "Gaming",
+            "colorful" to if (isArUi) "ألوان ومرح" else "Colorful & Fun",
+            "minimal" to if (isArUi) "مينيمال" else "Minimal",
+            "custom" to if (isArUi) "مخصص" else "Custom"
         )
     }
 
@@ -139,7 +140,7 @@ fun ThemesScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.trCode(context, effectiveLang, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -169,7 +170,7 @@ fun ThemesScreen(
                     }
                 ) {
                     Text(
-                        text = if (previewLanguageIsArabic) "العربية" else "EN Dual",
+                        text = if (previewLanguageIsArabic) AppStrings.trCode(context, effectiveLang, "arabic_lang_tag") else "EN",
                         color = Color(0xFF00E5FF),
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
@@ -187,7 +188,7 @@ fun ThemesScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Custom Theme",
+                        contentDescription = AppStrings.trCode(context, effectiveLang, "builder_screen_title"),
                         tint = Color.Black
                     )
                 }
@@ -210,7 +211,7 @@ fun ThemesScreen(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
+                    contentDescription = AppStrings.trCode(context, effectiveLang, "search_action"),
                     tint = Color(0xFF00E5FF),
                     modifier = Modifier.size(18.dp)
                 )
@@ -220,7 +221,7 @@ fun ThemesScreen(
                     IconButton(onClick = { searchQuery = "" }) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Clear",
+                            contentDescription = AppStrings.trCode(context, effectiveLang, "clear_filter"),
                             tint = Color(0xFF728096),
                             modifier = Modifier.size(16.dp)
                         )
@@ -396,8 +397,9 @@ fun HeroLivePreviewCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
+                        val isArHero = AppStrings.getNormalizedLangCode(if (appLanguageCode == "auto") AppStrings.getLang(context) else appLanguageCode) == "ar"
                         Text(
-                            text = theme.nameAr,
+                            text = if (isArHero) theme.nameAr else theme.nameEn,
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
@@ -405,7 +407,7 @@ fun HeroLivePreviewCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = theme.nameEn,
+                            text = if (isArHero) theme.nameEn else theme.nameAr,
                             color = Color(0xFF8E9BAE),
                             fontSize = 10.sp,
                             maxLines = 1
@@ -424,7 +426,7 @@ fun HeroLivePreviewCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = "Delete",
+                                contentDescription = AppStrings.trCode(context, appLanguageCode, "delete_action"),
                                 tint = Color(0xFFEF4444),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -681,9 +683,10 @@ fun LightweightThemeCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val isArCard = AppStrings.getNormalizedLangCode(if (appLanguageCode == "auto") AppStrings.getLang(LocalContext.current) else appLanguageCode) == "ar"
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = theme.nameAr,
+                        text = if (isArCard) theme.nameAr else theme.nameEn,
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -691,7 +694,7 @@ fun LightweightThemeCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = theme.nameEn,
+                        text = if (isArCard) theme.nameEn else theme.nameAr,
                         color = Color(0xFF7F8FA4),
                         fontSize = 9.sp,
                         maxLines = 1,

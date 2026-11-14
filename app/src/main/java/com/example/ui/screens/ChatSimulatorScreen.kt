@@ -44,21 +44,37 @@ data class ChatMessage(
 fun ChatSimulatorScreen(
     prefs: PreferencesManager,
     currentTheme: KeyboardTheme,
+    appLanguageCode: String = "auto",
     onNavigateToSettings: (() -> Unit)? = null,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
+    val liveTheme = remember(currentTheme, prefsVersion) { prefs.getActiveTheme() }
+    val liveSettings = remember(prefsVersion) { prefs.getSettings() }
 
-    var isEnglishMockup by remember { mutableStateOf(false) }
+    val isArUi = remember(appLanguageCode) {
+        val resolved = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
+        resolved == "ar"
+    }
 
-    var messages by remember {
+    var isEnglishMockup by remember(isArUi) { mutableStateOf(!isArUi) }
+
+    var messages by remember(isArUi) {
         mutableStateOf(
-            listOf(
-                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_001"), isFromMe = false),
-                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_002"), isFromMe = true)
-            )
+            if (!isArUi) {
+                listOf(
+                    ChatMessage(text = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_005"), isFromMe = false),
+                    ChatMessage(text = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_006"), isFromMe = true)
+                )
+            } else {
+                listOf(
+                    ChatMessage(text = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_001"), isFromMe = false),
+                    ChatMessage(text = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_002"), isFromMe = true)
+                )
+            }
         )
     }
 
@@ -66,7 +82,9 @@ fun ChatSimulatorScreen(
 
     // Scroll to bottom when message added
     LaunchedEffect(messages.size) {
-        listState.animateScrollToItem(messages.size - 1)
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
     }
 
     Column(
@@ -74,7 +92,7 @@ fun ChatSimulatorScreen(
             .fillMaxSize()
             .background(Color(0xFF070A0F))
     ) {
-        // Top App Bar matching Phone 1 & 2 in Screenshot
+        // Top App Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -92,20 +110,20 @@ fun ChatSimulatorScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = if (isEnglishMockup) "New Message" else "محادثة جديدة",
+                    text = AppStrings.trCode(context, appLanguageCode, "chat_new_msg"),
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = AppStrings.tr(context, "ui_chat_simulator_screen_004"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_004"),
                     color = Color(0xFF00E5FF),
                     fontSize = 10.sp
                 )
@@ -118,13 +136,13 @@ fun ChatSimulatorScreen(
                         isEnglishMockup = !isEnglishMockup
                         messages = if (isEnglishMockup) {
                             listOf(
-                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_005"), isFromMe = false),
-                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_006"), isFromMe = true)
+                                ChatMessage(text = AppStrings.trCode(context, "en", "ui_chat_simulator_screen_005"), isFromMe = false),
+                                ChatMessage(text = AppStrings.trCode(context, "en", "ui_chat_simulator_screen_006"), isFromMe = true)
                             )
                         } else {
                             listOf(
-                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_001"), isFromMe = false),
-                                ChatMessage(text = AppStrings.tr(context, "ui_chat_simulator_screen_002"), isFromMe = true)
+                                ChatMessage(text = AppStrings.trCode(context, "ar", "ui_chat_simulator_screen_001"), isFromMe = false),
+                                ChatMessage(text = AppStrings.trCode(context, "ar", "ui_chat_simulator_screen_002"), isFromMe = true)
                             )
                         }
                     }
@@ -146,7 +164,7 @@ fun ChatSimulatorScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_007"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_007"),
                         tint = Color(0xFF8E9BAE),
                         modifier = Modifier.size(20.dp)
                     )
@@ -168,7 +186,7 @@ fun ChatSimulatorScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = AppStrings.tr(context, "ui_chat_simulator_screen_008"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_008"),
                     color = Color(0xFF8E9BAE),
                     fontSize = 11.sp
                 )
@@ -180,7 +198,7 @@ fun ChatSimulatorScreen(
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                Toast.makeText(context, AppStrings.tr(context, "ui_chat_simulator_screen_009"), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_009"), Toast.LENGTH_SHORT).show()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)),
@@ -188,7 +206,7 @@ fun ChatSimulatorScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(28.dp)
                     ) {
-                        Text(AppStrings.tr(context, "ui_chat_simulator_screen_010"), fontSize = 10.sp, color = Color.White)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_010"), fontSize = 10.sp, color = Color.White)
                     }
 
                     Button(
@@ -201,13 +219,13 @@ fun ChatSimulatorScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(28.dp)
                     ) {
-                        Text(AppStrings.tr(context, "ui_chat_simulator_screen_011"), fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_011"), fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
 
-        // Chat messages area (matches Screenshots 1 & 2)
+        // Chat messages area
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -264,7 +282,7 @@ fun ChatSimulatorScreen(
             }
         }
 
-        // Live draft input bar (where keyboard outputs)
+        // Live draft input bar
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -282,7 +300,7 @@ fun ChatSimulatorScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (currentDraftText.isEmpty()) "اكتب رسالة أو جرب إيماءات الكيبورد..." else currentDraftText,
+                    text = if (currentDraftText.isEmpty()) AppStrings.trCode(context, appLanguageCode, "chat_draft_hint") else currentDraftText,
                     color = if (currentDraftText.isEmpty()) Color(0xFF8E9BAE) else Color.White,
                     fontSize = 14.sp,
                     modifier = Modifier.weight(1f)
@@ -303,7 +321,7 @@ fun ChatSimulatorScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
-                            contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_012"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_012"),
                             tint = Color.Black,
                             modifier = Modifier.size(16.dp)
                         )
@@ -312,10 +330,10 @@ fun ChatSimulatorScreen(
             }
         }
 
-        // Embedded Turbo Keyboard matching screenshots!
+        // Embedded Turbo Keyboard
         TurboKeyboardView(
-            theme = currentTheme,
-            settings = prefs.getSettings(),
+            theme = liveTheme,
+            settings = liveSettings,
             onDirectInsertText = { text ->
                 currentDraftText += text
             },

@@ -42,11 +42,21 @@ import java.util.UUID
 @Composable
 fun CustomThemeBuilderScreen(
     prefs: PreferencesManager,
+    appLanguageCode: String = "auto",
     onThemeSavedAndApplied: (KeyboardTheme) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var themeName by remember { mutableStateOf("ثيمي الخاص") }
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
+    val liveSettings = remember(prefsVersion) { prefs.getSettings() }
+    val isArUi = remember(appLanguageCode) {
+        val resolved = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
+        resolved == "ar"
+    }
+    var themeName by remember(isArUi) {
+        mutableStateOf(if (isArUi) "ثيمي الخاص" else "My Custom Theme")
+    }
 
     val colorPalette = listOf(
         0xFF0E1118, 0xFF121212, 0xFF000000, 0xFF1A1A2E, 0xFF0D1B2A, 0xFF14213D,
@@ -82,12 +92,12 @@ fun CustomThemeBuilderScreen(
 
     val livePreviewTheme = remember(
         themeName, bgColor, keyColor, keyTextColor, accentColor, enterColor,
-        cornerRadius, selectedImageUri, backgroundDim, keyOpacity
+        cornerRadius, selectedImageUri, backgroundDim, keyOpacity, appLanguageCode
     ) {
         KeyboardTheme(
             id = "custom_" + UUID.randomUUID().toString().take(8),
-            nameAr = themeName.ifBlank { "ثيم مخصص" },
-            nameEn = AppStrings.tr(context, "ui_custom_theme_builder_screen_001"),
+            nameAr = themeName.ifBlank { AppStrings.trCode(context, "ar", "ui_custom_theme_builder_screen_001") },
+            nameEn = themeName.ifBlank { AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_001") },
             isCustom = true,
             backgroundColor = bgColor,
             keyBackgroundColor = keyColor,
@@ -130,13 +140,13 @@ fun CustomThemeBuilderScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
 
             Text(
-                text = AppStrings.tr(context, "ui_custom_theme_builder_screen_002"),
+                text = AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_002"),
                 color = Color.White,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
@@ -153,7 +163,7 @@ fun CustomThemeBuilderScreen(
                 shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Text(AppStrings.tr(context, "ui_custom_theme_builder_screen_003"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_003"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
 
@@ -161,7 +171,7 @@ fun CustomThemeBuilderScreen(
 
         // Live interactive preview
         Text(
-            text = AppStrings.tr(context, "ui_custom_theme_builder_screen_004"),
+            text = AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_004"),
             color = Color(0xFF8E9BAE),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
@@ -178,7 +188,7 @@ fun CustomThemeBuilderScreen(
         ) {
             TurboKeyboardView(
                 theme = livePreviewTheme,
-                settings = prefs.getSettings(),
+                settings = liveSettings,
                 prefsManager = prefs
             )
         }
@@ -189,7 +199,7 @@ fun CustomThemeBuilderScreen(
         OutlinedTextField(
             value = themeName,
             onValueChange = { themeName = it },
-            label = { Text(AppStrings.tr(context, "ui_custom_theme_builder_screen_005"), color = Color(0xFF8E9BAE)) },
+            label = { Text(AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_005"), color = Color(0xFF8E9BAE)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -224,7 +234,7 @@ fun CustomThemeBuilderScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = AppStrings.tr(context, "ui_custom_theme_builder_screen_006"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_006"),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
@@ -238,7 +248,7 @@ fun CustomThemeBuilderScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = AppStrings.tr(context, "ui_custom_theme_builder_screen_007"),
+                                contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_007"),
                                 tint = Color(0xFFFF5252),
                                 modifier = Modifier.size(18.dp)
                             )
@@ -258,7 +268,7 @@ fun CustomThemeBuilderScreen(
                     ) {
                         AsyncImage(
                             model = selectedImageUri,
-                            contentDescription = AppStrings.tr(context, "ui_custom_theme_builder_screen_008"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_custom_theme_builder_screen_008"),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -272,7 +282,7 @@ fun CustomThemeBuilderScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = AppStrings.trf(context, "ui_custom_theme_builder_screen_009", (backgroundDim * 100).toInt()),
+                        text = AppStrings.trfCode(context, appLanguageCode, "ui_custom_theme_builder_screen_009", (backgroundDim * 100).toInt()),
                         color = Color(0xFF8E9BAE),
                         fontSize = 12.sp
                     )
@@ -300,7 +310,11 @@ fun CustomThemeBuilderScreen(
                     Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = Color(0xFF00E5FF))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (selectedImageUri == null) "اختيار صورة من الاستديو" else "تغيير صورة الخلفية",
+                        text = if (selectedImageUri == null) {
+                            AppStrings.trCode(context, appLanguageCode, "builder_pick_gallery")
+                        } else {
+                            AppStrings.trCode(context, appLanguageCode, "builder_change_img")
+                        },
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -312,7 +326,7 @@ fun CustomThemeBuilderScreen(
 
         // Key Transparency / Opacity Slider
         Text(
-            text = AppStrings.trf(context, "ui_custom_theme_builder_screen_010", (keyOpacity * 100).toInt()),
+            text = AppStrings.trfCode(context, appLanguageCode, "ui_custom_theme_builder_screen_010", (keyOpacity * 100).toInt()),
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
@@ -330,33 +344,33 @@ fun CustomThemeBuilderScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Background Color Selector
-        ColorPickerSection("لون الخلفية", bgColor, colorPalette) { bgColor = it }
+        ColorPickerSection(AppStrings.trCode(context, appLanguageCode, "builder_color_bg"), bgColor, colorPalette) { bgColor = it }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         // Key Background Color Selector
-        ColorPickerSection("لون الأزرار والمربعات", keyColor, colorPalette) { keyColor = it }
+        ColorPickerSection(AppStrings.trCode(context, appLanguageCode, "builder_color_keys"), keyColor, colorPalette) { keyColor = it }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         // Key Text Color Selector
-        ColorPickerSection("لون نص الحروف", keyTextColor, textPalette) { keyTextColor = it }
+        ColorPickerSection(AppStrings.trCode(context, appLanguageCode, "builder_color_text"), keyTextColor, textPalette) { keyTextColor = it }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         // Accent / Neon Color Selector
-        ColorPickerSection("لون الإضاءة والنيون", accentColor, colorPalette) { accentColor = it }
+        ColorPickerSection(AppStrings.trCode(context, appLanguageCode, "builder_color_accent"), accentColor, colorPalette) { accentColor = it }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         // Enter Key Color Selector
-        ColorPickerSection("لون زر الإدخال (Enter)", enterColor, colorPalette) { enterColor = it }
+        ColorPickerSection(AppStrings.trCode(context, appLanguageCode, "builder_color_enter"), enterColor, colorPalette) { enterColor = it }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Key Corner Radius Slider
         Text(
-            text = AppStrings.trf(context, "ui_custom_theme_builder_screen_011", cornerRadius.toInt()),
+            text = AppStrings.trfCode(context, appLanguageCode, "ui_custom_theme_builder_screen_011", cornerRadius.toInt()),
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold

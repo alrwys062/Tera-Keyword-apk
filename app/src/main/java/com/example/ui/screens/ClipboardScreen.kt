@@ -35,16 +35,18 @@ import com.example.data.PreferencesManager
 @Composable
 fun ClipboardScreen(
     prefs: PreferencesManager,
+    appLanguageCode: String = "auto",
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
     var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
     var newClipText by remember { mutableStateOf("") }
     var selectedClipForFloatingMenu by remember { mutableStateOf<com.example.model.ClipboardItem?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(Unit, prefsVersion) {
         prefs.syncWithSystemClipboard(context)
         items = prefs.getClipboardItems(forceRefresh = true)
     }
@@ -77,13 +79,13 @@ fun ClipboardScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
 
             Text(
-                text = AppStrings.tr(context, "ui_clipboard_screen_001"),
+                text = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_001"),
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -93,10 +95,10 @@ fun ClipboardScreen(
                 onClick = {
                     prefs.clearClipboardHistory()
                     items = prefs.getClipboardItems()
-                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_002"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_002"), Toast.LENGTH_SHORT).show()
                 }
             ) {
-                Text(AppStrings.tr(context, "ui_clipboard_screen_003"), color = Color(0xFFEF4444), fontSize = 13.sp)
+                Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_003"), color = Color(0xFFEF4444), fontSize = 13.sp)
             }
         }
 
@@ -110,7 +112,7 @@ fun ClipboardScreen(
             OutlinedTextField(
                 value = newClipText,
                 onValueChange = { newClipText = it },
-                placeholder = { Text(AppStrings.tr(context, "ui_clipboard_screen_004"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
+                placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_004"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp),
@@ -130,14 +132,14 @@ fun ClipboardScreen(
                         prefs.addClipboardItem(newClipText, isPinned = true)
                         items = prefs.getClipboardItems()
                         newClipText = ""
-                        Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_005"), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_005"), Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_006"), tint = Color.Black)
+                Icon(imageVector = Icons.Default.Add, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_006"), tint = Color.Black)
             }
         }
 
@@ -147,7 +149,7 @@ fun ClipboardScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text(AppStrings.tr(context, "ui_clipboard_screen_007"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
+            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_007"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -188,7 +190,7 @@ fun ClipboardScreen(
                                 },
                                 onTap = {
                                     clipboardManager.setText(AnnotatedString(clip.text))
-                                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -210,7 +212,11 @@ fun ClipboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (clip.isPinned) "📌 مثبتة" else "الأخيرة",
+                                text = if (clip.isPinned) {
+                                    AppStrings.trCode(context, appLanguageCode, "clipboard_pinned_badge")
+                                } else {
+                                    AppStrings.trCode(context, appLanguageCode, "clipboard_recent_badge")
+                                },
                                 color = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE),
                                 fontSize = 10.sp
                             )
@@ -225,7 +231,7 @@ fun ClipboardScreen(
                             ) {
                                 Icon(
                                     imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Default.OutlinedFlag,
-                                    contentDescription = AppStrings.tr(context, "ui_clipboard_screen_009"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_009"),
                                     tint = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE)
                                 )
                             }
@@ -233,12 +239,12 @@ fun ClipboardScreen(
                             IconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(clip.text))
-                                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
                                 }
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.ContentPaste,
-                                    contentDescription = AppStrings.tr(context, "ui_clipboard_screen_011"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_011"),
                                     tint = Color(0xFF38BDF8)
                                 )
                             }
@@ -251,7 +257,7 @@ fun ClipboardScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.DeleteOutline,
-                                    contentDescription = AppStrings.tr(context, "ui_clipboard_screen_012"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_012"),
                                     tint = Color(0xFFEF4444)
                                 )
                             }
@@ -261,7 +267,7 @@ fun ClipboardScreen(
             }
         }
 
-        // Floating Dialog on Long Press (نافذة عائمة عند الضغط المطول)
+        // Floating Dialog on Long Press
         if (selectedClipForFloatingMenu != null) {
             val clip = selectedClipForFloatingMenu!!
             AlertDialog(
@@ -269,7 +275,7 @@ fun ClipboardScreen(
                 containerColor = Color(0xFF141926),
                 title = {
                     Text(
-                        text = AppStrings.tr(context, "ui_clipboard_screen_013"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_013"),
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -291,7 +297,6 @@ fun ClipboardScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            // 1. حذف
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -300,14 +305,13 @@ fun ClipboardScreen(
                                         prefs.deleteClipboardItem(clip.id, clip.text)
                                         items = prefs.getClipboardItems(forceRefresh = true)
                                         selectedClipForFloatingMenu = null
-                                        Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_014"), Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_014"), Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(8.dp)
                             ) {
-                                Icon(Icons.Outlined.DeleteOutline, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_015"), tint = Color(0xFFEF4444))
-                                Text(AppStrings.tr(context, "ui_clipboard_screen_015"), color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Outlined.DeleteOutline, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_015"), tint = Color(0xFFEF4444))
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_015"), color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
-                            // 2. تثبيت
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -316,14 +320,24 @@ fun ClipboardScreen(
                                         prefs.togglePinClipboard(clip.id)
                                         items = prefs.getClipboardItems()
                                         selectedClipForFloatingMenu = null
-                                        Toast.makeText(context, if (!clip.isPinned) AppStrings.tr(context, "ui_clipboard_screen_016") else "تم إلغاء التثبيت", Toast.LENGTH_SHORT).show()
+                                        val pinMsg = if (!clip.isPinned) {
+                                            AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_016")
+                                        } else {
+                                            AppStrings.trCode(context, appLanguageCode, "clipboard_opt_unpin")
+                                        }
+                                        Toast.makeText(context, pinMsg, Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(8.dp)
                             ) {
-                                Icon(Icons.Default.PushPin, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_017"), tint = Color(0xFF00E5FF))
-                                Text(if (clip.isPinned) "إلغاء التثبيت" else "تثبيت", color = Color(0xFF00E5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.PushPin, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_017"), tint = Color(0xFF00E5FF))
+                                Text(
+                                    if (clip.isPinned) AppStrings.trCode(context, appLanguageCode, "clipboard_opt_unpin")
+                                    else AppStrings.trCode(context, appLanguageCode, "clipboard_opt_pin"),
+                                    color = Color(0xFF00E5FF),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                            // 3. نسخ
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -331,19 +345,19 @@ fun ClipboardScreen(
                                     .clickable {
                                         clipboardManager.setText(AnnotatedString(clip.text))
                                         selectedClipForFloatingMenu = null
-                                        Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(8.dp)
                             ) {
-                                Icon(Icons.Outlined.ContentPaste, contentDescription = AppStrings.tr(context, "ui_clipboard_screen_018"), tint = Color(0xFF38BDF8))
-                                Text(AppStrings.tr(context, "ui_clipboard_screen_018"), color = Color(0xFF38BDF8), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Outlined.ContentPaste, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"), tint = Color(0xFF38BDF8))
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"), color = Color(0xFF38BDF8), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { selectedClipForFloatingMenu = null }) {
-                        Text(AppStrings.tr(context, "ui_clipboard_screen_019"), color = Color(0xFF8E9BAE))
+                        Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_019"), color = Color(0xFF8E9BAE))
                     }
                 }
             )

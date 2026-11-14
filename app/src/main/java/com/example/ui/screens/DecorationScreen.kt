@@ -24,15 +24,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.TextDecorator
+import com.example.util.AppStrings
 
 @Composable
 fun DecorationScreen(
+    appLanguageCode: String = "auto",
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    var isArabicTab by remember { mutableStateOf(true) }
-    var userText by remember { mutableStateOf("كيبورد برو الرائع") }
+    val isArUi = remember(appLanguageCode) {
+        val resolved = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
+        resolved == "ar"
+    }
+    var isArabicTab by remember(isArUi) { mutableStateOf(isArUi) }
+    var userText by remember(isArUi) {
+        mutableStateOf(if (isArUi) "كيبورد برو الرائع" else "Turbo Keyboard Pro")
+    }
 
     val styles = if (isArabicTab) TextDecorator.arabicStyles else TextDecorator.englishStyles
 
@@ -58,7 +67,7 @@ fun DecorationScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -66,7 +75,7 @@ fun DecorationScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "زخرفة النصوص الاحترافية",
+                text = AppStrings.trCode(context, appLanguageCode, "decor_screen_title"),
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -95,7 +104,7 @@ fun DecorationScreen(
                 )
             ) {
                 Text(
-                    text = "زخرفة عربية",
+                    text = AppStrings.trCode(context, appLanguageCode, "decor_tab_ar"),
                     color = if (isArabicTab) Color.Black else Color.White,
                     fontWeight = FontWeight.Bold
                 )
@@ -113,7 +122,7 @@ fun DecorationScreen(
                 )
             ) {
                 Text(
-                    text = "English Styles",
+                    text = AppStrings.trCode(context, appLanguageCode, "decor_tab_en"),
                     color = if (!isArabicTab) Color.Black else Color.White,
                     fontWeight = FontWeight.Bold
                 )
@@ -126,7 +135,7 @@ fun DecorationScreen(
         OutlinedTextField(
             value = userText,
             onValueChange = { userText = it },
-            label = { Text("أدخل النص للزخرفة الفورية", color = Color(0xFF8E9BAE)) },
+            label = { Text(AppStrings.trCode(context, appLanguageCode, "decor_input_label"), color = Color(0xFF8E9BAE)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -146,6 +155,7 @@ fun DecorationScreen(
         ) {
             items(styles) { style ->
                 val transformed = style.transform(userText)
+                val copiedMsg = AppStrings.trCode(context, appLanguageCode, "decor_copied_toast")
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color(0xFF141926),
@@ -157,7 +167,7 @@ fun DecorationScreen(
                             try {
                                 com.example.data.PreferencesManager(context).addClipboardItem(transformed)
                             } catch (_: Exception) {}
-                            Toast.makeText(context, "تم نسخ النص المزخرف!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                         }
                 ) {
                     Row(
@@ -176,7 +186,7 @@ fun DecorationScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = style.nameAr,
+                                text = if (isArUi) style.nameAr else style.nameEn,
                                 color = Color(0xFF00E5FF),
                                 fontSize = 11.sp
                             )
@@ -188,7 +198,7 @@ fun DecorationScreen(
                                 try {
                                     com.example.data.PreferencesManager(context).addClipboardItem(transformed)
                                 } catch (_: Exception) {}
-                                Toast.makeText(context, "تم نسخ النص المزخرف!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier
                                 .size(36.dp)
@@ -197,7 +207,7 @@ fun DecorationScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Copy",
+                                contentDescription = AppStrings.trCode(context, appLanguageCode, "copy_short"),
                                 tint = Color(0xFF00E5FF),
                                 modifier = Modifier.size(18.dp)
                             )

@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -61,7 +62,11 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
     var settings by remember { mutableStateOf(prefs.getSettings()) }
+    LaunchedEffect(prefsVersion) {
+        settings = prefs.getSettings()
+    }
     var searchQuery by remember { mutableStateOf("") }
     var showLanguagesScreen by remember { mutableStateOf(false) }
     val flowLangCode by com.example.util.LocaleHelper.appLanguageFlow.collectAsState()
@@ -72,11 +77,17 @@ fun SettingsScreen(
             else com.example.util.LocaleHelper.getAppLanguageCode(context)
         )
     }
+    val resolvedLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isArUi = resolvedLang == "ar"
     var appLanguageSearchQuery by remember { mutableStateOf("") }
 
     if (showLanguagesScreen) {
         InputLanguagesScreen(
             prefs = prefs,
+            appLanguageCode = appLanguageCode,
             onBack = {
                 showLanguagesScreen = false
                 settings = prefs.getSettings()
@@ -170,239 +181,182 @@ fun SettingsScreen(
             singleLine = true,
             leadingIcon = {
                 Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = Color(0xFF8E9BAE), modifier = Modifier.size(18.dp))
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "clear_filter"),
+                            tint = Color(0xFF8E9BAE),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Complete 13 Categories matching Transboard Screenshots 1 - 13
+        val currentLangName = remember(appLanguageCode, isArUi) {
+            val found = com.example.util.LocaleHelper.supportedLanguages.find { it.code == appLanguageCode }
+            if (found != null) "${found.flag} ${found.nameNative} (${if (isArUi) found.nameAr else found.nameEn})"
+            else AppStrings.trCode(context, appLanguageCode, "auto_detect_phone_lang")
+        }
+
+        val settingsCategories = listOf(
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "app_language"),
+                "${AppStrings.trCode(context, appLanguageCode, "app_language_desc")} ($currentLangName)",
+                Icons.Outlined.Public to { activeDialog = "APP_UI_LANGUAGE" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "input_languages"),
+                AppStrings.trCode(context, appLanguageCode, "input_languages_desc"),
+                Icons.Outlined.Language to { showLanguagesScreen = true }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "translation"),
+                AppStrings.trCode(context, appLanguageCode, "translation_desc"),
+                Icons.Outlined.Translate to { activeDialog = "TRANSLATE" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "decoration"),
+                AppStrings.trCode(context, appLanguageCode, "decoration_desc"),
+                Icons.Outlined.AutoAwesome to { activeDialog = "DECORATION" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "appearance"),
+                AppStrings.trCode(context, appLanguageCode, "appearance_desc"),
+                Icons.Outlined.Palette to onNavigateToThemes
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "layouts"),
+                AppStrings.trCode(context, appLanguageCode, "layouts_desc"),
+                Icons.Outlined.Keyboard to { activeDialog = "LAYOUTS" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "emojis"),
+                AppStrings.trCode(context, appLanguageCode, "emojis_desc"),
+                Icons.Outlined.Mood to { activeDialog = "EMOJIS" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "clipboard"),
+                AppStrings.trCode(context, appLanguageCode, "clipboard_desc"),
+                Icons.Outlined.ContentPaste to { activeDialog = "CLIPBOARD" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "shortcuts"),
+                AppStrings.trCode(context, appLanguageCode, "shortcuts_desc"),
+                Icons.Outlined.ShortText to { activeDialog = "SHORTCUTS" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "typing"),
+                AppStrings.trCode(context, appLanguageCode, "typing_desc"),
+                Icons.Outlined.TextFields to { activeDialog = "TYPING" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "ai_tone"),
+                AppStrings.trCode(context, appLanguageCode, "ai_tone_desc"),
+                Icons.Outlined.Psychology to { activeDialog = "AI_TONE" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "dictionary"),
+                AppStrings.trCode(context, appLanguageCode, "dictionary_desc"),
+                Icons.Outlined.Spellcheck to { activeDialog = "DICTIONARY" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "rows_toolbar"),
+                AppStrings.trCode(context, appLanguageCode, "rows_toolbar_desc"),
+                Icons.Outlined.ViewStream to { activeDialog = "ROWS_TOOLBAR" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "customize_toolbar"),
+                AppStrings.trCode(context, appLanguageCode, "customize_toolbar_desc"),
+                Icons.Outlined.Tune to { activeDialog = "CUSTOMIZE_TOOLBAR" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "manage_quick_actions"),
+                AppStrings.trCode(context, appLanguageCode, "manage_quick_actions_desc"),
+                Icons.Outlined.FormatListBulleted to { activeDialog = "MANAGE_KEYBOARD_MENUS" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "sound_haptic"),
+                AppStrings.trCode(context, appLanguageCode, "sound_haptic_desc"),
+                Icons.Outlined.VolumeUp to { activeDialog = "SOUND_HAPTIC" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "typing_speed"),
+                AppStrings.trCode(context, appLanguageCode, "typing_speed_desc"),
+                Icons.Outlined.Speed to { activeDialog = "TYPING_SPEED" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "height_font"),
+                AppStrings.trCode(context, appLanguageCode, "height_font_desc"),
+                Icons.Outlined.Height to { activeDialog = "HEIGHT_FONT" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "customization"),
+                AppStrings.trCode(context, appLanguageCode, "customization_desc"),
+                Icons.Outlined.Tune to { activeDialog = "CUSTOMIZATION" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "backup"),
+                AppStrings.trCode(context, appLanguageCode, "backup_desc"),
+                Icons.Outlined.CloudUpload to { activeDialog = "BACKUP" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "restore_defaults"),
+                AppStrings.trCode(context, appLanguageCode, "restore_defaults_desc"),
+                Icons.Outlined.RestartAlt to { activeDialog = "RESET_DEFAULTS_CONFIRM" }
+            ),
+            Triple(
+                AppStrings.trCode(context, appLanguageCode, "telegram_channels_title"),
+                AppStrings.trCode(context, appLanguageCode, "telegram_channels_desc"),
+                Icons.Outlined.Send to { activeDialog = "TELEGRAM_CHANNELS" }
+            )
+        )
+
+        val trimmedSearch = searchQuery.trim()
+        val filteredCategories = if (trimmedSearch.isEmpty()) settingsCategories else {
+            settingsCategories.filter { (title, subtitle, _) ->
+                title.contains(trimmedSearch, ignoreCase = true) ||
+                subtitle.contains(trimmedSearch, ignoreCase = true)
+            }
+        }
+
+        // Categories list (filtered dynamically by searchQuery)
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
-            // 0. لغة التطبيق والإعدادات (App UI Language)
-            item {
-                val currentLangName = remember(appLanguageCode) {
-                    val found = com.example.util.LocaleHelper.supportedLanguages.find { it.code == appLanguageCode }
-                    if (found != null) "${found.flag} ${found.nameNative} (${found.nameAr})" else "🌐 تلقائي (لغة الجوال)"
+            if (filteredCategories.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = AppStrings.trCode(context, appLanguageCode, "no_search_results"),
+                            color = Color(0xFF8E9BAE),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "app_language"),
-                    subtitle = "${AppStrings.trCode(context, appLanguageCode, "app_language_desc")} ($currentLangName)",
-                    icon = Icons.Outlined.Public,
-                    onClick = { activeDialog = "APP_UI_LANGUAGE" }
-                )
-            }
-
-            // 1. لغات الإدخال (Screenshots 1, 3, SettingsInputKeyboards)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "input_languages"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "input_languages_desc"),
-                    icon = Icons.Outlined.Language,
-                    onClick = { showLanguagesScreen = true }
-                )
-            }
-
-            // 2. الترجمة (Screenshot 1 & 4)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "translation"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "translation_desc"),
-                    icon = Icons.Outlined.Translate,
-                    onClick = { activeDialog = "TRANSLATE" }
-                )
-            }
-
-            // 3. الزخرفة (Screenshot 1 & 5)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "decoration"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "decoration_desc"),
-                    icon = Icons.Outlined.AutoAwesome,
-                    onClick = { activeDialog = "DECORATION" }
-                )
-            }
-
-            // 4. المظهر (Screenshot 1 & 6)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "appearance"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "appearance_desc"),
-                    icon = Icons.Outlined.Palette,
-                    onClick = onNavigateToThemes
-                )
-            }
-
-            // 5. تخطيط لوحة المفاتيح والأعمدة
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "layouts"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "layouts_desc"),
-                    icon = Icons.Outlined.Keyboard,
-                    onClick = { activeDialog = "LAYOUTS" }
-                )
-            }
-
-            // 6. الإبتسامات (Screenshot 1)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "emojis"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "emojis_desc"),
-                    icon = Icons.Outlined.Mood,
-                    onClick = { activeDialog = "EMOJIS" }
-                )
-            }
-
-            // 7. الحافظة (Screenshot 1 & User requirement: حفظ للأبد وإغلاق عند اللصق وتذكر الموضع)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "clipboard"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "clipboard_desc"),
-                    icon = Icons.Outlined.ContentPaste,
-                    onClick = { activeDialog = "CLIPBOARD" }
-                )
-            }
-
-            // 8. الاختصارات (Screenshot 1 & 2)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "shortcuts"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "shortcuts_desc"),
-                    icon = Icons.Outlined.ShortText,
-                    onClick = { activeDialog = "SHORTCUTS" }
-                )
-            }
-
-            // 9. الكتابة (Screenshot 2 & 10)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "typing"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "typing_desc"),
-                    icon = Icons.Outlined.TextFields,
-                    onClick = { activeDialog = "TYPING" }
-                )
-            }
-
-            // 9.1 الذكاء الاصطناعي وتغيير النبرة
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "ai_tone"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "ai_tone_desc"),
-                    icon = Icons.Outlined.Psychology,
-                    onClick = { activeDialog = "AI_TONE" }
-                )
-            }
-
-            // 9.2 قاموس تصحيح الأخطاء والكلمات الشخصية
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "dictionary"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "dictionary_desc"),
-                    icon = Icons.Outlined.Spellcheck,
-                    onClick = { activeDialog = "DICTIONARY" }
-                )
-            }
-
-            // 10. الصف السفلي والعلوي وشريط الأدوات (Screenshot 2 & 11)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "rows_toolbar"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "rows_toolbar_desc"),
-                    icon = Icons.Outlined.ViewStream,
-                    onClick = { activeDialog = "ROWS_TOOLBAR" }
-                )
-            }
-
-            // 10.1 تخصيص شريط الأدوات العلوي (تقليل الأيقونات وإزالة الزحمة)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "customize_toolbar"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "customize_toolbar_desc"),
-                    icon = Icons.Outlined.Tune,
-                    onClick = { activeDialog = "CUSTOMIZE_TOOLBAR" }
-                )
-            }
-
-            // 10.2 إدارة وحذف شريط الأدوات فوق الأحرف
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "manage_quick_actions"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "manage_quick_actions_desc"),
-                    icon = Icons.Outlined.FormatListBulleted,
-                    onClick = { activeDialog = "MANAGE_KEYBOARD_MENUS" }
-                )
-            }
-
-            // 11. الصوت والإهتزاز (Screenshot 2 & 12)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "sound_haptic"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "sound_haptic_desc"),
-                    icon = Icons.Outlined.VolumeUp,
-                    onClick = { activeDialog = "SOUND_HAPTIC" }
-                )
-            }
-
-            // 11.1 سرعة الكتابة واستجابة الأزرار
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "typing_speed"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "typing_speed_desc"),
-                    icon = Icons.Outlined.Speed,
-                    onClick = { activeDialog = "TYPING_SPEED" }
-                )
-            }
-
-            // 12. إرتفاع الكيبورد وحجم الأحرف (Screenshot 2 & 13)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "height_font"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "height_font_desc"),
-                    icon = Icons.Outlined.Height,
-                    onClick = { activeDialog = "HEIGHT_FONT" }
-                )
-            }
-
-            // 12.1 قسم التخصيص والأبعاد المتقدمة
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "customization"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "customization_desc"),
-                    icon = Icons.Outlined.Tune,
-                    onClick = { activeDialog = "CUSTOMIZATION" }
-                )
-            }
-
-            // 13. النسخ الإحتياطي (Screenshot 2)
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "backup"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "backup_desc"),
-                    icon = Icons.Outlined.CloudUpload,
-                    onClick = { activeDialog = "BACKUP" }
-                )
-            }
-
-            // 13.1 استعادة الإعدادات الافتراضية
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "restore_defaults"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "restore_defaults_desc"),
-                    icon = Icons.Outlined.RestartAlt,
-                    onClick = { activeDialog = "RESET_DEFAULTS_CONFIRM" }
-                )
-            }
-
-            // 14. قنوات التليجرام والتواصل
-            item {
-                TransboardSettingsRow(
-                    title = AppStrings.trCode(context, appLanguageCode, "telegram_channels_title"),
-                    subtitle = AppStrings.trCode(context, appLanguageCode, "telegram_channels_desc"),
-                    icon = Icons.Outlined.Send,
-                    onClick = { activeDialog = "TELEGRAM_CHANNELS" }
-                )
+            } else {
+                items(filteredCategories) { (title, subtitle, iconAction) ->
+                    val (iconVec, action) = iconAction
+                    TransboardSettingsRow(
+                        title = title,
+                        subtitle = subtitle,
+                        icon = iconVec,
+                        onClick = action
+                    )
+                }
             }
         }
     }
@@ -614,13 +568,12 @@ fun SettingsScreen(
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 Text(AppStrings.trCode(context, appLanguageCode, "from_label"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
-                                val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
-                                val srcName = if (isArabicLang) srcLangObj.nameAr else srcLangObj.nameEn
+                                val srcName = if (isArUi) srcLangObj.nameAr else srcLangObj.nameEn
                                 Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_002", srcLangObj.flag, srcName), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
-                        Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(16.dp))
 
                         // Target
                         Surface(
@@ -631,8 +584,7 @@ fun SettingsScreen(
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 Text(AppStrings.trCode(context, appLanguageCode, "to_label"), color = Color(0xFF8E9BAE), fontSize = 10.sp)
-                                val isArabicLang = (appLanguageCode == "ar" || (appLanguageCode == "auto" && AppStrings.getLang(context) == "ar"))
-                                val tgtName = if (isArabicLang) tgtLangObj.nameAr else tgtLangObj.nameEn
+                                val tgtName = if (isArUi) tgtLangObj.nameAr else tgtLangObj.nameEn
                                 Text(AppStrings.trfCode(context, appLanguageCode, "ui_settings_screen_003", tgtLangObj.flag, tgtName), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -780,7 +732,7 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(style.preview, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text(style.nameAr, color = Color(0xFF8E9BAE), fontSize = 10.sp)
+                                Text(if (isArUi) style.nameAr else style.nameEn, color = Color(0xFF8E9BAE), fontSize = 10.sp)
                             }
                         }
                     }
@@ -797,12 +749,21 @@ fun SettingsScreen(
 
     // 5. KEYBOARD LAYOUTS DIALOG
     if (activeDialog == "LAYOUTS") {
-        val columnOptions = listOf(
-            Triple(10, "10_columns", "10 أعمدة (نفس الصورة / كيبورد Gboard)\nض ص ق ف غ ع ه خ ح ج"),
-            Triple(11, "11_columns", "11 عمود (القياسي / SwiftKey)\nض ص ث ق ف غ ع ه خ ح ج"),
-            Triple(12, "12_columns", "12 عمود (الممتد / سامسونج)\nض ص ث ق ف غ ع ه خ ح ج د"),
-            Triple(10, "custom", "✏️ ترتيب مخصص يدوي للأحرف")
-        )
+        val columnOptions = if (isArUi) {
+            listOf(
+                Triple(10, "10_columns", "10 أعمدة (نفس الصورة / كيبورد Gboard)\nض ص ق ف غ ع ه خ ح ج"),
+                Triple(11, "11_columns", "11 عمود (القياسي / SwiftKey)\nض ص ث ق ف غ ع ه خ ح ج"),
+                Triple(12, "12_columns", "12 عمود (الممتد / سامسونج)\nض ص ث ق ف غ ع ه خ ح ج د"),
+                Triple(10, "custom", "✏️ ${AppStrings.trCode(context, appLanguageCode, "custom_layout_manual")}")
+            )
+        } else {
+            listOf(
+                Triple(10, "10_columns", "10 Columns (Gboard Style)"),
+                Triple(11, "11_columns", "11 Columns (Standard / SwiftKey)"),
+                Triple(12, "12_columns", "12 Columns (Extended / Samsung)"),
+                Triple(10, "custom", "✏️ ${AppStrings.trCode(context, appLanguageCode, "custom_layout_manual")}")
+            )
+        }
         AlertDialog(
             onDismissRequest = { activeDialog = null },
             title = {
@@ -898,7 +859,7 @@ fun SettingsScreen(
 
                     // 1. Key Font Size
                     Text(
-                        "حجم خط الأحرف: ${(settings.keyFontSizeFactor * 100).toInt()}%",
+                        "${AppStrings.trCode(context, appLanguageCode, "font_size_label")}: ${(settings.keyFontSizeFactor * 100).toInt()}%",
                         color = Color(0xFF00E5FF),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -913,7 +874,7 @@ fun SettingsScreen(
 
                     // 2. Key Button Box Scale
                     Text(
-                        "حجم مربعات أزرار الكيبورد: ${(settings.keyButtonScale * 100).toInt()}%",
+                        "${AppStrings.trCode(context, appLanguageCode, "key_scale_label")}: ${(settings.keyButtonScale * 100).toInt()}%",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -928,7 +889,7 @@ fun SettingsScreen(
 
                     // 3. Key Height Factor
                     Text(
-                        "ارتفاع أزرار الكيبورد: ${(settings.keyHeightFactor * 100).toInt()}%",
+                        "${AppStrings.trCode(context, appLanguageCode, "key_height_label")}: ${(settings.keyHeightFactor * 100).toInt()}%",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -940,10 +901,10 @@ fun SettingsScreen(
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Pair("صغير 85%", 0.85f),
-                            Pair("افتراضي 100%", 1.0f),
-                            Pair("كبير 120%", 1.20f),
-                            Pair("عملاق 140%", 1.40f)
+                            Pair("${AppStrings.trCode(context, appLanguageCode, "key_height_preset_compact")} 85%", 0.85f),
+                            Pair("${AppStrings.trCode(context, appLanguageCode, "key_height_preset_normal")} 100%", 1.0f),
+                            Pair("${AppStrings.trCode(context, appLanguageCode, "key_height_preset_tall")} 120%", 1.20f),
+                            Pair("${AppStrings.trCode(context, appLanguageCode, "key_height_preset_xl")} 140%", 1.40f)
                         ).forEach { (lbl, factor) ->
                             val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.04f
                             Surface(
@@ -964,7 +925,7 @@ fun SettingsScreen(
 
                     // 4. Backspace Key Scale
                     Text(
-                        "حجم زر الحذف (Backspace): ${(settings.backspaceKeyScale * 100).toInt()}%",
+                        "${AppStrings.trCode(context, appLanguageCode, "backspace_scale_label")}: ${(settings.backspaceKeyScale * 100).toInt()}%",
                         color = Color(0xFF00E5FF),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -979,7 +940,7 @@ fun SettingsScreen(
 
                     // Emoji Bar Height Factor
                     Text(
-                        "ارتفاع شريط الابتسامات العلوي: ${(settings.emojiBarHeightFactor * 100).toInt()}%",
+                        "${AppStrings.trCode(context, appLanguageCode, "emoji_bar_height_label")}: ${(settings.emojiBarHeightFactor * 100).toInt()}%",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -994,7 +955,7 @@ fun SettingsScreen(
 
                     // Emoji Button Size Factor
                     Text(
-                        "حجم أزرار الابتسامات: ${(settings.emojiButtonSizeFactor * 100).toInt()}%",
+                        "${AppStrings.trCode(context, appLanguageCode, "emoji_icon_size_label")}: ${(settings.emojiButtonSizeFactor * 100).toInt()}%",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -1564,7 +1525,8 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_005"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
-                                if (settings.forceEnglishNumbers) "الأرقام تظهر وتُكتب إنجليزية (123) حتى مع العربي ✓" else "الأرقام هندية / مشرقية (١٢٣)",
+                                if (settings.forceEnglishNumbers) AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_006")
+                                else AppStrings.trCode(context, appLanguageCode, "arabic_digits_1234"),
                                 color = Color(0xFF00E5FF),
                                 fontSize = 11.sp
                             )
@@ -1653,9 +1615,9 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 listOf(
-                                    "صغير" to 0.80f,
-                                    "متوسط" to 1.0f,
-                                    "كبير" to 1.30f
+                                    AppStrings.trCode(context, appLanguageCode, "key_height_preset_compact") to 0.80f,
+                                    AppStrings.trCode(context, appLanguageCode, "key_height_preset_normal") to 1.0f,
+                                    AppStrings.trCode(context, appLanguageCode, "key_height_preset_tall") to 1.30f
                                 ).forEach { (label, factor) ->
                                     val isSelected = kotlin.math.abs(settings.emojiBarHeightFactor - factor) < 0.10f
                                     Surface(
@@ -1742,10 +1704,10 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             listOf(
-                                "صغير" to 0.85f,
-                                "متوسط" to 1.0f,
-                                "كبير" to 1.25f,
-                                "ضخم" to 1.5f
+                                AppStrings.trCode(context, appLanguageCode, "key_height_preset_compact") to 0.85f,
+                                AppStrings.trCode(context, appLanguageCode, "key_height_preset_normal") to 1.0f,
+                                AppStrings.trCode(context, appLanguageCode, "key_height_preset_tall") to 1.25f,
+                                AppStrings.trCode(context, appLanguageCode, "key_height_preset_xl") to 1.5f
                             ).forEach { (label, scale) ->
                                 val isSelected = kotlin.math.abs(settings.emojiSizeScale - scale) < 0.12f
                                 Surface(
@@ -1795,7 +1757,7 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_038"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
-                                if (settings.swapClipboardAndEmoji) "الحافظة على اليسار [📋] والإيموجي على اليمين [😊]" else "الإيموجي على اليسار [😊] والحافظة على اليمين [📋]",
+                                "${AppStrings.trCode(context, appLanguageCode, "swap_clipboard_emoji_desc")} (${if (settings.swapClipboardAndEmoji) "[📋] | [😊]" else "[😊] | [📋]"})",
                                 color = Color(0xFF00E5FF),
                                 fontSize = 11.sp
                             )
@@ -1817,7 +1779,8 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_039"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text(
-                                if (settings.enterKeyOnLeft) "على اليسار (معكوس)" else "على اليمين (الافتراضي القياسي)",
+                                if (settings.enterKeyOnLeft) AppStrings.trCode(context, appLanguageCode, "enter_pos_left")
+                                else AppStrings.trCode(context, appLanguageCode, "enter_pos_right"),
                                 color = Color(0xFF00E5FF),
                                 fontSize = 11.sp
                             )
@@ -2087,13 +2050,13 @@ fun SettingsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column {
                                             Text(
-                                                text = tool.nameAr,
+                                                text = tool.getDisplayName(isArUi),
                                                 color = if (isChecked) Color.White else Color(0xFF8E9BAE),
                                                 fontSize = 12.sp,
                                                 fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
                                             )
                                             Text(
-                                                text = tool.description,
+                                                text = tool.getDisplayDescription(isArUi),
                                                 color = Color(0xFF64748B),
                                                 fontSize = 9.5.sp
                                             )
@@ -2362,8 +2325,8 @@ fun SettingsScreen(
                                         Text(tone.icon, fontSize = 14.sp)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column {
-                                            Text(tone.nameAr, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                            Text(tone.description, color = Color(0xFF8E9BAE), fontSize = 9.sp)
+                                            Text(if (isArUi) tone.nameAr else tone.nameEn, color = if (isSelected) Color(0xFF00E5FF) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(if (isArUi) tone.description else "${tone.nameEn} writing style", color = Color(0xFF8E9BAE), fontSize = 9.sp)
                                         }
                                     }
                                 }
@@ -2603,7 +2566,7 @@ fun SettingsScreen(
                                                         )
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Text(
-                                                            text = prof.nameAr,
+                                                            text = if (isArUi) prof.nameAr else prof.nameEn,
                                                             color = if (isSelected) dAccent else dText,
                                                             fontSize = 11.sp,
                                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
@@ -2694,10 +2657,10 @@ fun SettingsScreen(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         listOf(
-                                            Pair("خفيف (15ms)", 15),
-                                            Pair("متوسط (30ms)", 30),
-                                            Pair("قوي (45ms)", 45),
-                                            Pair("شديد (60ms)", 60)
+                                            Pair("${AppStrings.trCode(context, appLanguageCode, "vib_light")} (15ms)", 15),
+                                            Pair("${AppStrings.trCode(context, appLanguageCode, "vib_medium")} (30ms)", 30),
+                                            Pair("${AppStrings.trCode(context, appLanguageCode, "vib_strong")} (45ms)", 45),
+                                            Pair("${AppStrings.trCode(context, appLanguageCode, "vib_strong")}+ (60ms)", 60)
                                         ).forEach { (label, ms) ->
                                             val isSel = settings.vibrationDurationMs == ms
                                             Surface(
@@ -2898,9 +2861,9 @@ fun SettingsScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 val speedPresets = listOf(
-                                    Triple("⚡ فائق السرعة", "fast", "استجابة فورية 0ms وسرعة حذف خارقة"),
-                                    Triple("🍏 متوسط متوازن (مثل آيفون 16)", "medium", "سلس ومتوازن بدون ثقل أو خطأ (موصى به)"),
-                                    Triple("🧘 هادئ وبطيء ودقيق", "slow", "كتابة متأنية لتقليل الأخطاء الإملائية")
+                                    Triple(AppStrings.trCode(context, appLanguageCode, "preset_ultra_fast"), "fast", if (isArUi) "استجابة فورية 0ms وسرعة حذف خارقة" else "Instant 0ms response & ultra-fast backspace"),
+                                    Triple(AppStrings.trCode(context, appLanguageCode, "preset_medium"), "medium", if (isArUi) "سلس ومتوازن بدون ثقل أو خطأ (موصى به)" else "Smooth & balanced feel (recommended)"),
+                                    Triple(AppStrings.trCode(context, appLanguageCode, "preset_calm"), "slow", if (isArUi) "كتابة متأنية لتقليل الأخطاء الإملائية" else "Steady pace to reduce typos")
                                 )
 
                                 speedPresets.forEach { (title, mode, desc) ->
@@ -3075,7 +3038,6 @@ fun SettingsScreen(
                 }
             },
             text = {
-                val isRtlLang = com.example.util.LocaleHelper.isRtlLanguage(appLanguageCode)
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
@@ -3120,11 +3082,11 @@ fun SettingsScreen(
                     // 5 Clear Height Presets
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         listOf(
-                            Triple(if (isRtlLang) "صغير جداً" else "Very Small", 34, 0.82f),
-                            Triple(if (isRtlLang) "صغير" else "Small", 37, 0.90f),
-                            Triple(if (isRtlLang) "متوسط 100%" else "Medium 100%", 40, 1.00f),
-                            Triple(if (isRtlLang) "كبير" else "Large", 46, 1.15f),
-                            Triple(if (isRtlLang) "كبير جداً" else "Very Large", 52, 1.30f)
+                            Triple(if (isArUi) "صغير جداً" else "Very Small", 34, 0.82f),
+                            Triple(if (isArUi) "صغير" else "Small", 37, 0.90f),
+                            Triple(if (isArUi) "متوسط 100%" else "Medium 100%", 40, 1.00f),
+                            Triple(if (isArUi) "كبير" else "Large", 46, 1.15f),
+                            Triple(if (isArUi) "كبير جداً" else "Very Large", 52, 1.30f)
                         ).forEach { (lbl, dpVal, factorVal) ->
                             val isSel = settings.keyHeightDp == dpVal || kotlin.math.abs(settings.keyHeightFactor - factorVal) < 0.04f
                             Surface(
@@ -3183,7 +3145,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // 4. Floating Navigation Speed
-                    val speedDesc = if (settings.floatingNavSpeed <= 3) (if (isRtlLang) "(بطيء)" else "(Slow)") else if (settings.floatingNavSpeed >= 8) (if (isRtlLang) "(سريع)" else "(Fast)") else (if (isRtlLang) "(متوسط)" else "(Medium)")
+                    val speedDesc = if (settings.floatingNavSpeed <= 3) (if (isArUi) "(بطيء)" else "(Slow)") else if (settings.floatingNavSpeed >= 8) (if (isArUi) "(سريع)" else "(Fast)") else (if (isArUi) "(متوسط)" else "(Medium)")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -3252,7 +3214,7 @@ fun SettingsScreen(
                                     backspaceKeyScale = 1.15f
                                 )
                             )
-                            Toast.makeText(context, if (isRtlLang) AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_107") else "Default keyboard dimensions restored ✓", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_107"), Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -3285,7 +3247,7 @@ fun SettingsScreen(
                                 keyButtonScale = 1.0f
                             )
                         )
-                        Toast.makeText(context, if (com.example.util.LocaleHelper.isRtlLanguage(appLanguageCode)) AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_108") else "Default size restored ✓", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_108"), Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text(AppStrings.trCode(context, appLanguageCode, "dim_reset"), color = Color(0xFF94A3B8))
@@ -4047,7 +4009,7 @@ fun TransboardSettingsRow(
             }
 
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = Color(0xFF4B5563),
                 modifier = Modifier.size(18.dp)

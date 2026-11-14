@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -58,6 +59,7 @@ import com.example.model.KeyboardSettings
 import com.example.model.KeyboardTheme
 import com.example.model.ThemePresets
 import com.example.sound.KeyboardSoundEngine
+import com.example.util.LocaleHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,6 +80,7 @@ fun InlineTranslationBar(
     theme: KeyboardTheme,
     sourceLang: String,
     targetLang: String,
+    appLanguageCode: String = "auto",
     onSwapLanguages: () -> Unit,
     onOpenSourcePicker: () -> Unit,
     onOpenTargetPicker: () -> Unit,
@@ -85,17 +88,22 @@ fun InlineTranslationBar(
     onTranslateNow: (() -> Unit)? = null,
     isTranslating: Boolean = false
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     val allLangs = com.example.data.TranslationEngine.supportedLanguages
     val sourceItem = allLangs.find { it.code == sourceLang } ?: allLangs[0]
     val targetItem = allLangs.find { it.code == targetLang } ?: allLangs[1]
 
-    val sourceLabel = "${sourceItem.flag} ${sourceItem.nameAr}"
-    val targetLabel = "${targetItem.flag} ${targetItem.nameAr}"
+    val sourceLabel = "${sourceItem.flag} ${if (isAr) sourceItem.nameAr else sourceItem.nameEn}"
+    val targetLabel = "${targetItem.flag} ${if (isAr) targetItem.nameAr else targetItem.nameEn}"
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(34.dp)
+            .height(31.dp)
             .background(Color(theme.toolbarColor))
             .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -104,7 +112,7 @@ fun InlineTranslationBar(
         // Close button (Compact harmonious circular X)
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(25.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                 .clickable(onClick = onClose),
@@ -112,9 +120,9 @@ fun InlineTranslationBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = AppStrings.tr("ui_keyboard_sub_views_001"),
+                contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_001"),
                 tint = Color.White,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
         }
 
@@ -151,7 +159,7 @@ fun InlineTranslationBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_002"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_002"),
                     tint = Color(theme.accentColor),
                     modifier = Modifier.size(11.dp)
                 )
@@ -194,23 +202,23 @@ fun InlineTranslationBar(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_003"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_003"),
                         color = Color(theme.accentColor),
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.Translate,
-                        contentDescription = AppStrings.tr("ui_keyboard_sub_views_004"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_004"),
                         tint = Color(theme.accentColor),
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_004"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_004"),
                         color = Color(theme.accentColor),
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -227,10 +235,16 @@ fun LanguagePickerDrawer(
     theme: KeyboardTheme,
     isSource: Boolean,
     selectedCode: String,
-    keyboardHeight: Dp = 260.dp,
+    keyboardHeight: Dp = 220.dp,
+    appLanguageCode: String = "auto",
     onSelectLanguage: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     val allLangs = com.example.data.TranslationEngine.supportedLanguages
     var query by remember { mutableStateOf("") }
 
@@ -267,14 +281,14 @@ fun LanguagePickerDrawer(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp),
+                    .height(32.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
                             .background(Color(theme.keyBackgroundColor))
                             .clickable(onClick = onClose),
@@ -282,16 +296,17 @@ fun LanguagePickerDrawer(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = AppStrings.tr("ui_keyboard_sub_views_005"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_005"),
                             tint = Color(theme.keyTextColor),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isSource) "لغة النص الأصلي (من)" else "لغة الترجمة الفورية (إلى)",
+                        text = if (isSource) AppStrings.trCode(context, appLanguageCode, "ui_translation_screen_014")
+                               else AppStrings.trCode(context, appLanguageCode, "ui_translation_screen_015"),
                         color = Color(theme.keyTextColor),
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -302,7 +317,7 @@ fun LanguagePickerDrawer(
                     border = BorderStroke(0.8.dp, Color(theme.accentColor).copy(alpha = 0.6f))
                 ) {
                     Text(
-                        text = AppStrings.trf("ui_keyboard_sub_views_006", allLangs.size),
+                        text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_006", allLangs.size),
                         color = Color(theme.accentColor),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -320,7 +335,7 @@ fun LanguagePickerDrawer(
                 border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .height(34.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -330,7 +345,7 @@ fun LanguagePickerDrawer(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = AppStrings.tr("ui_themes_screen_001"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_themes_screen_001"),
                         tint = Color(theme.subtextColor),
                         modifier = Modifier.size(15.dp)
                     )
@@ -347,7 +362,7 @@ fun LanguagePickerDrawer(
                         decorationBox = { innerTextField ->
                             if (query.isEmpty()) {
                                 Text(
-                                    text = AppStrings.tr("ui_keyboard_sub_views_007"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_007"),
                                     color = Color(theme.subtextColor).copy(alpha = 0.7f),
                                     fontSize = 11.sp
                                 )
@@ -362,7 +377,7 @@ fun LanguagePickerDrawer(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = AppStrings.tr("ui_input_languages_screen_007"),
+                                contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_007"),
                                 tint = Color(theme.subtextColor),
                                 modifier = Modifier.size(13.dp)
                             )
@@ -399,7 +414,7 @@ fun LanguagePickerDrawer(
                             Text(lang.flag, fontSize = 12.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = lang.nameAr,
+                                text = if (isAr) lang.nameAr else lang.nameEn,
                                 color = if (isSelected) Color.White else Color(theme.keyTextColor),
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
@@ -437,22 +452,22 @@ fun LanguagePickerDrawer(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(lang.flag, fontSize = 17.sp)
+                                Text(lang.flag, fontSize = 16.sp)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
-                                        text = lang.nameAr,
+                                        text = if (isAr) lang.nameAr else lang.nameEn,
                                         color = Color(theme.keyTextColor),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = lang.nameEn,
+                                        text = if (isAr) lang.nameEn else lang.nameAr,
                                         color = Color(theme.subtextColor),
                                         fontSize = 10.sp
                                     )
@@ -477,7 +492,7 @@ fun LanguagePickerDrawer(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Icon(
                                         imageVector = Icons.Default.Check,
-                                        contentDescription = AppStrings.tr("ui_keyboard_sub_views_008"),
+                                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_008"),
                                         tint = Color(theme.accentColor),
                                         modifier = Modifier.size(15.dp)
                                     )
@@ -498,9 +513,16 @@ fun LanguagePickerDrawer(
 fun InlineDecorationBar(
     theme: KeyboardTheme,
     activeStyleId: String,
+    appLanguageCode: String = "auto",
+    keyboardHeight: Dp = 200.dp,
     onSelectStyle: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     var showStylesMenu by remember { mutableStateOf(false) }
 
     val activeItem = TextDecorator.allStyles.find { it.id == activeStyleId } ?: TextDecorator.allStyles[0]
@@ -509,7 +531,7 @@ fun InlineDecorationBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(38.dp)
+                .height(33.dp)
                 .background(Color(theme.toolbarColor))
                 .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -518,7 +540,7 @@ fun InlineDecorationBar(
             // Close red X button (Compact & sleek)
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(25.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
@@ -526,9 +548,9 @@ fun InlineDecorationBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_009"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_009"),
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
             }
 
@@ -540,13 +562,13 @@ fun InlineDecorationBar(
                 modifier = Modifier.clickable { showStylesMenu = !showStylesMenu }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = activeItem.preview,
                         color = Color(theme.keyTextColor),
-                        fontSize = 11.5.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -554,15 +576,15 @@ fun InlineDecorationBar(
                         imageVector = if (showStylesMenu) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                         contentDescription = null,
                         tint = Color(theme.accentColor),
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
 
             Text(
-                text = AppStrings.tr("ui_keyboard_sub_views_010"),
+                text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_010"),
                 color = Color(theme.accentColor),
-                fontSize = 11.sp,
+                fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -572,7 +594,7 @@ fun InlineDecorationBar(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(230.dp),
+                    .height((keyboardHeight * 0.85f).coerceIn(155.dp, 210.dp)),
                 color = Color(0xFF181F2C),
                 border = BorderStroke(1.dp, Color(0xFF29374F))
             ) {
@@ -601,18 +623,18 @@ fun InlineDecorationBar(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 12.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
                                     text = style.preview,
                                     color = if (isSelected) Color(theme.accentColor) else Color.White,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.5.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = style.nameAr,
+                                    text = if (isAr) style.nameAr else style.nameEn,
                                     color = Color(0xFF8E9BAE),
                                     fontSize = 11.sp
                                 )
@@ -636,11 +658,16 @@ fun InlineDecorationBar(
 fun ClipboardDrawer(
     theme: KeyboardTheme,
     prefs: PreferencesManager,
-    keyboardHeight: Dp = 260.dp,
+    keyboardHeight: Dp = 220.dp,
+    appLanguageCode: String = "auto",
     onItemInserted: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedClipForMenu by remember { mutableStateOf<ClipboardItem?>(null) }
@@ -714,7 +741,7 @@ fun ClipboardDrawer(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = AppStrings.tr("ui_keyboard_sub_views_011"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_011"),
                             color = Color(theme.keyTextColor),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
@@ -730,7 +757,7 @@ fun ClipboardDrawer(
                                 }
                             ) {
                                 Text(
-                                    text = AppStrings.tr("ui_keyboard_sub_views_012"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_012"),
                                     color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
@@ -743,7 +770,7 @@ fun ClipboardDrawer(
                                 modifier = Modifier.clickable { showClearConfirmation = false }
                             ) {
                                 Text(
-                                    text = AppStrings.tr("ui_settings_screen_020"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_020"),
                                     color = Color(theme.keyTextColor),
                                     fontSize = 10.sp,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -753,7 +780,7 @@ fun ClipboardDrawer(
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        // 🔄 Dedicated "إصلاح ومزامنة" Button for large & all texts
+                        // 🔄 Dedicated "Sync & Repair" Button
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(theme.accentColor).copy(alpha = 0.25f),
@@ -761,7 +788,7 @@ fun ClipboardDrawer(
                             modifier = Modifier.clickable {
                                 val count = prefs.forceSyncAndRepairClipboard(context)
                                 items = prefs.getClipboardItems(forceRefresh = true)
-                                Toast.makeText(context, AppStrings.trf(context, "ui_keyboard_sub_views_013", count), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_013", count), Toast.LENGTH_SHORT).show()
                             }
                         ) {
                             Row(
@@ -769,9 +796,9 @@ fun ClipboardDrawer(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = AppStrings.tr("ui_keyboard_sub_views_014"), tint = Color(theme.accentColor), modifier = Modifier.size(13.dp))
+                                Icon(Icons.Default.Refresh, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_014"), tint = Color(theme.accentColor), modifier = Modifier.size(13.dp))
                                 Text(
-                                    text = AppStrings.tr("ui_keyboard_sub_views_014"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_014"),
                                     color = Color(theme.accentColor),
                                     fontSize = 9.5.sp,
                                     fontWeight = FontWeight.Bold
@@ -790,7 +817,7 @@ fun ClipboardDrawer(
                         ) {
                             Icon(
                                 imageVector = if (isSingleColumnMode) Icons.Default.ViewAgenda else Icons.Default.GridView,
-                                contentDescription = AppStrings.tr("ui_keyboard_sub_views_015"),
+                                contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_015"),
                                 tint = if (isSingleColumnMode) Color(theme.accentColor) else Color(theme.keyTextColor).copy(alpha = 0.85f),
                                 modifier = Modifier.size(13.dp)
                             )
@@ -807,7 +834,7 @@ fun ClipboardDrawer(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.Delete, contentDescription = AppStrings.tr("ui_keyboard_sub_views_016"), tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                            Icon(Icons.Outlined.Delete, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_016"), tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
                         }
 
                         // Paste recent
@@ -826,7 +853,7 @@ fun ClipboardDrawer(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.ContentPaste, contentDescription = AppStrings.tr("ui_keyboard_sub_views_017"), tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
+                            Icon(Icons.Outlined.ContentPaste, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_017"), tint = Color(theme.accentColor), modifier = Modifier.size(12.dp))
                         }
 
                         // Cut icon
@@ -848,7 +875,7 @@ fun ClipboardDrawer(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.ContentCut, contentDescription = AppStrings.tr("ui_keyboard_sub_views_018"), tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                            Icon(Icons.Outlined.ContentCut, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_018"), tint = Color(theme.keyTextColor).copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
                         }
                     }
 
@@ -861,7 +888,7 @@ fun ClipboardDrawer(
                             .clickable(onClick = onClose),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -872,7 +899,7 @@ fun ClipboardDrawer(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = AppStrings.tr("ui_keyboard_sub_views_020"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_020"),
                             color = Color(theme.subtextColor),
                             fontSize = 12.sp
                         )
@@ -880,13 +907,13 @@ fun ClipboardDrawer(
                             onClick = {
                                 val count = prefs.forceSyncAndRepairClipboard(context)
                                 items = prefs.getClipboardItems(forceRefresh = true)
-                                Toast.makeText(context, AppStrings.trf(context, "ui_keyboard_sub_views_021", count), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_021", count), Toast.LENGTH_SHORT).show()
                             },
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, Color(theme.accentColor)),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Text(AppStrings.tr("ui_keyboard_sub_views_022"), color = Color(theme.accentColor), fontSize = 11.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_022"), color = Color(theme.accentColor), fontSize = 11.sp)
                         }
                     }
                 }
@@ -955,7 +982,7 @@ fun ClipboardDrawer(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Visibility,
-                                                contentDescription = AppStrings.tr("ui_keyboard_sub_views_023"),
+                                                contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_023"),
                                                 tint = Color(theme.accentColor),
                                                 modifier = Modifier.size(12.dp)
                                             )
@@ -965,7 +992,7 @@ fun ClipboardDrawer(
                                     if (clip.isPinned) {
                                         Icon(
                                             imageVector = Icons.Default.PushPin,
-                                            contentDescription = AppStrings.tr("ui_keyboard_sub_views_024"),
+                                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_024"),
                                             tint = Color(theme.accentColor),
                                             modifier = Modifier.size(12.dp)
                                         )
@@ -978,8 +1005,7 @@ fun ClipboardDrawer(
             }
         }
 
-        // Floating Context Menu on Long-Press (نافذة عائمة عند الضغط المطول)
-        // Options: حذف | تثبيت | نسخ | لصق
+        // Floating Context Menu on Long-Press
         if (selectedClipForMenu != null) {
             val clip = selectedClipForMenu!!
             Box(
@@ -1020,13 +1046,11 @@ fun ClipboardDrawer(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // 4 Interactive Options: حذف | تثبيت | نسخ | لصق
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 1. حذف (Delete this specific item)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -1040,20 +1064,19 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(
                                     Icons.Outlined.Delete,
-                                    contentDescription = AppStrings.tr("ui_clipboard_screen_015"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_015"),
                                     tint = Color(0xFFEF4444),
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = AppStrings.tr("ui_clipboard_screen_015"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_015"),
                                     color = Color(0xFFEF4444),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            // 2. تثبيت / إلغاء التثبيت (Pin / Unpin)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -1067,20 +1090,23 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(
                                     imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
-                                    contentDescription = AppStrings.tr("ui_clipboard_screen_017"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_017"),
                                     tint = Color(theme.accentColor),
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = if (clip.isPinned) "إلغاء التثبيت" else "تثبيت",
+                                    text = if (clip.isPinned) {
+                                        if (isAr) "إلغاء التثبيت" else "Unpin"
+                                    } else {
+                                        AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_017")
+                                    },
                                     color = Color(theme.accentColor),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            // 3. نسخ (Copy to system clipboard)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -1094,20 +1120,19 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(
                                     Icons.Outlined.ContentCopy,
-                                    contentDescription = AppStrings.tr("ui_clipboard_screen_018"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"),
                                     tint = Color(theme.keyTextColor),
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = AppStrings.tr("ui_clipboard_screen_018"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"),
                                     color = Color(theme.keyTextColor),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            // 4. لصق (Paste into active field)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -1123,20 +1148,19 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(
                                     Icons.Outlined.ContentPaste,
-                                    contentDescription = AppStrings.tr("ui_settings_screen_127"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_127"),
                                     tint = Color(0xFF10B981),
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = AppStrings.tr("ui_settings_screen_127"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_127"),
                                     color = Color(0xFF10B981),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            // 5. معاينة كاملة (Full Preview for Large Texts)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -1149,13 +1173,13 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(
                                     Icons.Default.Visibility,
-                                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_025"),
+                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_025"),
                                     tint = Color(0xFF38BDF8),
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = AppStrings.tr("ui_keyboard_sub_views_025"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_025"),
                                     color = Color(0xFF38BDF8),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
@@ -1167,7 +1191,7 @@ fun ClipboardDrawer(
             }
         }
 
-        // Full Text Viewer Modal for Large/Long Texts (عرض النص كاملاً بدون أي اقتطاع)
+        // Full Text Viewer Modal for Large/Long Texts
         if (previewFullTextItem != null) {
             val clip = previewFullTextItem!!
             Box(
@@ -1197,7 +1221,7 @@ fun ClipboardDrawer(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = AppStrings.trf("ui_keyboard_sub_views_026", clip.text.length),
+                                text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_026", clip.text.length),
                                 color = Color(theme.accentColor),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -1206,7 +1230,7 @@ fun ClipboardDrawer(
                                 onClick = { previewFullTextItem = null },
                                 modifier = Modifier.size(28.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
                             }
                         }
 
@@ -1216,7 +1240,6 @@ fun ClipboardDrawer(
                             modifier = Modifier.padding(vertical = 6.dp)
                         )
 
-                        // Scrollable complete text container
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -1235,7 +1258,6 @@ fun ClipboardDrawer(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Bottom Actions: Copy, Paste, Close
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1244,7 +1266,7 @@ fun ClipboardDrawer(
                                 onClick = {
                                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                                     cm?.setPrimaryClip(ClipData.newPlainText("text", clip.text))
-                                    Toast.makeText(context, AppStrings.tr(context, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(8.dp),
@@ -1252,7 +1274,7 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(Icons.Outlined.ContentCopy, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(AppStrings.tr("ui_clipboard_screen_018"), color = Color(theme.accentColor), fontSize = 12.sp)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_018"), color = Color(theme.accentColor), fontSize = 12.sp)
                             }
 
                             Button(
@@ -1269,7 +1291,7 @@ fun ClipboardDrawer(
                             ) {
                                 Icon(Icons.Outlined.ContentPaste, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(AppStrings.tr("ui_keyboard_sub_views_027"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_027"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1285,10 +1307,11 @@ fun ClipboardDrawer(
 @Composable
 fun EmojiPickerView(
     theme: KeyboardTheme,
-    keyboardHeight: Dp = 265.dp,
+    keyboardHeight: Dp = 220.dp,
     hideAbcKey: Boolean = false,
     backspaceScale: Float = 1.0f,
     searchQuery: String = "",
+    appLanguageCode: String = "auto",
     onSearchQueryChange: (String) -> Unit = {},
     isCustomizeMode: Boolean = false,
     onEmojiSelected: (String) -> Unit,
@@ -1299,6 +1322,10 @@ fun EmojiPickerView(
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     val recentEmojiManager = remember { com.example.data.RecentEmojiManager(context) }
     var recentEmojisList by remember { mutableStateOf(recentEmojiManager.getRecentEmojis()) }
 
@@ -1337,10 +1364,10 @@ fun EmojiPickerView(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color(theme.keyBackgroundColor))
-                    .border(1.dp, Color(theme.borderColor).copy(alpha = 0.6f), RoundedCornerShape(18.dp))
+                    .border(1.dp, Color(theme.borderColor).copy(alpha = 0.6f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -1350,17 +1377,17 @@ fun EmojiPickerView(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = AppStrings.tr("ui_themes_screen_001"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_themes_screen_001"),
                         tint = Color(theme.subtextColor),
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         if (searchQuery.isEmpty()) {
                             Text(
-                                text = AppStrings.tr("ui_keyboard_sub_views_028"),
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_028"),
                                 color = Color(theme.subtextColor).copy(alpha = 0.7f),
-                                fontSize = 11.5.sp
+                                fontSize = 11.sp
                             )
                         }
                         androidx.compose.foundation.text.BasicTextField(
@@ -1379,10 +1406,10 @@ fun EmojiPickerView(
                     if (searchQuery.isNotEmpty()) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = AppStrings.tr("ui_input_languages_screen_007"),
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_007"),
                             tint = Color(theme.subtextColor),
                             modifier = Modifier
-                                .size(16.dp)
+                                .size(15.dp)
                                 .clickable { onSearchQueryChange("") }
                         )
                     }
@@ -1426,10 +1453,10 @@ fun EmojiPickerView(
                 ) {
                     Text(
                         text = when {
-                            emojiSizeScale >= 1.45f -> "ضخم"
-                            emojiSizeScale >= 1.25f -> "كبير"
-                            emojiSizeScale <= 0.85f -> "صغير"
-                            else -> "وسط"
+                            emojiSizeScale >= 1.45f -> AppStrings.trCode(context, appLanguageCode, "key_height_preset_xl")
+                            emojiSizeScale >= 1.25f -> if (isAr) "كبير" else "Large"
+                            emojiSizeScale <= 0.85f -> AppStrings.trCode(context, appLanguageCode, "key_height_preset_compact")
+                            else -> AppStrings.trCode(context, appLanguageCode, "key_height_preset_normal")
                         },
                         color = Color(theme.accentColor),
                         fontSize = 10.sp,
@@ -1462,7 +1489,11 @@ fun EmojiPickerView(
                 modifier = Modifier.clickable { isIosStyle = !isIosStyle }
             ) {
                 Text(
-                    text = if (isIosStyle) "🍏 آيفون" else "🤖 أندرويد",
+                    text = if (isIosStyle) {
+                        if (isAr) "🍏 آيفون" else "🍏 iOS"
+                    } else {
+                        if (isAr) "🤖 أندرويد" else "🤖 Android"
+                    },
                     color = if (isIosStyle) Color(0xFF0A84FF) else Color(theme.keyTextColor),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -1475,7 +1506,7 @@ fun EmojiPickerView(
             // Emoji picker close button
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
@@ -1483,9 +1514,9 @@ fun EmojiPickerView(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"),
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
         }
@@ -1515,7 +1546,7 @@ fun EmojiPickerView(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_029"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_029"),
                         color = Color(0xFF0084FF),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
@@ -1549,7 +1580,7 @@ fun EmojiPickerView(
                         Text(text = "🕒", fontSize = 14.sp)
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = AppStrings.tr("ui_keyboard_sub_views_030"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_030"),
                             color = if (isRecentSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
                             fontSize = 9.5.sp,
                             fontWeight = if (isRecentSelected) FontWeight.Bold else FontWeight.Normal
@@ -1581,7 +1612,6 @@ fun EmojiPickerView(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Grid of emojis (8 أشكال بالضبط في كل صف ومتجاوبة مع كافة الشاشات بدون overflow)
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1601,7 +1631,7 @@ fun EmojiPickerView(
                 items(currentEmojis) { emoji ->
                     Box(
                         modifier = Modifier
-                            .height(itemWidth.coerceIn(34.dp, 44.dp))
+                            .height(itemWidth.coerceIn(32.dp, 42.dp))
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .pointerInput(emoji) {
@@ -1630,11 +1660,11 @@ fun EmojiPickerView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(34.dp),
+                .height(31.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Return to Alphabet Keyboard button (⌨️ أحرف / ABC) - toggleable via hideAbcKey
+            // 1. Return to Alphabet Keyboard button (⌨️ ABC) - toggleable via hideAbcKey
             if (!hideAbcKey) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -1647,9 +1677,9 @@ fun EmojiPickerView(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = AppStrings.tr("ui_keyboard_sub_views_031"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_031"),
                             color = Color(theme.accentColor),
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1667,7 +1697,7 @@ fun EmojiPickerView(
                     .clickable { onSpacePressed() }
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(AppStrings.tr("ui_keyboard_sub_views_032"), color = Color(theme.keyTextColor), fontSize = 11.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_032"), color = Color(theme.keyTextColor), fontSize = 11.sp)
                 }
             }
 
@@ -1685,14 +1715,14 @@ fun EmojiPickerView(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Backspace,
-                        contentDescription = AppStrings.tr("ui_clipboard_screen_012"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_012"),
                         tint = Color(theme.keyTextColor),
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            // 4. Send / Enter button (Sends and automatically returns to regular letters keyboard!)
+            // 4. Send / Enter button
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(theme.enterButtonColor),
@@ -1710,11 +1740,11 @@ fun EmojiPickerView(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(AppStrings.tr("ui_keyboard_sub_views_033"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_033"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.width(3.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = AppStrings.tr("ui_chat_simulator_screen_012"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_012"),
                         tint = Color.White,
                         modifier = Modifier.size(13.dp)
                     )
@@ -1730,9 +1760,12 @@ fun EmojiPickerView(
 @Composable
 fun GifPickerView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 220.dp,
+    appLanguageCode: String = "auto",
     onGifSelected: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val quickGifs = listOf(
         "(^_^)/", "(o_O)", "(•‿•)", "(╯°□°)╯", "¯\\_(ツ)_/¯",
         "(づ￣ ³￣)づ", "(♥_♥)", "(T_T)", "(¬_¬)", "ᕙ(⇀‸↼‶)ᕗ",
@@ -1745,7 +1778,7 @@ fun GifPickerView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(8.dp)
     ) {
@@ -1754,16 +1787,16 @@ fun GifPickerView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(AppStrings.tr("ui_keyboard_sub_views_034"), color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_034"), color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
@@ -1780,7 +1813,7 @@ fun GifPickerView(
                     border = BorderStroke(1.dp, Color(theme.borderColor)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(44.dp)
                         .clickable { onGifSelected(gif) }
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -1793,16 +1826,26 @@ fun GifPickerView(
 }
 
 // -------------------------------------------------------------
-// 6. MEDIA & PHOTOS PICKER VIEW (Requested: "مثل الصور والملصقات")
+// 6. MEDIA & PHOTOS PICKER VIEW
 // -------------------------------------------------------------
 @Composable
 fun MediaPickerView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 220.dp,
+    appLanguageCode: String = "auto",
     onMediaSelected: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("🖼️ الملصقات والصور", "🎬 GIFs متحركة", "🎭 فيسات Kaomoji", "🎨 نصوص فنية")
+    val tabs = remember(isAr) {
+        if (isAr) listOf("🖼️ الملصقات والصور", "🎬 GIFs متحركة", "🎭 فيسات Kaomoji", "🎨 نصوص فنية")
+        else listOf("🖼️ Stickers & Photos", "🎬 Animated GIFs", "🎭 Kaomoji", "🎨 Text Art")
+    }
 
     val stickers = listOf(
         "صباح الخير 🌸", "مساء الورد 🌹", "جمعة مباركة ✨", "ألف مبروك 🎉",
@@ -1812,10 +1855,10 @@ fun MediaPickerView(
     )
 
     val gifMemes = listOf(
-        "🤣 [GIF: ضحك هستيري]", "👏 [GIF: تصفيق حار]", "❤️ [GIF: قلوب تتطاير]",
-        "🔥 [GIF: حماس ونار]", "😲 [GIF: صدمة مضحكة]", "👋 [GIF: تحية ملكية]",
-        "😎 [GIF: نظارة كول]", "🕺 [GIF: رقصة فرح]", "💤 [GIF: نعاس وتعب]",
-        "🥳 [GIF: احتفال صاخب]", "💪 [GIF: عضلات وقوة]", "🎯 [GIF: إصابة مباشرة]"
+        "🤣 [GIF: LOL]", "👏 [GIF: Applause]", "❤️ [GIF: Hearts]",
+        "🔥 [GIF: Fire]", "😲 [GIF: Shocked]", "👋 [GIF: Hello]",
+        "😎 [GIF: Cool]", "🕺 [GIF: Dance]", "💤 [GIF: Sleepy]",
+        "🥳 [GIF: Party]", "💪 [GIF: Strong]", "🎯 [GIF: Bullseye]"
     )
 
     val kaomojis = listOf(
@@ -1845,7 +1888,7 @@ fun MediaPickerView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(8.dp)
     ) {
@@ -1856,20 +1899,20 @@ fun MediaPickerView(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = AppStrings.tr("ui_keyboard_sub_views_035"),
+                text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_035"),
                 color = textColor,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
         }
 
@@ -2053,27 +2096,40 @@ fun MediaPickerView(
 fun AiToneDrawer(
     theme: KeyboardTheme,
     currentText: String,
+    keyboardHeight: Dp = 225.dp,
+    appLanguageCode: String = "auto",
     onReplaceText: (String) -> Unit,
     onAddWordToDictionary: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isAr = resolvedUiLang == "ar"
     val coroutineScope = rememberCoroutineScope()
     var inputText by remember { mutableStateOf(currentText) }
     var selectedAiTab by remember { mutableIntStateOf(0) }
     var statusMessage by remember { mutableStateOf("") }
     var autoProofreadEnabled by remember { mutableStateOf(true) }
 
-    val aiTabs = listOf("✅ تدقيق", "🔄 إعادة صياغة", "🌐 ترجمة AI", "✨ كتابة وتوليد")
-
-    val stats = remember(inputText) {
-        com.example.data.SpellCheckDictionary.getCorrectionStats(inputText, isArabic = true)
+    val aiTabs = remember(isAr) {
+        if (isAr) listOf("✅ تدقيق", "🔄 إعادة صياغة", "🌐 ترجمة AI", "✨ كتابة وتوليد")
+        else listOf("✅ Proofread", "🔄 Rephrase", "🌐 AI Translate", "✨ Compose")
     }
 
-    var resultText by remember(inputText, selectedAiTab) {
+    val isTextArabic = remember(inputText, isAr) {
+        if (inputText.isBlank()) isAr else inputText.any { it in '\u0600'..'\u06FF' }
+    }
+
+    val stats = remember(inputText, isTextArabic) {
+        com.example.data.SpellCheckDictionary.getCorrectionStats(inputText, isArabic = isTextArabic)
+    }
+
+    var resultText by remember(inputText, selectedAiTab, isTextArabic) {
         mutableStateOf(
             if (inputText.isBlank()) ""
-            else com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true)
+            else com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = isTextArabic)
         )
     }
 
@@ -2087,9 +2143,9 @@ fun AiToneDrawer(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(275.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         // Header
         Row(
@@ -2100,22 +2156,22 @@ fun AiToneDrawer(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.AutoFixHigh,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_036"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_036"),
                     tint = Color(theme.accentColor),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_037"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_037"),
                         color = textColor,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        fontSize = 12.5.sp
                     )
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_038"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_038"),
                         color = subTextColor,
-                        fontSize = 9.sp
+                        fontSize = 8.5.sp
                     )
                 }
             }
@@ -2128,11 +2184,19 @@ fun AiToneDrawer(
                     border = BorderStroke(0.8.dp, if (autoProofreadEnabled) Color(theme.accentColor) else Color(theme.borderColor)),
                     modifier = Modifier.clickable {
                         autoProofreadEnabled = !autoProofreadEnabled
-                        statusMessage = if (autoProofreadEnabled) "التدقيق التلقائي مفعّل" else "التدقيق التلقائي معطّل"
+                        statusMessage = if (isAr) {
+                            if (autoProofreadEnabled) "التدقيق التلقائي مفعّل" else "التدقيق التلقائي معطّل"
+                        } else {
+                            if (autoProofreadEnabled) "Auto-proofread ON" else "Auto-proofread OFF"
+                        }
                     }
                 ) {
                     Text(
-                        text = if (autoProofreadEnabled) "تدقيق تلقائي: شغال" else "تدقيق تلقائي: متوقف",
+                        text = if (isAr) {
+                            if (autoProofreadEnabled) "تدقيق تلقائي: شغال" else "تدقيق تلقائي: متوقف"
+                        } else {
+                            if (autoProofreadEnabled) "Auto Check: ON" else "Auto Check: OFF"
+                        },
                         color = if (autoProofreadEnabled) Color(theme.accentColor) else subTextColor,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
@@ -2142,7 +2206,7 @@ fun AiToneDrawer(
 
                 Box(
                     modifier = Modifier
-                        .size(26.dp)
+                        .size(25.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                         .clickable(onClick = onClose),
@@ -2150,9 +2214,9 @@ fun AiToneDrawer(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"),
                         tint = Color.White,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -2175,25 +2239,30 @@ fun AiToneDrawer(
                         selectedAiTab = idx
                         statusMessage = ""
                         when (idx) {
-                            0 -> resultText = if (inputText.isNotBlank()) com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = true) else ""
-                            1 -> resultText = if (inputText.isNotBlank()) "يسرّني إحاطتكم علماً بأن: $inputText، مع فائق التقدير." else ""
+                            0 -> resultText = if (inputText.isNotBlank()) com.example.data.SpellCheckDictionary.autoCorrectSentence(inputText, isArabic = isTextArabic) else ""
+                            1 -> resultText = if (inputText.isNotBlank()) {
+                                if (isTextArabic) "يسرّني إحاطتكم علماً بأن: $inputText، مع فائق التقدير."
+                                else "Please allow me to share regarding: $inputText. Best regards."
+                            } else ""
                             2 -> {
                                 if (inputText.isNotBlank()) {
                                     coroutineScope.launch {
-                                        resultText = com.example.data.TranslationEngine.translate(inputText, "ar", "en")
+                                        val src = if (isTextArabic) "ar" else "en"
+                                        val tgt = if (isTextArabic) "en" else "ar"
+                                        resultText = com.example.data.TranslationEngine.translate(inputText, src, tgt)
                                     }
                                 } else {
                                     resultText = ""
                                 }
                             }
-                            3 -> resultText = "أشكرك جزيل الشكر على التواصل والاهتمام، وأتمنى لك دوام التوفيق والنجاح!"
+                            3 -> resultText = if (isAr) "أشكرك جزيل الشكر على التواصل والاهتمام، وأتمنى لك دوام التوفيق والنجاح!" else "Thank you very much for reaching out! Wishing you continued success."
                         }
                     }
                 ) {
                     Text(
                         text = aiTabs[idx],
                         color = if (isSelected) Color(theme.accentColor) else textColor,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
@@ -2206,7 +2275,6 @@ fun AiToneDrawer(
         // Tab Content / Options
         when (selectedAiTab) {
             0 -> {
-                // Spellcheck Stats
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2217,15 +2285,19 @@ fun AiToneDrawer(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = AppStrings.trf("ui_keyboard_sub_views_039", stats.inputWordCount, stats.outputWordCount),
+                        text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_039", stats.inputWordCount, stats.outputWordCount),
                         color = Color(theme.accentColor),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = if (stats.correctedWordCount > 0) "تم تصحيح ${stats.correctedWordCount} كلمة"
-                               else if (stats.inputWordCount > 0) "سليم إملائياً ✓"
-                               else "بانتظار النص",
+                        text = if (stats.correctedWordCount > 0) {
+                            if (isAr) "تم تصحيح ${stats.correctedWordCount} كلمة" else "Fixed ${stats.correctedWordCount} word(s)"
+                        } else if (stats.inputWordCount > 0) {
+                            if (isAr) "سليم إملائياً ✓" else "No errors ✓"
+                        } else {
+                            if (isAr) "بانتظار النص" else "Waiting for text"
+                        },
                         color = if (stats.correctedWordCount > 0) (if (isLight) Color(0xFFD97706) else Color(0xFFFBBF24)) else subTextColor,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold
@@ -2233,39 +2305,47 @@ fun AiToneDrawer(
                 }
             }
             1 -> {
-                // Rephrase Style Chips
+                val styleChips = if (isAr) {
+                    listOf("formal" to "رسمي", "friendly" to "ودود", "eloquent" to "فصيح", "concise" to "موجز")
+                } else {
+                    listOf("formal" to "Formal", "friendly" to "Friendly", "eloquent" to "Polished", "concise" to "Concise")
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    listOf("رسمي", "ودود", "فصيح", "موجز").forEach { style ->
+                    styleChips.forEach { (id, label) ->
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = cardBg,
                             border = BorderStroke(0.8.dp, cardBorder),
                             modifier = Modifier.clickable {
                                 if (inputText.isNotBlank()) {
-                                    resultText = when (style) {
-                                        "رسمي" -> "نود إفادتكم بخصوص: $inputText، شاكرين لكم حسن تعاونكم."
-                                        "ودود" -> "يا هلا والله! حبيت أشاركك بخصوص: $inputText ✨"
-                                        "فصيح" -> "يطيب لي أن أسطر إليكم ما نصه: $inputText، سائلاً المولى لكم السداد."
+                                    resultText = when (id) {
+                                        "formal" -> if (isTextArabic) "نود إفادتكم بخصوص: $inputText، شاكرين لكم حسن تعاونكم." else "We would like to inform you regarding: $inputText. Thank you for your cooperation."
+                                        "friendly" -> if (isTextArabic) "يا هلا والله! حبيت أشاركك بخصوص: $inputText ✨" else "Hey there! Just wanted to share: $inputText ✨"
+                                        "eloquent" -> if (isTextArabic) "يطيب لي أن أسطر إليكم ما نصه: $inputText، سائلاً المولى لكم السداد." else "It is my pleasure to convey the following: $inputText, with sincere appreciation."
                                         else -> inputText.trim().replace("\\s+".toRegex(), " ")
                                     }
                                 }
                             }
                         ) {
-                            Text(style, color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                            Text(label, color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                         }
                     }
                 }
             }
             2 -> {
-                // Translation Lang Chips
+                val langChips = if (isAr) {
+                    listOf("الإنجليزية" to "en", "الفرنسية" to "fr", "التركية" to "tr", "الإسبانية" to "es")
+                } else {
+                    listOf("English" to "en", "Arabic" to "ar", "French" to "fr", "Spanish" to "es")
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    listOf("الإنجليزية" to "en", "الفرنسية" to "fr", "التركية" to "tr", "الإسبانية" to "es").forEach { (langName, code) ->
+                    langChips.forEach { (langName, code) ->
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = cardBg,
@@ -2273,38 +2353,43 @@ fun AiToneDrawer(
                             modifier = Modifier.clickable {
                                 if (inputText.isNotBlank()) {
                                     coroutineScope.launch {
-                                        val trans = com.example.data.TranslationEngine.translate(inputText, "ar", code)
+                                        val src = if (isTextArabic) "ar" else "auto"
+                                        val trans = com.example.data.TranslationEngine.translate(inputText, src, code)
                                         resultText = trans
                                     }
                                 }
                             }
                         ) {
-                            Text(AppStrings.trf("ui_keyboard_sub_views_040", langName), color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                            Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_040", langName), color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                         }
                     }
                 }
             }
             3 -> {
-                // Smart Compose Templates
+                val templates = if (isAr) {
+                    listOf("thanks" to "شكر وتقدير", "apology" to "اعتذار رسمي", "congrats" to "مباركة وتهنئة", "confirm" to "موافقة وتأكيد")
+                } else {
+                    listOf("thanks" to "Thanks", "apology" to "Apology", "congrats" to "Congrats", "confirm" to "Confirm")
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    listOf("شكر وتقدير", "اعتذار رسمي", "مباركة وتهنئة", "موافقة وتأكيد").forEach { template ->
+                    templates.forEach { (id, label) ->
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = cardBg,
                             border = BorderStroke(0.8.dp, cardBorder),
                             modifier = Modifier.clickable {
-                                resultText = when (template) {
-                                    "شكر وتقدير" -> "أتقدم لكم بخالص الشكر والتقدير على جهودكم المتميزة وتعاونكم الراقي."
-                                    "اعتذار رسمي" -> "نعتذر منكم عن أي إزعاج أو تأخير غير مقصود، ونعمل حالياً على تدارك الأمر فوراً."
-                                    "مباركة وتهنئة" -> "ألف مبروك ومنها للأعلى إن شاء الله! نسأل الله لك دوام التوفيق والنجاح."
-                                    else -> "تم الاطلاع والموافقة على ما جاء، وبإمكانكم اعتماد الخطوة القادمة شاكرين لكم."
+                                resultText = when (id) {
+                                    "thanks" -> if (isAr) "أتقدم لكم بخالص الشكر والتقدير على جهودكم المتميزة وتعاونكم الراقي." else "Thank you sincerely for your outstanding efforts and support."
+                                    "apology" -> if (isAr) "نعتذر منكم عن أي إزعاج أو تأخير غير مقصود، ونعمل حالياً على تدارك الأمر فوراً." else "We sincerely apologize for any inconvenience or delay and are resolving it right away."
+                                    "congrats" -> if (isAr) "ألف مبروك ومنها للأعلى إن شاء الله! نسأل الله لك دوام التوفيق والنجاح." else "Congratulations! Wishing you continued success and happiness."
+                                    else -> if (isAr) "تم الاطلاع والموافقة على ما جاء، وبإمكانكم اعتماد الخطوة القادمة شاكرين لكم." else "Reviewed and approved. Please proceed with the next step."
                                 }
                             }
                         ) {
-                            Text(template, color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                            Text(label, color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                         }
                     }
                 }
@@ -2336,7 +2421,7 @@ fun AiToneDrawer(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = AppStrings.tr("ui_keyboard_sub_views_041"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_041"),
                             color = subTextColor,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
@@ -2348,7 +2433,7 @@ fun AiToneDrawer(
                             text = resultText,
                             color = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
                             fontSize = 12.sp,
-                            lineHeight = 17.sp,
+                            lineHeight = 16.sp,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -2363,7 +2448,7 @@ fun AiToneDrawer(
                                         border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f))
                                     ) {
                                         Text(
-                                            text = AppStrings.trf("ui_keyboard_sub_views_042", original, corrected),
+                                            text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_042", original, corrected),
                                             color = if (isKeyLight) Color(0xFFB45309) else Color(0xFFFBBF24),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
@@ -2399,12 +2484,12 @@ fun AiToneDrawer(
                                 modifier = Modifier.clickable {
                                     if (resultText.isNotBlank()) {
                                         resultText = com.example.data.SpellCheckDictionary.addDiacriticsStrict(resultText)
-                                        statusMessage = "تم التشكيل ✓"
+                                        statusMessage = if (isAr) "تم التشكيل ✓" else "Done ✓"
                                     }
                                 }
                             ) {
                                 Text(
-                                    text = AppStrings.tr("ui_keyboard_sub_views_043"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_043"),
                                     color = if (isLight) Color(0xFF7C3AED) else Color(0xFFC084FC),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
@@ -2418,12 +2503,12 @@ fun AiToneDrawer(
                                 border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.7f)),
                                 modifier = Modifier.clickable {
                                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                    cm?.setPrimaryClip(ClipData.newPlainText(AppStrings.tr(context, "ui_keyboard_sub_views_044"), resultText))
-                                    statusMessage = "تم النسخ للحافظة ✓"
+                                    cm?.setPrimaryClip(ClipData.newPlainText(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_044"), resultText))
+                                    statusMessage = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_008")
                                 }
                             ) {
                                 Text(
-                                    text = AppStrings.tr("ui_keyboard_sub_views_045"),
+                                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_045"),
                                     color = if (isLight) Color(0xFF1D4ED8) else Color(0xFF60A5FA),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
@@ -2448,10 +2533,10 @@ fun AiToneDrawer(
                         ),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(30.dp)
                     ) {
                         Text(
-                            text = AppStrings.tr("ui_keyboard_sub_views_046"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_046"),
                             color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -2470,10 +2555,14 @@ fun AiToneDrawer(
 fun VoiceInputView(
     theme: KeyboardTheme,
     isArabic: Boolean = true,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onInsertText: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     var voiceLangArabic by remember { mutableStateOf(isArabic) }
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -2485,10 +2574,13 @@ fun VoiceInputView(
     }
     var isListening by remember { mutableStateOf(false) }
     var recognizedText by remember { mutableStateOf("") }
-    var statusText by remember {
+    var statusText by remember(isArUi, hasAudioPermission) {
         mutableStateOf(
-            if (hasAudioPermission) "اضغط على المايك للتحدث بصوت واضح..."
-            else "⚠️ يتطلب إذن الميكروفون - اضغط للتفعيل"
+            if (hasAudioPermission) {
+                if (isArUi) "اضغط على المايك للتحدث بصوت واضح..." else "Tap mic to speak clearly..."
+            } else {
+                if (isArUi) "⚠️ يتطلب إذن الميكروفون - اضغط للتفعيل" else "⚠️ Microphone permission required - tap to enable"
+            }
         )
     }
     var speechRecognizer by remember { mutableStateOf<android.speech.SpeechRecognizer?>(null) }
@@ -2511,17 +2603,17 @@ fun VoiceInputView(
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (!hasAudioPermission) {
-            statusText = "جاري فتح الإدخال الصوتي للنظام..."
+            statusText = if (isArUi) "جاري فتح الإدخال الصوتي للنظام..." else "Opening system voice input..."
             try {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (voiceLangArabic) "ar-SA" else "en-US")
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, "تحدث الآن للإدخال الصوتي...")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, if (isArUi) "تحدث الآن للإدخال الصوتي..." else "Speak now for voice typing...")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
             } catch (_: Exception) {
-                statusText = "⚠️ يرجى تفعيل إذن الميكروفون للكيبورد"
+                statusText = if (isArUi) "⚠️ يرجى تفعيل إذن الميكروفون للكيبورد" else "⚠️ Please enable microphone permission"
             }
             return
         }
@@ -2543,26 +2635,26 @@ fun VoiceInputView(
                 recognizer.setRecognitionListener(object : RecognitionListener {
                     override fun onReadyForSpeech(params: Bundle?) {
                         isListening = true
-                        statusText = "جاري الاستماع... تحدث الآن"
+                        statusText = if (isArUi) "جاري الاستماع... تحدث الآن" else "Listening... Speak now"
                     }
                     override fun onBeginningOfSpeech() {
-                        statusText = "جاري التقاط الصوت..."
+                        statusText = if (isArUi) "جاري التقاط الصوت..." else "Capturing audio..."
                     }
                     override fun onRmsChanged(rmsdB: Float) {}
                     override fun onBufferReceived(buffer: ByteArray?) {}
                     override fun onEndOfSpeech() {
                         isListening = false
-                        statusText = "تم التقاط الصوت! اضغط إدراج ✓"
+                        statusText = if (isArUi) "تم التقاط الصوت! اضغط إدراج ✓" else "Speech captured! Tap insert ✓"
                     }
                     override fun onError(error: Int) {
                         isListening = false
                         statusText = when (error) {
-                            android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "يرجى منح إذن الميكروفون"
-                            android.speech.SpeechRecognizer.ERROR_NO_MATCH -> "لم يتم فهم الصوت، تحدث مجدداً"
-                            android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "انتهت المهلة، اضغط للتحدث"
+                            android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> if (isArUi) "يرجى منح إذن الميكروفون" else "Please grant microphone permission"
+                            android.speech.SpeechRecognizer.ERROR_NO_MATCH -> if (isArUi) "لم يتم فهم الصوت، تحدث مجدداً" else "Didn't catch that, try again"
+                            android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> if (isArUi) "انتهت المهلة، اضغط للتحدث" else "Timed out, tap to speak"
                             android.speech.SpeechRecognizer.ERROR_NETWORK,
-                            android.speech.SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "تحقق من اتصال الإنترنت"
-                            else -> "اضغط المايك أو اختر عبارة جاهزة"
+                            android.speech.SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> if (isArUi) "تحقق من اتصال الإنترنت" else "Check internet connection"
+                            else -> if (isArUi) "اضغط المايك أو اختر عبارة جاهزة" else "Tap mic or pick a quick phrase"
                         }
                     }
                     override fun onResults(results: Bundle?) {
@@ -2570,7 +2662,7 @@ fun VoiceInputView(
                         val matches = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
                         if (!matches.isNullOrEmpty()) {
                             recognizedText = matches[0]
-                            statusText = "تم التعرف بنجاح ✓ اضغط إدراج"
+                            statusText = if (isArUi) "تم التعرف بنجاح ✓ اضغط إدراج" else "Recognized ✓ Tap insert"
                         }
                     }
                     override fun onPartialResults(partialResults: Bundle?) {
@@ -2583,13 +2675,13 @@ fun VoiceInputView(
                 })
                 recognizer.startListening(intent)
                 isListening = true
-                statusText = "جاري فتح الميكروفون..."
+                statusText = if (isArUi) "جاري فتح الميكروفون..." else "Starting microphone..."
             } else {
-                statusText = "خدمة التعرف غير متوفرة، اختر من العبارات"
+                statusText = if (isArUi) "خدمة التعرف غير متوفرة، اختر من العبارات" else "Speech service unavailable, pick a phrase"
             }
         } catch (e: Exception) {
             isListening = false
-            statusText = "اضغط على المايك للتحدث أو اختر عبارة"
+            statusText = if (isArUi) "اضغط على المايك للتحدث أو اختر عبارة" else "Tap mic to speak or pick a phrase"
         }
     }
 
@@ -2617,9 +2709,9 @@ fun VoiceInputView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(230.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .padding(12.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -2634,19 +2726,18 @@ fun VoiceInputView(
                     imageVector = Icons.Default.Mic,
                     contentDescription = null,
                     tint = Color(theme.accentColor),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = AppStrings.tr("ui_keyboard_sub_views_047"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_047"),
                     color = textColor,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Language toggle (عربي / English)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color(theme.keyBackgroundColor),
@@ -2657,7 +2748,7 @@ fun VoiceInputView(
                     }
                 ) {
                     Text(
-                        text = if (voiceLangArabic) "🇸🇦 عربي" else "🇺🇸 EN",
+                        text = if (voiceLangArabic) (if (isArUi) "🇸🇦 عربي" else "🇸🇦 AR") else "🇺🇸 EN",
                         color = Color(theme.accentColor),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -2669,7 +2760,7 @@ fun VoiceInputView(
 
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(26.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                         .clickable(onClick = {
@@ -2680,9 +2771,9 @@ fun VoiceInputView(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"),
                         tint = Color.White,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -2691,11 +2782,11 @@ fun VoiceInputView(
         // Animated Mic & Status
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = 4.dp)
+            modifier = Modifier.padding(vertical = 2.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size((56 * pulseScale).dp)
+                    .size((46 * pulseScale).dp)
                     .clip(CircleShape)
                     .background(
                         if (isListening) Color(theme.accentColor).copy(alpha = 0.25f)
@@ -2714,22 +2805,22 @@ fun VoiceInputView(
             ) {
                 Icon(
                     imageVector = if (isListening) Icons.Default.Mic else Icons.Outlined.MicNone,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_048"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_048"),
                     tint = if (isListening) Color(theme.accentColor) else (if (isLight) Color(0xFF0F172A) else Color.White),
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = statusText,
                 color = if (isListening) Color(theme.accentColor) else subTextColor,
-                fontSize = 11.sp,
+                fontSize = 10.5.sp,
                 fontWeight = FontWeight.Medium
             )
 
             if (!hasAudioPermission) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color(0xFFEF4444),
@@ -2738,7 +2829,7 @@ fun VoiceInputView(
                             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (voiceLangArabic) "ar-SA" else "en-US")
-                                putExtra(RecognizerIntent.EXTRA_PROMPT, "تحدث الآن للإدخال الصوتي...")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, if (isArUi) "تحدث الآن للإدخال الصوتي..." else "Speak now...")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             context.startActivity(intent)
@@ -2754,21 +2845,21 @@ fun VoiceInputView(
                     }
                 ) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_049"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_049"),
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
 
             if (recognizedText.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = "\"$recognizedText\"",
                     color = textColor,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     textAlign = TextAlign.Center
@@ -2778,7 +2869,7 @@ fun VoiceInputView(
 
         // Quick phrases chips + Actions
         Column(modifier = Modifier.fillMaxWidth()) {
-            val samplePhrases = if (isArabic) {
+            val samplePhrases = if (voiceLangArabic) {
                 listOf("السلام عليكم", "مرحباً كيف حالك", "شكراً جزيلاً", "تمام الحمد لله", "أنا في الطريق")
             } else {
                 listOf("Hello there", "How are you doing?", "Thank you very much", "I will be there soon", "Sounds good")
@@ -2799,21 +2890,20 @@ fun VoiceInputView(
                                 onInsertText(phrase + " ")
                                 onClose()
                             }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = phrase,
                             color = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2823,11 +2913,12 @@ fun VoiceInputView(
                         stopListening()
                         onClose()
                     },
-                    modifier = Modifier.weight(1f).height(38.dp),
+                    modifier = Modifier.weight(1f).height(34.dp),
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, Color(theme.borderColor))
+                    border = BorderStroke(1.dp, Color(theme.borderColor)),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                 ) {
-                    Text(AppStrings.tr("ui_settings_screen_020"), color = subTextColor, fontSize = 12.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_020"), color = subTextColor, fontSize = 11.5.sp)
                 }
 
                 Button(
@@ -2843,13 +2934,14 @@ fun VoiceInputView(
                         containerColor = Color(theme.accentColor),
                         disabledContainerColor = Color(theme.accentColor).copy(alpha = 0.3f)
                     ),
-                    modifier = Modifier.weight(1.5f).height(38.dp),
-                    shape = RoundedCornerShape(8.dp)
+                    modifier = Modifier.weight(1.5f).height(34.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_050"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_050"),
                         color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -2865,11 +2957,16 @@ fun VoiceInputView(
 fun QuickSettingsView(
     theme: KeyboardTheme,
     settings: KeyboardSettings,
+    keyboardHeight: Dp = 235.dp,
+    appLanguageCode: String = "auto",
     onUpdateSettings: (KeyboardSettings) -> Unit,
     onOpenFullSettings: () -> Unit,
     onCustomizeToolbar: () -> Unit = {},
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
     val textColor = if (isLight) Color(0xFF0F172A) else Color.White
     val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
@@ -2879,7 +2976,7 @@ fun QuickSettingsView(
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val dialogHeight = if (isLandscape) (configuration.screenHeightDp * 0.88f).dp else 295.dp
+    val dialogHeight = if (isLandscape) (configuration.screenHeightDp * 0.72f).dp.coerceAtLeast(155.dp) else keyboardHeight.coerceAtLeast(215.dp)
 
     Column(
         modifier = Modifier
@@ -2899,19 +2996,19 @@ fun QuickSettingsView(
                     imageVector = Icons.Outlined.Settings,
                     contentDescription = null,
                     tint = accentCol,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = AppStrings.tr("ui_keyboard_sub_views_051"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_051"),
                     color = textColor,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
@@ -2919,9 +3016,9 @@ fun QuickSettingsView(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"),
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
         }
@@ -2934,11 +3031,10 @@ fun QuickSettingsView(
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // 0. إظهار / إخفاء شريط الأدوات العلوي (Toolbar)
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_settings_screen_031"),
-                    subtitle = AppStrings.tr("ui_settings_screen_032"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_034"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_035"),
                     icon = Icons.Outlined.Dashboard,
                     checked = settings.toolbarEnabled,
                     accentColor = accentCol,
@@ -2950,7 +3046,6 @@ fun QuickSettingsView(
                 )
             }
 
-            // 1. صوت المفاتيح ونوع الصوت ومستوى الصوت (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -2969,8 +3064,8 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.VolumeUp, contentDescription = null, tint = if (settings.soundEnabled) accentCol else subTextColor, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(AppStrings.trf("ui_keyboard_sub_views_052", (settings.soundVolume * 100).toInt()), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                Text(AppStrings.tr("ui_keyboard_sub_views_053"), color = subTextColor, fontSize = 9.sp)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_052", (settings.soundVolume * 100).toInt()), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_053"), color = subTextColor, fontSize = 9.sp)
                             }
                         }
                         Switch(
@@ -2990,7 +3085,7 @@ fun QuickSettingsView(
                             },
                             valueRange = 0.10f..1.0f,
                             colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
-                            modifier = Modifier.fillMaxWidth().height(26.dp)
+                            modifier = Modifier.fillMaxWidth().height(24.dp)
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -3037,7 +3132,7 @@ fun QuickSettingsView(
                                     }
                                 ) {
                                     Text(
-                                        text = prof.nameAr,
+                                        text = if (isArUi) prof.nameAr else prof.nameEn,
                                         color = if (isSel) Color.Black else textColor,
                                         fontSize = 9.5.sp,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
@@ -3050,7 +3145,6 @@ fun QuickSettingsView(
                 }
             }
 
-            // 1.1 سرعة الكتابة واستجابة الأزرار (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -3069,13 +3163,13 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.Speed, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(AppStrings.trf("ui_keyboard_sub_views_054", settings.keyRepeatSpeedMs), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_054", settings.keyRepeatSpeedMs), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                 Text(
                                     when (settings.typingSpeedMode) {
-                                        "fast" -> "⚡ فائق السرعة واستجابة فورية"
-                                        "smooth" -> "👌 خفيف وثقيل متزن (مثل كيبورد الفيديو)"
-                                        "slow" -> "🧘 هادئ وثقيل لعدم الخطأ"
-                                        else -> "🍏 متوسط متوازن ومريح"
+                                        "fast" -> AppStrings.trCode(context, appLanguageCode, "preset_ultra_fast")
+                                        "smooth" -> AppStrings.trCode(context, appLanguageCode, "preset_fast")
+                                        "slow" -> AppStrings.trCode(context, appLanguageCode, "preset_calm")
+                                        else -> AppStrings.trCode(context, appLanguageCode, "preset_medium")
                                     },
                                     color = accentCol,
                                     fontSize = 9.sp,
@@ -3106,16 +3200,16 @@ fun QuickSettingsView(
                         },
                         valueRange = 10f..100f,
                         colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
-                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                        modifier = Modifier.fillMaxWidth().height(24.dp)
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Triple("⚡ فائق 15ms", "fast", Pair(15, 180)),
-                            Triple("👌 سريع 25ms", "fast", Pair(25, 220)),
-                            Triple("🍏 متوازن 45ms", "medium", Pair(45, 340)),
-                            Triple("🧘 هادئ 75ms", "slow", Pair(75, 480))
+                            Triple("${AppStrings.trCode(context, appLanguageCode, "preset_ultra_fast")} 15ms", "fast", Pair(15, 180)),
+                            Triple("${AppStrings.trCode(context, appLanguageCode, "preset_fast")} 25ms", "fast", Pair(25, 220)),
+                            Triple("${AppStrings.trCode(context, appLanguageCode, "preset_medium")} 45ms", "medium", Pair(45, 340)),
+                            Triple("${AppStrings.trCode(context, appLanguageCode, "preset_calm")} 75ms", "slow", Pair(75, 480))
                         ).forEach { (lbl, mode, timings) ->
                             val isSel = kotlin.math.abs(settings.keyRepeatSpeedMs - timings.first) < 6
                             Surface(
@@ -3134,8 +3228,8 @@ fun QuickSettingsView(
                                     KeyboardSoundEngine.playKeySound(settings.soundProfile, settings.soundVolume)
                                 }
                             ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 5.dp)) {
-                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 5.dp, horizontal = 2.dp)) {
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }
@@ -3143,7 +3237,6 @@ fun QuickSettingsView(
                 }
             }
 
-            // 2. اهتزاز المفاتيح اللمسي (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -3162,8 +3255,8 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.Vibration, contentDescription = null, tint = if (settings.vibrationEnabled) accentCol else subTextColor, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(AppStrings.trf("ui_keyboard_sub_views_055", settings.vibrationDurationMs), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                Text(AppStrings.tr("ui_keyboard_sub_views_056"), color = subTextColor, fontSize = 9.sp)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_055", settings.vibrationDurationMs), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_056"), color = subTextColor, fontSize = 9.sp)
                             }
                         }
                         Switch(
@@ -3183,16 +3276,16 @@ fun QuickSettingsView(
                             },
                             valueRange = 5f..100f,
                             colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
-                            modifier = Modifier.fillMaxWidth().height(26.dp)
+                            modifier = Modifier.fillMaxWidth().height(24.dp)
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             listOf(
-                                Pair("خفيف 15ms", 15),
-                                Pair("متوسط 30ms", 30),
-                                Pair("قوي 55ms", 55),
-                                Pair("فائق 85ms", 85)
+                                Pair("${AppStrings.trCode(context, appLanguageCode, "vib_light")} 15ms", 15),
+                                Pair("${AppStrings.trCode(context, appLanguageCode, "vib_medium")} 30ms", 30),
+                                Pair("${AppStrings.trCode(context, appLanguageCode, "vib_strong")} 55ms", 55),
+                                Pair("85ms", 85)
                             ).forEach { (lbl, dur) ->
                                 val isSel = kotlin.math.abs(settings.vibrationDurationMs - dur) < 6
                                 Surface(
@@ -3204,7 +3297,7 @@ fun QuickSettingsView(
                                     }
                                 ) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                                        Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                        Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                     }
                                 }
                             }
@@ -3213,7 +3306,6 @@ fun QuickSettingsView(
                 }
             }
 
-            // 2.1 ارتفاع الكيبورد وحجم المفاتيح المباشر
             item {
                 Column(
                     modifier = Modifier
@@ -3232,8 +3324,8 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.Tune, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(AppStrings.trf("ui_keyboard_sub_views_057", (settings.keyHeightFactor * 100).toInt()), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                Text(AppStrings.tr("ui_keyboard_sub_views_058"), color = subTextColor, fontSize = 9.sp)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_057", (settings.keyHeightFactor * 100).toInt()), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_058"), color = subTextColor, fontSize = 9.sp)
                             }
                         }
                     }
@@ -3243,16 +3335,16 @@ fun QuickSettingsView(
                         onValueChange = { onUpdateSettings(settings.copy(keyHeightFactor = it)) },
                         valueRange = 0.60f..1.70f,
                         colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
-                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                        modifier = Modifier.fillMaxWidth().height(24.dp)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Pair("صغير 60%", 0.60f),
+                            Pair(AppStrings.trCode(context, appLanguageCode, "key_height_preset_compact"), 0.70f),
                             Pair("85%", 0.85f),
                             Pair("100%", 1.0f),
                             Pair("130%", 1.30f),
-                            Pair("عملاق 170%", 1.70f)
+                            Pair(AppStrings.trCode(context, appLanguageCode, "key_height_preset_xl"), 1.60f)
                         ).forEach { (lbl, factor) ->
                             val isSel = kotlin.math.abs(settings.keyHeightFactor - factor) < 0.05f
                             Surface(
@@ -3263,7 +3355,7 @@ fun QuickSettingsView(
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }
@@ -3271,7 +3363,6 @@ fun QuickSettingsView(
                 }
             }
 
-            // 2.2 حجم خط الحروف والرموز (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -3290,8 +3381,8 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.FormatSize, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(AppStrings.trf("ui_keyboard_sub_views_059", (settings.keyFontSizeFactor * 100).toInt()), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                Text(AppStrings.tr("ui_keyboard_sub_views_060"), color = subTextColor, fontSize = 9.sp)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_059", (settings.keyFontSizeFactor * 100).toInt()), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_060"), color = subTextColor, fontSize = 9.sp)
                             }
                         }
                     }
@@ -3301,15 +3392,15 @@ fun QuickSettingsView(
                         onValueChange = { onUpdateSettings(settings.copy(keyFontSizeFactor = it)) },
                         valueRange = 0.75f..1.35f,
                         colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
-                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                        modifier = Modifier.fillMaxWidth().height(24.dp)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Pair("صغير 85%", 0.85f),
-                            Pair("طبيعي 100%", 1.0f),
-                            Pair("واضح 115%", 1.15f),
-                            Pair("كبير 130%", 1.30f)
+                            Pair("85%", 0.85f),
+                            Pair("100%", 1.0f),
+                            Pair("115%", 1.15f),
+                            Pair("130%", 1.30f)
                         ).forEach { (lbl, factor) ->
                             val isSel = kotlin.math.abs(settings.keyFontSizeFactor - factor) < 0.04f
                             Surface(
@@ -3329,7 +3420,6 @@ fun QuickSettingsView(
                 }
             }
 
-            // 2.3 سرعة سحب وتنقل الحروف العائمة (مع شريط تحكم سلايدر مستمر)
             item {
                 Column(
                     modifier = Modifier
@@ -3348,8 +3438,8 @@ fun QuickSettingsView(
                             Icon(Icons.Outlined.TouchApp, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(AppStrings.trf("ui_keyboard_sub_views_061", settings.floatingNavSpeed), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                Text(AppStrings.tr("ui_keyboard_sub_views_062"), color = subTextColor, fontSize = 9.sp)
+                                Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_061", settings.floatingNavSpeed), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_062"), color = subTextColor, fontSize = 9.sp)
                             }
                         }
                     }
@@ -3362,15 +3452,15 @@ fun QuickSettingsView(
                         valueRange = 1f..10f,
                         steps = 8,
                         colors = SliderDefaults.colors(thumbColor = accentCol, activeTrackColor = accentCol),
-                        modifier = Modifier.fillMaxWidth().height(26.dp)
+                        modifier = Modifier.fillMaxWidth().height(24.dp)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
-                            Pair("1 بطيء", 1),
-                            Pair("4 متزن", 4),
-                            Pair("7 سريع", 7),
-                            Pair("10 فائق", 10)
+                            Pair("1 (${AppStrings.trCode(context, appLanguageCode, "preset_calm")})", 1),
+                            Pair("4 (${AppStrings.trCode(context, appLanguageCode, "preset_comfortable")})", 4),
+                            Pair("7 (${AppStrings.trCode(context, appLanguageCode, "preset_fast")})", 7),
+                            Pair("10 (${AppStrings.trCode(context, appLanguageCode, "preset_ultra_fast")})", 10)
                         ).forEach { (lbl, spd) ->
                             val isSel = settings.floatingNavSpeed == spd
                             Surface(
@@ -3382,7 +3472,7 @@ fun QuickSettingsView(
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                    Text(lbl, color = if (isSel) Color.Black else textColor, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }
@@ -3390,11 +3480,10 @@ fun QuickSettingsView(
                 }
             }
 
-            // 3. معاينة الحرف عند اللمس
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_063"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_064"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_063"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_064"),
                     icon = Icons.Outlined.ZoomIn,
                     checked = settings.keyPopupEnabled,
                     accentColor = accentCol,
@@ -3406,11 +3495,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 4. صف الأرقام العلوي
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_065"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_066"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_065"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_066"),
                     icon = Icons.Outlined.Pin,
                     checked = settings.numberRowEnabled,
                     accentColor = accentCol,
@@ -3422,11 +3510,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 4.1 تثبيت الأرقام الإنجليزية 123
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_settings_screen_005"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_067"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_028"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_067"),
                     icon = Icons.Outlined.Pin,
                     checked = settings.forceEnglishNumbers,
                     accentColor = accentCol,
@@ -3438,11 +3525,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5. شريط الاقتراحات والإكمال الذكي
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_068"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_069"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_068"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_069"),
                     icon = Icons.Outlined.AutoFixHigh,
                     checked = settings.suggestionsEnabled,
                     accentColor = accentCol,
@@ -3454,7 +3540,6 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5.2 هوامش الكيبورد المريحة (Side & Bottom Margins)
             item {
                 Column(
                     modifier = Modifier
@@ -3468,12 +3553,12 @@ fun QuickSettingsView(
                         Icon(Icons.Outlined.AspectRatio, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(AppStrings.trf("ui_keyboard_sub_views_070", settings.sideMarginDp, settings.bottomMarginDp), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text(AppStrings.tr("ui_keyboard_sub_views_071"), color = subTextColor, fontSize = 9.sp)
+                            Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_070", settings.sideMarginDp, settings.bottomMarginDp), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_071"), color = subTextColor, fontSize = 9.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(AppStrings.trf("ui_keyboard_sub_views_072", settings.sideMarginDp), color = textColor, fontSize = 10.sp)
+                    Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_072", settings.sideMarginDp), color = textColor, fontSize = 10.sp)
                     Slider(
                         value = settings.sideMarginDp.toFloat(),
                         onValueChange = { onUpdateSettings(settings.copy(sideMarginDp = it.toInt())) },
@@ -3482,7 +3567,7 @@ fun QuickSettingsView(
                         modifier = Modifier.fillMaxWidth().height(24.dp)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(AppStrings.trf("ui_keyboard_sub_views_073", settings.bottomMarginDp), color = textColor, fontSize = 10.sp)
+                    Text(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_073", settings.bottomMarginDp), color = textColor, fontSize = 10.sp)
                     Slider(
                         value = settings.bottomMarginDp.toFloat(),
                         onValueChange = { onUpdateSettings(settings.copy(bottomMarginDp = it.toInt())) },
@@ -3493,11 +3578,10 @@ fun QuickSettingsView(
                 }
             }
 
-            // 5.3 رموز سامسونج الثانوية
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_074"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_075"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_074"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_075"),
                     icon = Icons.Outlined.Layers,
                     checked = settings.samsungStyleHints,
                     accentColor = accentCol,
@@ -3509,11 +3593,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5.4 استبدال صف الأرقام بصف الإيموجي
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_076"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_077"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_076"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_077"),
                     icon = Icons.Outlined.EmojiEmotions,
                     checked = settings.replaceNumberRowWithEmojis,
                     accentColor = accentCol,
@@ -3525,11 +3608,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5.5 كيبورد الأجهزة اللوحية المنقسم (Split Keyboard)
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_078"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_079"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_078"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_079"),
                     icon = Icons.Outlined.ViewWeek,
                     checked = settings.isSplitKeyboard,
                     accentColor = accentCol,
@@ -3541,11 +3623,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5.6 الكيبورد العائم المصغر (Floating Keyboard)
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_080"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_081"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_080"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_081"),
                     icon = Icons.Outlined.PictureInPicture,
                     checked = settings.isFloatingKeyboard,
                     accentColor = accentCol,
@@ -3557,11 +3638,10 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5.7 لوحة الآلة الحاسبة 123
             item {
                 QuickSettingToggleRow(
-                    title = AppStrings.tr("ui_keyboard_sub_views_082"),
-                    subtitle = AppStrings.tr("ui_keyboard_sub_views_083"),
+                    title = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_082"),
+                    subtitle = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_083"),
                     icon = Icons.Outlined.Calculate,
                     checked = settings.calculatorNumpadMode,
                     accentColor = accentCol,
@@ -3573,10 +3653,8 @@ fun QuickSettingsView(
                 )
             }
 
-            // 5.8 النسخ الاحتياطي السحابي وتصدير/استيراد الإعدادات JSON
             item {
                 var syncFeedbackMessage by remember { mutableStateOf("") }
-                val context = androidx.compose.ui.platform.LocalContext.current
                 val prefs = remember { PreferencesManager(context) }
 
                 Column(
@@ -3591,8 +3669,8 @@ fun QuickSettingsView(
                         Icon(Icons.Outlined.CloudSync, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(AppStrings.tr("ui_keyboard_sub_views_084"), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text(AppStrings.tr("ui_keyboard_sub_views_085"), color = subTextColor, fontSize = 9.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_084"), color = textColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_085"), color = subTextColor, fontSize = 9.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -3602,14 +3680,14 @@ fun QuickSettingsView(
                                 val json = prefs.exportShortcutsJson()
                                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                                 cm?.setPrimaryClip(ClipData.newPlainText("TurboKeyboardBackup", json))
-                                syncFeedbackMessage = "✓ تم نسخ بياناتك بصيغة JSON إلى الحافظة"
+                                syncFeedbackMessage = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_113")
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentCol),
                             shape = RoundedCornerShape(6.dp),
                             modifier = Modifier.weight(1f).height(30.dp),
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                         ) {
-                            Text(AppStrings.tr("ui_keyboard_sub_views_086"), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_086"), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         Button(
                             onClick = {
@@ -3617,9 +3695,13 @@ fun QuickSettingsView(
                                 val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
                                 if (clip.startsWith("{") || clip.startsWith("[")) {
                                     val success = prefs.importShortcutsJson(clip)
-                                    syncFeedbackMessage = if (success) "✓ تم استيراد الإعدادات بنجاح" else "صيغة JSON غير صالحة"
+                                    syncFeedbackMessage = if (success) {
+                                        AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_122")
+                                    } else {
+                                        AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_123")
+                                    }
                                 } else {
-                                    syncFeedbackMessage = "يرجى نسخ نص JSON أولاً إلى الحافظة"
+                                    syncFeedbackMessage = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_121")
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF1E2838)),
@@ -3627,7 +3709,7 @@ fun QuickSettingsView(
                             modifier = Modifier.weight(1f).height(30.dp),
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                         ) {
-                            Text(AppStrings.tr("ui_keyboard_sub_views_087"), color = textColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_087"), color = textColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     if (syncFeedbackMessage.isNotEmpty()) {
@@ -3637,7 +3719,6 @@ fun QuickSettingsView(
                 }
             }
 
-            // 6. تخصيص شريط الأدوات العلوي
             item {
                 Row(
                     modifier = Modifier
@@ -3653,18 +3734,17 @@ fun QuickSettingsView(
                         Icon(Icons.Outlined.Tune, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(AppStrings.tr("ui_keyboard_sub_views_088"), color = textColor, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
-                            Text(AppStrings.tr("ui_keyboard_sub_views_089"), color = subTextColor, fontSize = 9.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_088"), color = textColor, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_089"), color = subTextColor, fontSize = 9.sp)
                         }
                     }
-                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = accentCol, modifier = Modifier.size(16.dp))
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = accentCol, modifier = Modifier.size(18.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Full Settings Launcher Button
         Button(
             onClick = {
                 onOpenFullSettings()
@@ -3674,12 +3754,13 @@ fun QuickSettingsView(
                 containerColor = accentCol
             ),
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().height(36.dp)
+            modifier = Modifier.fillMaxWidth().height(34.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
         ) {
             Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = AppStrings.tr("ui_keyboard_sub_views_090"),
+                text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_090"),
                 color = Color.Black,
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold
@@ -3754,9 +3835,14 @@ private fun QuickSettingToggleRow(
 @Composable
 fun DecoratedPhrasesView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onPhraseSelected: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     val categories = com.example.data.DecoratedPhrasesData.categories
     var selectedCatId by remember { mutableStateOf(categories.first().id) }
     val currentCategory = categories.find { it.id == selectedCatId } ?: categories.first()
@@ -3769,15 +3855,15 @@ fun DecoratedPhrasesView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
         // Top Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp)
+                .height(36.dp)
                 .background(headerBg, RoundedCornerShape(8.dp))
                 .border(1.dp, Color(theme.borderColor).copy(alpha = if (isLight) 0.8f else 0.4f), RoundedCornerShape(8.dp))
                 .padding(horizontal = 8.dp),
@@ -3800,7 +3886,7 @@ fun DecoratedPhrasesView(
                         border = if (isSelected) BorderStroke(1.dp, Color(theme.accentColor)) else null
                     ) {
                         Text(
-                            text = AppStrings.trf("ui_keyboard_sub_views_091", cat.icon, cat.nameAr),
+                            text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_091", cat.icon, cat.getDisplayName(isArUi)),
                             color = if (isSelected) Color(theme.accentColor) else unselectedTextColor,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -3812,24 +3898,24 @@ fun DecoratedPhrasesView(
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Phrases Grid
         androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
             columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(currentCategory.phrases.size) { idx ->
                 val phrase = currentCategory.phrases[idx]
@@ -3845,13 +3931,13 @@ fun DecoratedPhrasesView(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = phrase,
                             color = if (isKeyLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
@@ -3866,6 +3952,8 @@ fun DecoratedPhrasesView(
 @Composable
 fun CalculatorPadView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onInsertText: (String) -> Unit,
     onClose: () -> Unit
 ) {
@@ -3892,7 +3980,7 @@ fun CalculatorPadView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
@@ -3900,7 +3988,7 @@ fun CalculatorPadView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(44.dp)
+                .height(38.dp)
                 .background(screenBg, RoundedCornerShape(8.dp))
                 .border(1.dp, Color(theme.borderColor).copy(alpha = if (isLight) 0.8f else 0.4f), RoundedCornerShape(8.dp))
                 .padding(horizontal = 10.dp),
@@ -3909,53 +3997,53 @@ fun CalculatorPadView(
         ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = expression.ifEmpty { "0" },
                     color = screenTextColor,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
                 if (result.isNotEmpty()) {
                     Text(
-                        text = AppStrings.trf("ui_keyboard_sub_views_092", result),
+                        text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_092", result),
                         color = Color(theme.accentColor),
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        // Actions Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            if (result.isNotEmpty()) {
+        if (result.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Button(
                     onClick = {
                         onInsertText(result)
                         onClose()
                     },
-                    modifier = Modifier.weight(1f).height(32.dp),
+                    modifier = Modifier.weight(1f).height(28.dp),
                     shape = RoundedCornerShape(6.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 1.dp)
                 ) {
                     Text(
-                        "إدراج الناتج ($result)",
+                        AppStrings.trfCode(context, appLanguageCode, "calc_insert_result", result),
                         color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
@@ -3964,20 +4052,19 @@ fun CalculatorPadView(
 
                 OutlinedButton(
                     onClick = {
-                        onInsertText(AppStrings.trf(context, "ui_keyboard_sub_views_093", expression, result))
+                        onInsertText(AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_093", expression, result))
                         onClose()
                     },
-                    modifier = Modifier.weight(1f).height(32.dp),
-                    shape = RoundedCornerShape(6.dp)
+                    modifier = Modifier.weight(1f).height(28.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 1.dp)
                 ) {
-                    Text(AppStrings.tr("ui_keyboard_sub_views_094"), color = Color(theme.accentColor), fontSize = 10.sp)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_094"), color = Color(theme.accentColor), fontSize = 10.sp)
                 }
             }
+            Spacer(modifier = Modifier.height(3.dp))
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Calc grid
         val buttons = listOf(
             listOf("C", "(", ")", "÷"),
             listOf("7", "8", "9", "×"),
@@ -3986,65 +4073,70 @@ fun CalculatorPadView(
             listOf("0", ".", "=", "⌫")
         )
 
-        buttons.forEach { row ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                row.forEach { btn ->
-                    val isOp = btn in listOf("÷", "×", "-", "+", "=")
-                    val isAction = btn in listOf("C", "⌫")
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clickable {
-                                when (btn) {
-                                    "C" -> {
-                                        expression = ""
-                                        result = ""
-                                    }
-                                    "⌫" -> {
-                                        if (expression.isNotEmpty()) {
-                                            expression = expression.dropLast(1)
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            buttons.forEach { row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    row.forEach { btn ->
+                        val isOp = btn in listOf("÷", "×", "-", "+", "=")
+                        val isAction = btn in listOf("C", "⌫")
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable {
+                                    when (btn) {
+                                        "C" -> {
+                                            expression = ""
+                                            result = ""
+                                        }
+                                        "⌫" -> {
+                                            if (expression.isNotEmpty()) {
+                                                expression = expression.dropLast(1)
+                                                result = evaluate(expression)
+                                            }
+                                        }
+                                        "=" -> {
+                                            if (expression.isNotEmpty()) {
+                                                result = evaluate(expression)
+                                                if (result.isNotEmpty()) expression = result
+                                            }
+                                        }
+                                        else -> {
+                                            expression += btn
                                             result = evaluate(expression)
                                         }
                                     }
-                                    "=" -> {
-                                        if (expression.isNotEmpty()) {
-                                            result = evaluate(expression)
-                                            if (result.isNotEmpty()) expression = result
-                                        }
-                                    }
-                                    else -> {
-                                        expression += btn
-                                        result = evaluate(expression)
-                                    }
-                                }
-                            },
-                        shape = RoundedCornerShape(6.dp),
-                        color = when {
-                            btn == "=" -> Color(theme.enterButtonColor)
-                            isOp -> if (isKeyLight) Color(theme.keyPressedColor) else Color(0xFF1E2838)
-                            isAction -> if (isKeyLight) Color(0xFFFFEBEE) else Color(0xFF2D1820)
-                            else -> Color(theme.keyBackgroundColor)
-                        },
-                        border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.5f))
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = btn,
-                                color = when {
-                                    btn == "=" -> if (isLightColor(theme.enterButtonColor)) Color(0xFF0F172A) else Color.White
-                                    isOp -> Color(theme.accentColor)
-                                    isAction -> Color(0xFFFF5252)
-                                    else -> if (isKeyLight) Color(0xFF0F172A) else Color(theme.keyTextColor)
                                 },
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            shape = RoundedCornerShape(6.dp),
+                            color = when {
+                                btn == "=" -> Color(theme.enterButtonColor)
+                                isOp -> if (isKeyLight) Color(theme.keyPressedColor) else Color(0xFF1E2838)
+                                isAction -> if (isKeyLight) Color(0xFFFFEBEE) else Color(0xFF2D1820)
+                                else -> Color(theme.keyBackgroundColor)
+                            },
+                            border = BorderStroke(0.8.dp, Color(theme.borderColor).copy(alpha = 0.5f))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = btn,
+                                    color = when {
+                                        btn == "=" -> if (isLightColor(theme.enterButtonColor)) Color(0xFF0F172A) else Color.White
+                                        isOp -> Color(theme.accentColor)
+                                        isAction -> Color(0xFFFF5252)
+                                        else -> if (isKeyLight) Color(0xFF0F172A) else Color(theme.keyTextColor)
+                                    },
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -4116,37 +4208,47 @@ data class ToolbarToolDefinition(
     val id: String,
     val nameAr: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val description: String
-)
+    val description: String,
+    val nameEn: String = "",
+    val descriptionEn: String = ""
+) {
+    fun getDisplayName(isAr: Boolean): String = if (isAr) nameAr else nameEn.ifBlank { nameAr }
+    fun getDisplayDescription(isAr: Boolean): String = if (isAr) description else descriptionEn.ifBlank { description }
+}
 
 val allKeyboardToolbarTools = listOf(
-    ToolbarToolDefinition("stickers", "ملصقات وستيكرات", Icons.Outlined.AutoAwesomeMosaic, "تصميم وإرسال الملصقات العربية الجاهزة والمصممة"),
-    ToolbarToolDefinition("my_stickers", "ملصقاتي الخاصة", Icons.Outlined.PhotoFilter, "استعراض وتصميم ملصقاتك الخاصة وحفظها"),
-    ToolbarToolDefinition("translate", "ترجمة فورية", Icons.Default.Translate, "ترجمة فورية للنصوص بجميع لغات العالم"),
-    ToolbarToolDefinition("clipboard", "حافظة النصوص", Icons.Outlined.ContentPaste, "حفظ النصوص المنسوخة والرجوع لها للأبد"),
-    ToolbarToolDefinition("english_numbers", "أرقام إنجليزية 123", Icons.Outlined.Pin, "تثبيت الأرقام الإنجليزية (123) حتى مع اللغة العربية"),
-    ToolbarToolDefinition("decoration", "زخرفة النصوص", Icons.Outlined.AutoAwesome, "زخرفة الكلمات والخطوط والعبارات الحية"),
-    ToolbarToolDefinition("phrases", "كليشات وعبارات", Icons.Outlined.FavoriteBorder, "عبارات ترحيب وإسلامية ونصوص جاهزة"),
-    ToolbarToolDefinition("calculator", "آلة حاسبة", Icons.Outlined.Calculate, "حاسبة رياضية فورية وكتابة النتيجة"),
-    ToolbarToolDefinition("emoji", "لوحة الإيموجي", Icons.Outlined.Mood, "إيموجي آيفون وأندرويد وقسم المستعملة"),
-    ToolbarToolDefinition("voice", "كتابة صوتية", Icons.Default.Mic, "تحويل الصوت المباشر إلى نصوص مكتوبة"),
-    ToolbarToolDefinition("tts", "قراءة النص بصوت", Icons.Outlined.VolumeUp, "اقرأ النص بصوت الجوال والناطق الصوتي"),
-    ToolbarToolDefinition("pass", "Keyboard Pass", Icons.Outlined.Password, "حفظ وتعبئة كلمات المرور والآيبان والبطاقات"),
-    ToolbarToolDefinition("ai", "AI Keyboard ذكاء اصطناعي", Icons.Outlined.AutoFixHigh, "صحّح وأعد الصياغة وترجم واكتب بالذكاء"),
-    ToolbarToolDefinition("photos", "صور وملصقات", Icons.Outlined.PhotoLibrary, "ملصقات وستيكرات وصور مجهزة"),
-    ToolbarToolDefinition("gif", "Kaomoji و GIF", Icons.Outlined.Gif, "فيسات يابانية وصور متحركة سريعة"),
-    ToolbarToolDefinition("quick_actions", "أدوات الأحرف (مسح، قراءة، لصق)", Icons.Outlined.FormatListBulleted, "إظهار أو حذف شريط الأدوات فوق الأحرف مباشرة"),
-    ToolbarToolDefinition("reset_settings", "استعادة الإعدادات الأصلية", Icons.Outlined.RestartAlt, "استعادة الإعدادات الافتراضية للكيبورد بضغطة واحدة"),
-    ToolbarToolDefinition("settings", "إعدادات التطبيق", Icons.Outlined.Settings, "الوصول السريع لكافة تخصيصات الكيبورد")
+    ToolbarToolDefinition("stickers", "ملصقات وستيكرات", Icons.Outlined.AutoAwesomeMosaic, "تصميم وإرسال الملصقات العربية الجاهزة والمصممة", "Stickers & Packs", "Design and send ready-made & custom stickers"),
+    ToolbarToolDefinition("my_stickers", "ملصقاتي الخاصة", Icons.Outlined.PhotoFilter, "استعراض وتصميم ملصقاتك الخاصة وحفظها", "My Stickers", "Browse, create, and save custom stickers"),
+    ToolbarToolDefinition("translate", "ترجمة فورية", Icons.Default.Translate, "ترجمة فورية للنصوص بجميع لغات العالم", "Instant Translate", "Translate text in real time across world languages"),
+    ToolbarToolDefinition("clipboard", "حافظة النصوص", Icons.Outlined.ContentPaste, "حفظ النصوص المنسوخة والرجوع لها للأبد", "Clipboard", "Save copied clips forever and pin favorites"),
+    ToolbarToolDefinition("english_numbers", "أرقام إنجليزية 123", Icons.Outlined.Pin, "تثبيت الأرقام الإنجليزية (123) حتى مع اللغة العربية", "Western Digits 123", "Always type Western 123 digits with Arabic layout"),
+    ToolbarToolDefinition("decoration", "زخرفة النصوص", Icons.Outlined.AutoAwesome, "زخرفة الكلمات والخطوط والعبارات الحية", "Text Decoration", "Apply stylish fonts and live calligraphy"),
+    ToolbarToolDefinition("phrases", "كليشات وعبارات", Icons.Outlined.FavoriteBorder, "عبارات ترحيب وإسلامية ونصوص جاهزة", "Quick Phrases", "Ready greetings, templates, and decorative phrases"),
+    ToolbarToolDefinition("calculator", "آلة حاسبة", Icons.Outlined.Calculate, "حاسبة رياضية فورية وكتابة النتيجة", "Calculator", "Instant math calculator with direct result insert"),
+    ToolbarToolDefinition("emoji", "لوحة الإيموجي", Icons.Outlined.Mood, "إيموجي آيفون وأندرويد وقسم المستعملة", "Emoji Panel", "Categorized emojis with search and recents"),
+    ToolbarToolDefinition("voice", "كتابة صوتية", Icons.Default.Mic, "تحويل الصوت المباشر إلى نصوص مكتوبة", "Voice Typing", "Convert live speech directly into typed text"),
+    ToolbarToolDefinition("tts", "قراءة النص بصوت", Icons.Outlined.VolumeUp, "اقرأ النص بصوت الجوال والناطق الصوتي", "Read Aloud (TTS)", "Speak typed text using system text-to-speech"),
+    ToolbarToolDefinition("pass", "Keyboard Pass", Icons.Outlined.Password, "حفظ وتعبئة كلمات المرور والآيبان والبطاقات", "Keyboard Pass", "Save and autofill logins, IBANs, and cards"),
+    ToolbarToolDefinition("ai", "AI Keyboard ذكاء اصطناعي", Icons.Outlined.AutoFixHigh, "صحّح وأعد الصياغة وترجم واكتب بالذكاء", "Smart AI Keyboard", "Proofread, rewrite tone, and polish text"),
+    ToolbarToolDefinition("photos", "صور وملصقات", Icons.Outlined.PhotoLibrary, "ملصقات وستيكرات وصور مجهزة", "Photos & Badges", "Quick reaction cards and media stickers"),
+    ToolbarToolDefinition("gif", "Kaomoji و GIF", Icons.Outlined.Gif, "فيسات يابانية وصور متحركة سريعة", "Kaomoji & GIFs", "Expressive kaomoji faces and text reactions"),
+    ToolbarToolDefinition("quick_actions", "أدوات الأحرف (مسح، قراءة، لصق)", Icons.Outlined.FormatListBulleted, "إظهار أو حذف شريط الأدوات فوق الأحرف مباشرة", "Quick Actions Bar", "Toggle quick Clear, Read, Paste, Copy bar"),
+    ToolbarToolDefinition("reset_settings", "استعادة الإعدادات الأصلية", Icons.Outlined.RestartAlt, "استعادة الإعدادات الافتراضية للكيبورد بضغطة واحدة", "Reset Defaults", "Restore factory keyboard settings in one tap"),
+    ToolbarToolDefinition("settings", "إعدادات التطبيق", Icons.Outlined.Settings, "الوصول السريع لكافة تخصيصات الكيبورد", "App Settings", "Quick access to full Turbo Keyboard settings")
 )
 
 @Composable
 fun CustomizeToolbarDrawer(
     theme: KeyboardTheme,
     visibleTools: List<String>,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onUpdateTools: (List<String>) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     val currentSelected = remember(visibleTools) {
         if (visibleTools.isEmpty()) allKeyboardToolbarTools.map { it.id }.toSet()
         else visibleTools.toSet()
@@ -4159,7 +4261,7 @@ fun CustomizeToolbarDrawer(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(265.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
@@ -4178,22 +4280,22 @@ fun CustomizeToolbarDrawer(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = AppStrings.tr("ui_settings_screen_048"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_044"),
                     color = primaryText,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
         }
 
@@ -4204,7 +4306,6 @@ fun CustomizeToolbarDrawer(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Preset 1: شريط مختصر
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(theme.keyBackgroundColor),
@@ -4216,11 +4317,10 @@ fun CustomizeToolbarDrawer(
                     }
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(AppStrings.tr("ui_keyboard_sub_views_095"), color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_095"), color = Color(theme.accentColor), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            // Preset 2: كتابة وترجمة
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(theme.keyBackgroundColor),
@@ -4232,11 +4332,10 @@ fun CustomizeToolbarDrawer(
                     }
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(AppStrings.tr("ui_settings_screen_050"), color = primaryText, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_050"), color = primaryText, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
-            // Preset 3: كامل الأدوات
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(theme.keyBackgroundColor),
@@ -4248,14 +4347,13 @@ fun CustomizeToolbarDrawer(
                     }
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(AppStrings.tr("ui_settings_screen_051"), color = primaryText, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                    Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_051"), color = primaryText, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
-        // Tools List with Checkboxes
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4296,13 +4394,13 @@ fun CustomizeToolbarDrawer(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
-                                    text = tool.nameAr,
+                                    text = tool.getDisplayName(isArUi),
                                     color = if (isChecked) primaryText else secondaryText,
                                     fontSize = 11.5.sp,
                                     fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal
                                 )
                                 Text(
-                                    text = tool.description,
+                                    text = tool.getDisplayDescription(isArUi),
                                     color = secondaryText.copy(alpha = 0.8f),
                                     fontSize = 9.sp
                                 )
@@ -4331,22 +4429,21 @@ fun CustomizeToolbarDrawer(
 @Composable
 fun TelegramChannelsSubView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
     val textColor = if (isLight) Color(0xFF0F172A) else Color.White
-    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF8E9BAE)
-    val accentCol = Color(theme.accentColor)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(255.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -4357,19 +4454,19 @@ fun TelegramChannelsSubView(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
                     tint = Color(0xFF0088CC),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = AppStrings.tr("ui_keyboard_sub_views_096"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_096"),
                     color = textColor,
-                    fontSize = 13.5.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
@@ -4377,16 +4474,15 @@ fun TelegramChannelsSubView(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"),
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Channel 1: Abu Saleh Channel
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4406,21 +4502,21 @@ fun TelegramChannelsSubView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = AppStrings.tr("ui_tools_screen_008"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_tools_screen_008"),
                         color = Color.White,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "t.me/Abu2Saleh",
                         color = Color(0xFF38BDF8),
-                        fontSize = 11.sp
+                        fontSize = 10.5.sp
                     )
                 }
                 Surface(
@@ -4428,19 +4524,18 @@ fun TelegramChannelsSubView(
                     color = Color(0xFF0088CC)
                 ) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_097"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_097"),
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Channel 2: Special / Second Channel
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -4460,21 +4555,21 @@ fun TelegramChannelsSubView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_098"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_098"),
                         color = Color.White,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "t.me/+OWBdNfDNS8MzYzQ0",
                         color = Color(0xFF38BDF8),
-                        fontSize = 11.sp
+                        fontSize = 10.5.sp
                     )
                 }
                 Surface(
@@ -4482,11 +4577,11 @@ fun TelegramChannelsSubView(
                     color = Color(0xFF0088CC)
                 ) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_097"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_097"),
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
@@ -4501,10 +4596,14 @@ fun ThemesPickerDrawer(
     keyboardHeight: Dp,
     allThemes: List<KeyboardTheme>,
     searchQuery: String = "",
+    appLanguageCode: String = "auto",
     onSearchQueryChange: (String) -> Unit = {},
     onThemeSelected: (KeyboardTheme) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     val coroutineScope = rememberCoroutineScope()
     val currentThemeId = theme.id
 
@@ -4523,7 +4622,7 @@ fun ThemesPickerDrawer(
             .fillMaxWidth()
             .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -4539,9 +4638,9 @@ fun ThemesPickerDrawer(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = AppStrings.trf("ui_keyboard_sub_views_099", filteredThemes.size),
+                    text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_099", filteredThemes.size),
                     color = Color(theme.keyTextColor),
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -4555,7 +4654,7 @@ fun ThemesPickerDrawer(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"),
                     tint = Color.White,
                     modifier = Modifier.size(14.dp)
                 )
@@ -4567,10 +4666,10 @@ fun ThemesPickerDrawer(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            placeholder = { Text(AppStrings.tr("ui_keyboard_sub_views_100"), fontSize = 11.sp) },
+            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_100"), fontSize = 11.sp) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp),
+                .height(38.dp),
             shape = RoundedCornerShape(10.dp),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
@@ -4583,7 +4682,7 @@ fun ThemesPickerDrawer(
             )
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         if (isLoading) {
             Box(
@@ -4605,7 +4704,7 @@ fun ThemesPickerDrawer(
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
-                contentPadding = PaddingValues(bottom = 6.dp)
+                contentPadding = PaddingValues(bottom = 4.dp)
             ) {
                 items(filteredThemes, key = { it.id }) { itemTheme ->
                     val isCurrent = itemTheme.id == currentThemeId
@@ -4617,7 +4716,7 @@ fun ThemesPickerDrawer(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(58.dp)
+                            .height(54.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .clickable {
                                 coroutineScope.launch(Dispatchers.IO) {
@@ -4646,7 +4745,7 @@ fun ThemesPickerDrawer(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = itemTheme.nameAr,
+                                    text = if (isArUi) itemTheme.nameAr else itemTheme.nameEn,
                                     color = Color(itemTheme.keyTextColor),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
@@ -4680,7 +4779,7 @@ fun ThemesPickerDrawer(
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(14.dp)
+                                            .height(13.dp)
                                             .clip(RoundedCornerShape(2.dp))
                                             .background(itemKeyBg)
                                     )
@@ -4701,18 +4800,22 @@ fun ThemesPickerDrawer(
 fun TtsSpeechSubView(
     theme: KeyboardTheme,
     currentText: String,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     val ttsEngine = remember { com.example.sound.KeyboardTtsEngine.getInstance(context) }
-    var textToRead by remember { mutableStateOf(currentText.ifBlank { "أهلاً بك في كيبورد تيربو الذكي! يمكنك قراءة أي نص بصوت الجوال الواضح." }) }
+    val defaultTtsPrompt = if (isArUi) "أهلاً بك في كيبورد تيربو الذكي! يمكنك قراءة أي نص بصوت الجوال الواضح." else "Welcome to Turbo Keyboard! Read any typed text aloud clearly."
+    var textToRead by remember(currentText, defaultTtsPrompt) { mutableStateOf(currentText.ifBlank { defaultTtsPrompt }) }
     var speedRate by remember { mutableFloatStateOf(1.0f) }
-    var isArabic by remember { mutableStateOf(true) }
+    var isArabicTts by remember { mutableStateOf(isArUi) }
     var isReading by remember { mutableStateOf(false) }
 
     val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
     val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
 
     DisposableEffect(Unit) {
         onDispose {
@@ -4723,12 +4826,11 @@ fun TtsSpeechSubView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
-            .padding(10.dp),
+            .padding(8.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -4739,20 +4841,20 @@ fun TtsSpeechSubView(
                     imageVector = Icons.Outlined.VolumeUp,
                     contentDescription = null,
                     tint = Color(theme.accentColor),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = AppStrings.tr("ui_keyboard_sub_views_101"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_101"),
                     color = textColor,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = {
@@ -4761,11 +4863,10 @@ fun TtsSpeechSubView(
                     }),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
         }
 
-        // Text Display Box
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = Color(theme.keyBackgroundColor),
@@ -4773,14 +4874,14 @@ fun TtsSpeechSubView(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(vertical = 6.dp)
+                .padding(vertical = 4.dp)
         ) {
-            Box(modifier = Modifier.padding(10.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
                 Text(
                     text = textToRead,
                     color = textColor,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis
@@ -4788,13 +4889,11 @@ fun TtsSpeechSubView(
             }
         }
 
-        // Speed & Language Controls
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Speed chips
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 listOf(0.75f, 1.0f, 1.25f, 1.5f).forEach { rate ->
                     val isSelected = speedRate == rate
@@ -4815,15 +4914,14 @@ fun TtsSpeechSubView(
                 }
             }
 
-            // Language toggle
             Surface(
                 shape = RoundedCornerShape(6.dp),
                 color = Color(theme.keyBackgroundColor),
                 border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.5f)),
-                modifier = Modifier.clickable { isArabic = !isArabic }
+                modifier = Modifier.clickable { isArabicTts = !isArabicTts }
             ) {
                 Text(
-                    text = if (isArabic) "🇸🇦 عربي" else "🇺🇸 EN",
+                    text = if (isArabicTts) (if (isArUi) "🇸🇦 عربي" else "🇸🇦 AR") else "🇺🇸 EN",
                     color = Color(theme.accentColor),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Bold,
@@ -4834,14 +4932,13 @@ fun TtsSpeechSubView(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Play / Stop Action Button
         Button(
             onClick = {
                 if (isReading) {
                     ttsEngine.stop()
                     isReading = false
                 } else {
-                    ttsEngine.speak(textToRead, isArabic = isArabic, speedRate = speedRate)
+                    ttsEngine.speak(textToRead, isArabic = isArabicTts, speedRate = speedRate)
                     isReading = true
                 }
             },
@@ -4851,7 +4948,8 @@ fun TtsSpeechSubView(
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp)
+                .height(34.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
         ) {
             Icon(
                 imageVector = if (isReading) Icons.Default.Stop else Icons.Default.PlayArrow,
@@ -4861,7 +4959,11 @@ fun TtsSpeechSubView(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = if (isReading) "إيقاف الصوت ⏹" else "استمع للنص بصوت واضح ▶",
+                text = if (isReading) {
+                    if (isArUi) "إيقاف الصوت ⏹" else "Stop Speaking ⏹"
+                } else {
+                    if (isArUi) "استمع للنص بصوت واضح ▶" else "Listen Aloud ▶"
+                },
                 color = if (isLightColor(theme.accentColor)) Color(0xFF0F172A) else Color.White,
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold
@@ -4870,16 +4972,17 @@ fun TtsSpeechSubView(
     }
 }
 
-// -------------------------------------------------------------
-// 13. KEYBOARD PASS SUBVIEW (حفظ وتعبئة كلمات المرور واستيراد CSV و Samsung Pass)
-// -------------------------------------------------------------
 @Composable
 fun KeyboardPassSubView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onInsertText: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUiLang = if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
+    val isArUi = resolvedUiLang == "ar"
     val passManager = remember { com.example.data.KeyboardPassManager(context) }
     var entries by remember { mutableStateOf(passManager.getAllEntries()) }
     var selectedCat by remember { mutableStateOf("all") }
@@ -4899,35 +5002,38 @@ fun KeyboardPassSubView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(265.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(8.dp)
     ) {
-        // Top Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Icon(
                     imageVector = Icons.Outlined.Password,
                     contentDescription = null,
                     tint = Color(theme.accentColor),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_102"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_102"),
                         color = textColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_103"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_103"),
                         color = subTextColor,
-                        fontSize = 8.5.sp
+                        fontSize = 8.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -4940,7 +5046,7 @@ fun KeyboardPassSubView(
                     modifier = Modifier.clickable { showImportDialog = true }
                 ) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_104"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_104"),
                         color = Color(theme.accentColor),
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -4956,19 +5062,23 @@ fun KeyboardPassSubView(
                         .clickable(onClick = onClose),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
+                    Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Category filter chips
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            val cats = listOf("all" to "الكل", "iban" to "🏦 آيبان", "card" to "💳 بطاقات", "login" to "🔐 دخول")
+            val cats = listOf(
+                "all" to AppStrings.trCode(context, appLanguageCode, "all_label"),
+                "iban" to (if (isArUi) "🏦 آيبان" else "🏦 IBAN"),
+                "card" to (if (isArUi) "💳 بطاقات" else "💳 Cards"),
+                "login" to (if (isArUi) "🔐 دخول" else "🔐 Login")
+            )
             cats.forEach { (key, label) ->
                 val isSel = selectedCat == key
                 Surface(
@@ -4993,7 +5103,6 @@ fun KeyboardPassSubView(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Import Dialog
         if (showImportDialog) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
@@ -5005,7 +5114,7 @@ fun KeyboardPassSubView(
             ) {
                 Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.SpaceBetween) {
                     Text(
-                        text = AppStrings.tr("ui_keyboard_sub_views_105"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_105"),
                         color = textColor,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
@@ -5013,7 +5122,7 @@ fun KeyboardPassSubView(
                     OutlinedTextField(
                         value = importCsvText,
                         onValueChange = { importCsvText = it },
-                        placeholder = { Text(AppStrings.tr("ui_keyboard_sub_views_106"), fontSize = 9.5.sp) },
+                        placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_106"), fontSize = 9.5.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
@@ -5028,28 +5137,29 @@ fun KeyboardPassSubView(
                                 val count = passManager.importFromCsv(importCsvText)
                                 if (count > 0) {
                                     entries = passManager.getAllEntries()
-                                    importResultMsg = "تم استيراد $count حساب بنجاح ✓"
+                                    importResultMsg = if (isArUi) "تم استيراد $count حساب بنجاح ✓" else "Imported $count entries ✓"
                                     showImportDialog = false
                                 } else {
-                                    importResultMsg = "لم يتم العثور على أسطر صالحة"
+                                    importResultMsg = if (isArUi) "لم يتم العثور على أسطر صالحة" else "No valid rows found"
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
-                            modifier = Modifier.weight(1f).height(32.dp)
+                            modifier = Modifier.weight(1f).height(30.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text(AppStrings.tr("ui_keyboard_sub_views_107"), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_107"), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         OutlinedButton(
                             onClick = { showImportDialog = false },
-                            modifier = Modifier.weight(1f).height(32.dp)
+                            modifier = Modifier.weight(1f).height(30.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text(AppStrings.tr("ui_settings_screen_020"), fontSize = 10.sp)
+                            Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_020"), fontSize = 10.sp)
                         }
                     }
                 }
             }
         } else {
-            // Entries List
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -5097,7 +5207,7 @@ fun KeyboardPassSubView(
                                         }
                                     ) {
                                         Text(
-                                            text = if (item.category == "iban") "إدراج الآيبان" else "اسم المستخدم",
+                                            text = if (item.category == "iban") (if (isArUi) "إدراج الآيبان" else "IBAN") else (if (isArUi) "اسم المستخدم" else "Username"),
                                             color = Color(theme.accentColor),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
@@ -5116,7 +5226,7 @@ fun KeyboardPassSubView(
                                         }
                                     ) {
                                         Text(
-                                            text = if (item.category == "card") "CVV/تاريخ" else "كلمة المرور",
+                                            text = if (item.category == "card") (if (isArUi) "CVV/تاريخ" else "CVV/Exp") else (if (isArUi) "كلمة المرور" else "Password"),
                                             color = Color(0xFF10B981),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
@@ -5133,15 +5243,15 @@ fun KeyboardPassSubView(
     }
 }
 
-// -------------------------------------------------------------
-// 14. MY STICKERS SUBVIEW (ملصقاتي في الشريط)
-// -------------------------------------------------------------
 @Composable
 fun MyStickersSubView(
     theme: KeyboardTheme,
+    keyboardHeight: Dp = 205.dp,
+    appLanguageCode: String = "auto",
     onStickerSelected: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var newStickerText by remember { mutableStateOf("") }
     val myStickers = remember {
         mutableStateListOf(
@@ -5158,16 +5268,14 @@ fun MyStickersSubView(
 
     val isLight = remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
     val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-    val subTextColor = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
             .padding(8.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -5178,32 +5286,31 @@ fun MyStickersSubView(
                     imageVector = Icons.Outlined.PhotoFilter,
                     contentDescription = null,
                     tint = Color(theme.accentColor),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = AppStrings.trf("ui_keyboard_sub_views_108", myStickers.size),
+                    text = AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_108", myStickers.size),
                     color = textColor,
-                    fontSize = 12.5.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Close, contentDescription = AppStrings.tr("ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_019"), tint = Color.White, modifier = Modifier.size(15.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
-        // Create new sticker input
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -5212,11 +5319,11 @@ fun MyStickersSubView(
             OutlinedTextField(
                 value = newStickerText,
                 onValueChange = { newStickerText = it },
-                placeholder = { Text(AppStrings.tr("ui_keyboard_sub_views_109"), fontSize = 10.5.sp) },
+                placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_109"), fontSize = 10.5.sp) },
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
-                    .height(42.dp),
+                    .height(38.dp),
                 shape = RoundedCornerShape(8.dp),
                 textStyle = TextStyle(fontSize = 11.sp, color = textColor)
             )
@@ -5231,15 +5338,15 @@ fun MyStickersSubView(
                 enabled = newStickerText.isNotBlank(),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
-                modifier = Modifier.height(42.dp)
+                modifier = Modifier.height(38.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
             ) {
-                Text(AppStrings.tr("ui_keyboard_sub_views_110"), color = Color.Black, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_110"), color = Color.Black, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
-        // Stickers Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier
@@ -5255,7 +5362,7 @@ fun MyStickersSubView(
                     border = BorderStroke(1.dp, Color(theme.borderColor).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .height(48.dp)
                         .clickable {
                             onStickerSelected(sticker)
                             onClose()
@@ -5265,7 +5372,7 @@ fun MyStickersSubView(
                         Text(
                             text = sticker,
                             color = textColor,
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             maxLines = 2,

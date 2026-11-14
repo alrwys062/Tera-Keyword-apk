@@ -94,7 +94,7 @@ fun KeyboardSetupScreen(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = com.example.util.AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                         tint = Color.White
                     )
                 }
@@ -603,7 +603,11 @@ fun KeyboardSetupScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (showInteractiveKeyboardPreview) "إخفاء المعاينة" else "معاينة مباشرة هنا",
+                            text = if (showInteractiveKeyboardPreview) {
+                                com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_preview_hide")
+                            } else {
+                                com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_preview_show")
+                            },
                             color = if (showInteractiveKeyboardPreview) Color.Black else Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -636,6 +640,9 @@ fun KeyboardSetupScreen(
                 }
 
                 // Interactive live keyboard right inside the preview card
+                val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
+                val liveTheme = remember(prefsVersion) { prefs.getActiveTheme() }
+                val liveSettings = remember(prefsVersion) { prefs.getSettings() }
                 AnimatedVisibility(visible = showInteractiveKeyboardPreview) {
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         Row(
@@ -662,8 +669,8 @@ fun KeyboardSetupScreen(
                             border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.35f))
                         ) {
                             TurboKeyboardView(
-                                theme = prefs.getActiveTheme(),
-                                settings = prefs.getSettings(),
+                                theme = liveTheme,
+                                settings = liveSettings,
                                 onDirectInsertText = { text ->
                                     if (text == "\n") testInputText += "\n"
                                     else testInputText += text
@@ -704,7 +711,7 @@ fun KeyboardSetupScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "ملاحظة خاصة لهواتف Honor و Huawei و Xiaomi:",
+                        text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_honor_huawei_title"),
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -712,7 +719,7 @@ fun KeyboardSetupScreen(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "في واجهات Honor (MagicOS) و Huawei (EMUI): بعد الضغط على 'تفعيل'، تأكد من تفعيل مفتاح Turbo Keyboard في قائمة 'إدارة لوحات المفاتيح'، ثم اضغط 'اختيار' لتحديده ككيبورد افتراضي لكافة التطبيقات.",
+                    text = com.example.util.AppStrings.trCode(context, appLanguageCode, "setup_honor_huawei_desc"),
                     color = Color(0xFF94A3B8),
                     fontSize = 11.sp,
                     lineHeight = 16.sp

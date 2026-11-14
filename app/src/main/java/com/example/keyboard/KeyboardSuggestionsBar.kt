@@ -18,12 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PredictionEngine
 import com.example.model.KeyboardTheme
+import com.example.util.AppStrings
 
 private fun isLightColor(colorLong: Long): Boolean {
     val r = ((colorLong shr 16) and 0xFF) / 255.0
@@ -43,17 +45,23 @@ fun KeyboardSuggestionsBar(
     detectedOtpCode: String? = null,
     onOtpClick: ((String) -> Unit)? = null,
     browserShortcuts: List<String> = emptyList(),
-    onBrowserShortcutClick: ((String) -> Unit)? = null
+    onBrowserShortcutClick: ((String) -> Unit)? = null,
+    appLanguageCode: String = "auto",
+    typingLangCode: String = "ar"
 ) {
-    val effectiveSuggestions = if (suggestions.isNotEmpty()) suggestions else listOf(
-        PredictionEngine.PredictionResult("مرحبا"),
-        PredictionEngine.PredictionResult("شكراً"),
-        PredictionEngine.PredictionResult("السلام عليكم")
-    )
+    val context = LocalContext.current
+    val effectiveSuggestions = if (suggestions.isNotEmpty()) {
+        suggestions
+    } else {
+        PredictionEngine.getDefaultSuggestionsForLang(
+            isArabic = typingLangCode == "ar",
+            langCode = typingLangCode
+        )
+    }
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val barHeight = if (isLandscape) 28.dp else 36.dp
+    val barHeight = if (isLandscape) 23.dp else 29.dp
 
     Row(
         modifier = Modifier
@@ -86,14 +94,14 @@ fun KeyboardSuggestionsBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Lock,
-                            contentDescription = "رمز التحقق",
+                            contentDescription = AppStrings.trfCode(context, appLanguageCode, "otp_paste_code", detectedOtpCode),
                             tint = Color.White,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = "رمز التحقق: $detectedOtpCode (لصق)",
+                            text = AppStrings.trfCode(context, appLanguageCode, "otp_paste_code", detectedOtpCode),
                             color = Color.White,
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -115,6 +123,7 @@ fun KeyboardSuggestionsBar(
                 result = left,
                 theme = theme,
                 isCenter = false,
+                appLanguageCode = appLanguageCode,
                 modifier = Modifier.weight(1f),
                 onClick = { onSuggestionClick(left.word) },
                 onAddWord = onAddWordToDictionary
@@ -126,6 +135,7 @@ fun KeyboardSuggestionsBar(
                 result = center,
                 theme = theme,
                 isCenter = true,
+                appLanguageCode = appLanguageCode,
                 modifier = Modifier.weight(1.3f),
                 onClick = { onSuggestionClick(center.word) },
                 onAddWord = onAddWordToDictionary
@@ -137,6 +147,7 @@ fun KeyboardSuggestionsBar(
                 result = right,
                 theme = theme,
                 isCenter = false,
+                appLanguageCode = appLanguageCode,
                 modifier = Modifier.weight(1f),
                 onClick = { onSuggestionClick(right.word) },
                 onAddWord = onAddWordToDictionary
@@ -150,10 +161,12 @@ private fun SuggestionItem(
     result: PredictionEngine.PredictionResult,
     theme: KeyboardTheme,
     isCenter: Boolean,
+    appLanguageCode: String = "auto",
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     onAddWord: ((String) -> Unit)?
 ) {
+    val context = LocalContext.current
     val isBgLight = androidx.compose.runtime.remember(theme.backgroundColor) { isLightColor(theme.backgroundColor) }
     val textColor = androidx.compose.runtime.remember(theme.backgroundColor, isBgLight) {
         if (isBgLight) Color(0xFF1E293B) else Color(0xFFE2E8F0)
@@ -183,15 +196,15 @@ private fun SuggestionItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add Word",
+                        contentDescription = AppStrings.trfCode(context, appLanguageCode, "save_word_chip", result.word),
                         tint = Color(0xFF10B981),
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = "حفظ: ${result.word}",
+                        text = AppStrings.trfCode(context, appLanguageCode, "save_word_chip", result.word),
                         color = Color(0xFF10B981),
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

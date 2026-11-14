@@ -16,10 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Palette
@@ -37,10 +37,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PreferencesManager
 import com.example.model.KeyboardTheme
+import com.example.util.AppStrings
+import com.example.util.LocaleHelper
 
 data class StickerPreset(
     val category: String,
@@ -114,48 +117,56 @@ fun StickersPickerView(
     theme: KeyboardTheme,
     prefs: PreferencesManager,
     onStickerSelected: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    keyboardHeight: Dp = 225.dp,
+    appLanguageCode: String = "auto"
 ) {
     val context = LocalContext.current
-    var selectedCategory by remember { mutableStateOf("⭐ ملصقاتي") }
+    val resolvedLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto") LocaleHelper.getAppLanguageCode(context) else appLanguageCode
+    }
+    val isRtl = remember(resolvedLang) { LocaleHelper.isRtlLanguage(resolvedLang) }
+    var selectedCategoryId by remember { mutableStateOf("my_stickers") }
     var customStickers by remember { mutableStateOf(prefs.getCustomStickers()) }
 
     // Designer state
-    var designerText by remember { mutableStateOf("صباح الورد والسرور 🌸") }
+    var designerText by remember(isRtl) { mutableStateOf(if (isRtl) "صباح الورد والسرور 🌸" else "Have a lovely day 🌸") }
     var selectedDesignStyle by remember { mutableStateOf("ذهبي") }
     var designerEmoji by remember { mutableStateOf("✨") }
 
-    val categories = listOf(
-        "⭐ ملصقاتي",
-        "🎨 صمم ملصق",
-        "🕌 إسلامية",
-        "🎉 تهاني",
-        "😂 ردود وميمز",
-        "❤️ حب وود",
-        "☕ صباح ومساء",
-        "💫 عبارات راقية"
-    )
+    val categories = remember(isRtl) {
+        listOf(
+            "my_stickers" to (if (isRtl) "⭐ ملصقاتي" else "⭐ My Stickers"),
+            "designer" to (if (isRtl) "🎨 صمم ملصق" else "🎨 Designer"),
+            "إسلامية" to (if (isRtl) "🕌 إسلامية" else "🕌 Blessings"),
+            "تهاني" to (if (isRtl) "🎉 تهاني" else "🎉 Congrats"),
+            "ردود وميمز" to (if (isRtl) "😂 ردود وميمز" else "😂 Memes"),
+            "حب وود" to (if (isRtl) "❤️ حب وود" else "❤️ Love"),
+            "صباح ومساء" to (if (isRtl) "☕ صباح ومساء" else "☕ Greetings"),
+            "عبارات راقية" to (if (isRtl) "💫 عبارات راقية" else "💫 Quotes")
+        )
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(keyboardHeight)
             .background(Color(theme.backgroundColor))
     ) {
         // Top Bar with Categories and Compact Harmonious Close X Button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(42.dp)
+                .height(36.dp)
                 .background(Color(theme.toolbarColor))
                 .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Circular Close X Button (Harmonious compact size 28dp with 16dp icon)
+            // Circular Close X Button (Harmonious compact size 26dp)
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFEF4444).copy(alpha = 0.95f))
                     .clickable(onClick = onClose),
@@ -163,9 +174,9 @@ fun StickersPickerView(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close Stickers",
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "action_close"),
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
 
@@ -178,8 +189,8 @@ fun StickersPickerView(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                categories.forEach { cat ->
-                    val isSelected = cat == selectedCategory
+                categories.forEach { (catId, catLabel) ->
+                    val isSelected = catId == selectedCategoryId
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -192,13 +203,13 @@ fun StickersPickerView(
                                 if (isSelected) Color(theme.accentColor) else Color.Transparent,
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { selectedCategory = cat }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .clickable { selectedCategoryId = catId }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = cat,
+                            text = catLabel,
                             color = if (isSelected) Color(theme.accentColor) else Color(theme.keyTextColor),
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -206,13 +217,13 @@ fun StickersPickerView(
             }
         }
 
-        // Dedicated text and sticker input bar (حقل كتابة نصوص وملصقات مخصص)
+        // Dedicated text and sticker input bar
         var stickerComposeText by remember { mutableStateOf("") }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 6.dp, vertical = 2.dp)
-                .height(34.dp)
+                .height(31.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(theme.keyBackgroundColor))
                 .border(1.dp, Color(theme.accentColor).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
@@ -222,9 +233,9 @@ fun StickersPickerView(
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (stickerComposeText.isEmpty()) {
                     Text(
-                        text = "اكتب نصاً لإدراجه مع الملصقات والرموز...",
+                        text = if (isRtl) "اكتب نصاً لإدراجه مع الملصقات والرموز..." else "Type text to insert with stickers...",
                         color = Color(theme.subtextColor).copy(alpha = 0.7f),
-                        fontSize = 11.5.sp
+                        fontSize = 11.sp
                     )
                 }
                 BasicTextField(
@@ -233,7 +244,7 @@ fun StickersPickerView(
                     singleLine = true,
                     textStyle = TextStyle(
                         color = Color(theme.keyTextColor),
-                        fontSize = 12.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     ),
                     cursorBrush = SolidColor(Color(theme.accentColor)),
@@ -243,7 +254,7 @@ fun StickersPickerView(
             if (stickerComposeText.isNotEmpty()) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Clear",
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "clear_filter"),
                     tint = Color(theme.subtextColor),
                     modifier = Modifier
                         .size(16.dp)
@@ -259,11 +270,11 @@ fun StickersPickerView(
                     }
                 ) {
                     Text(
-                        text = "إدراج",
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_110").replace("➕ ", ""),
                         color = Color.Black,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
@@ -273,10 +284,10 @@ fun StickersPickerView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .padding(horizontal = 6.dp, vertical = 3.dp)
         ) {
-            when (selectedCategory) {
-                "🎨 صمم ملصق" -> {
+            when (selectedCategoryId) {
+                "designer" -> {
                     // Scrollable Sticker Designer Studio so nothing is clipped
                     Column(
                         modifier = Modifier
@@ -309,7 +320,7 @@ fun StickersPickerView(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = designerText.ifBlank { "اكتب نص الملصق هنا..." },
+                                    text = designerText.ifBlank { if (isRtl) "اكتب نص الملصق هنا..." else "Type sticker text here..." },
                                     color = getStickerTextColor(selectedDesignStyle),
                                     fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Bold,
@@ -355,7 +366,7 @@ fun StickersPickerView(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(38.dp)
+                                .height(36.dp)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(Color(theme.keyBackgroundColor))
                                 .border(
@@ -368,7 +379,7 @@ fun StickersPickerView(
                         ) {
                             if (designerText.isEmpty()) {
                                 Text(
-                                    text = "اكتب عبارة أو جملة الملصق...",
+                                    text = if (isRtl) "اكتب عبارة أو جملة الملصق..." else "Enter sticker phrase...",
                                     color = Color(theme.subtextColor).copy(alpha = 0.7f),
                                     fontSize = 12.sp
                                 )
@@ -393,8 +404,16 @@ fun StickersPickerView(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            listOf("ذهبي", "نيون", "وردي", "زمردي", "بنفسجي", "زجاجي").forEach { st ->
-                                val isSel = st == selectedDesignStyle
+                            val stylesList = listOf(
+                                "ذهبي" to (if (isRtl) "ذهبي" else "Gold"),
+                                "نيون" to (if (isRtl) "نيون" else "Neon"),
+                                "وردي" to (if (isRtl) "وردي" else "Rose"),
+                                "زمردي" to (if (isRtl) "زمردي" else "Emerald"),
+                                "بنفسجي" to (if (isRtl) "بنفسجي" else "Purple"),
+                                "زجاجي" to (if (isRtl) "زجاجي" else "Glass")
+                            )
+                            stylesList.forEach { (stKey, stLabel) ->
+                                val isSel = stKey == selectedDesignStyle
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = if (isSel) Color(theme.accentColor).copy(alpha = 0.3f) else Color(theme.keyBackgroundColor),
@@ -404,16 +423,16 @@ fun StickersPickerView(
                                     ),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clickable { selectedDesignStyle = st }
+                                        .clickable { selectedDesignStyle = stKey }
                                 ) {
                                     Box(
                                         contentAlignment = Alignment.Center,
                                         modifier = Modifier.padding(vertical = 5.dp)
                                     ) {
                                         Text(
-                                            text = st,
+                                            text = stLabel,
                                             color = if (isSel) Color(theme.accentColor) else Color(theme.keyTextColor),
-                                            fontSize = 10.5.sp,
+                                            fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -428,59 +447,68 @@ fun StickersPickerView(
                         ) {
                             Button(
                                 onClick = {
-                                    val finalSticker = "$designerEmoji ${designerText.ifBlank { "ملصق جديد" }}"
+                                    val finalSticker = "$designerEmoji ${designerText.ifBlank { if (isRtl) "ملصق جديد" else "New Sticker" }}"
                                     prefs.saveCustomSticker(finalSticker)
                                     customStickers = prefs.getCustomStickers()
-                                    Toast.makeText(context, "تم حفظ الملصق في (ملصقاتي) ⭐", Toast.LENGTH_SHORT).show()
-                                    selectedCategory = "⭐ ملصقاتي"
+                                    Toast.makeText(context, if (isRtl) "تم حفظ الملصق في (ملصقاتي) ⭐" else "Saved to My Stickers ⭐", Toast.LENGTH_SHORT).show()
+                                    selectedCategoryId = "my_stickers"
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(36.dp),
+                                    .height(34.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(theme.keyBackgroundColor)),
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, tint = Color(theme.accentColor), modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("حفظ بملصقاتي", color = Color(theme.keyTextColor), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_settings_screen_046"), color = Color(theme.keyTextColor), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Button(
                                 onClick = {
-                                    val finalSticker = "$designerEmoji ${designerText.ifBlank { "ملصق رائع" }}"
+                                    val finalSticker = "$designerEmoji ${designerText.ifBlank { if (isRtl) "ملصق رائع" else "Awesome Sticker" }}"
                                     onStickerSelected(finalSticker)
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(36.dp),
+                                    .height(34.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor)),
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                             ) {
-                                Icon(Icons.Default.Send, contentDescription = null, tint = Color.Black, modifier = Modifier.size(15.dp))
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.Black, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("إرسال الآن", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_012"), color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
 
-                "⭐ ملصقاتي" -> {
+                "my_stickers" -> {
                     if (customStickers.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Text("لم تقم بتصميم أي ملصقات بعد", color = Color(theme.subtextColor), fontSize = 13.sp)
+                                Text(
+                                    if (isRtl) "لم تقم بتصميم أي ملصقات بعد" else "No custom stickers yet",
+                                    color = Color(theme.subtextColor),
+                                    fontSize = 12.5.sp
+                                )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
-                                    onClick = { selectedCategory = "🎨 صمم ملصق" },
+                                    onClick = { selectedCategoryId = "designer" },
                                     shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(theme.accentColor))
                                 ) {
-                                    Text("🎨 اضغط هنا لتصميم ملصقك الأول", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(
+                                        if (isRtl) "🎨 اضغط هنا لتصميم ملصقك الأول" else "🎨 Design Your First Sticker",
+                                        color = Color.Black,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.5.sp
+                                    )
                                 }
                             }
                         }
@@ -535,7 +563,7 @@ fun StickersPickerView(
 
                 else -> {
                     // Rich Built-in categories
-                    val list = BuiltinStickers.items.filter { it.category in selectedCategory }
+                    val list = BuiltinStickers.items.filter { it.category == selectedCategoryId }
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),

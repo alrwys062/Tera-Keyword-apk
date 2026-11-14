@@ -3,9 +3,12 @@ package com.example.data
 data class PhraseCategory(
     val id: String,
     val nameAr: String,
+    val nameEn: String = "",
     val icon: String,
     val phrases: List<String>
-)
+) {
+    fun getDisplayName(isArabic: Boolean): String = if (isArabic) nameAr else nameEn.ifBlank { nameAr }
+}
 
 object DecoratedPhrasesData {
 
@@ -13,6 +16,7 @@ object DecoratedPhrasesData {
         PhraseCategory(
             id = "cute",
             nameAr = "كياته",
+            nameEn = "Cute",
             icon = "🥺",
             phrases = listOf(
                 "*•.بهجة.قلبي•*💛🔐",
@@ -35,6 +39,7 @@ object DecoratedPhrasesData {
         PhraseCategory(
             id = "love",
             nameAr = "غرام",
+            nameEn = "Love",
             icon = "🫀",
             phrases = listOf(
                 "ـ 𝑴𝒚 𝑳𝒐𝒗𝒆 🫀🔐",
@@ -52,6 +57,7 @@ object DecoratedPhrasesData {
         PhraseCategory(
             id = "islamic",
             nameAr = "إسلاميات",
+            nameEn = "Islamic",
             icon = "🤲",
             phrases = listOf(
                 "ﷺ",
@@ -76,6 +82,7 @@ object DecoratedPhrasesData {
         PhraseCategory(
             id = "greetings",
             nameAr = "ترحيب",
+            nameEn = "Greetings",
             icon = "🌸",
             phrases = listOf(
                 "مَـرْحَـبًـا مِـلْـيُـوْن 🤍✨",
@@ -91,6 +98,7 @@ object DecoratedPhrasesData {
         PhraseCategory(
             id = "nicknames",
             nameAr = "أسماء",
+            nameEn = "Nicknames",
             icon = "👑",
             phrases = listOf(
                 "★ الـمـلـك ★",
@@ -108,6 +116,7 @@ object DecoratedPhrasesData {
         PhraseCategory(
             id = "cliche",
             nameAr = "كليشات",
+            nameEn = "Cliches",
             icon = "✨",
             phrases = listOf(
                 "يـسـطـا 💙🥐",

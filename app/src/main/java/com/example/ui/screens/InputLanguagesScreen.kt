@@ -34,10 +34,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun InputLanguagesScreen(
     prefs: PreferencesManager,
+    appLanguageCode: String = "auto",
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val resolvedLang = remember(appLanguageCode) {
+        if (appLanguageCode == "auto" || appLanguageCode.isBlank()) AppStrings.getLang(context)
+        else AppStrings.getNormalizedLangCode(appLanguageCode)
+    }
+    val isArUi = resolvedLang == "ar"
 
     var installedCodes by remember { mutableStateOf(InputLanguagesManager.getInstalledLanguages(context)) }
     var activeCodes by remember { mutableStateOf(InputLanguagesManager.getActiveLanguages(context)) }
@@ -73,7 +79,8 @@ fun InputLanguagesScreen(
             InputLanguagesManager.installLanguage(context, lang.code)
             downloadingProgress.remove(lang.code)
             refreshLists()
-            Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_001", lang.nameAr), Toast.LENGTH_SHORT).show()
+            val dispName = if (isArUi) lang.nameAr else lang.nameEn
+            Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_001", dispName), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -99,7 +106,7 @@ fun InputLanguagesScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = AppStrings.tr(context, "ui_chat_simulator_screen_003"),
+                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_chat_simulator_screen_003"),
                     tint = Color.White
                 )
             }
@@ -108,13 +115,13 @@ fun InputLanguagesScreen(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = AppStrings.tr(context, "ui_input_languages_screen_002"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_002"),
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = AppStrings.tr(context, "ui_input_languages_screen_003"),
+                    text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_003"),
                     color = Color(0xFF00E5FF),
                     fontSize = 11.sp
                 )
@@ -161,13 +168,13 @@ fun InputLanguagesScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = AppStrings.tr(context, "ui_input_languages_screen_004"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_004"),
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = AppStrings.tr(context, "ui_input_languages_screen_005"),
+                            text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_005"),
                             color = Color(0xFF8E9BAE),
                             fontSize = 11.sp
                         )
@@ -205,7 +212,7 @@ fun InputLanguagesScreen(
                 onClick = { selectedTab = 0 },
                 text = {
                     Text(
-                        "اللغات المثبتة والمفعلة (${installedCodes.size})",
+                        "${AppStrings.trCode(context, appLanguageCode, "input_langs_installed_tab")} (${installedCodes.size})",
                         fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 12.sp
                     )
@@ -216,7 +223,7 @@ fun InputLanguagesScreen(
                 onClick = { selectedTab = 1 },
                 text = {
                     Text(
-                        "تحميل لغات العالم (${InputLanguagesManager.allWorldLanguages.size})",
+                        "${AppStrings.trCode(context, appLanguageCode, "input_langs_download_tab")} (${InputLanguagesManager.allWorldLanguages.size})",
                         fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 12.sp
                     )
@@ -230,7 +237,7 @@ fun InputLanguagesScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text(AppStrings.tr(context, "ui_input_languages_screen_006"), color = Color(0xFF8E9BAE), fontSize = 11.sp) },
+            placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_006"), color = Color(0xFF8E9BAE), fontSize = 11.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -248,7 +255,7 @@ fun InputLanguagesScreen(
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = AppStrings.tr(context, "ui_input_languages_screen_007"), tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Close, contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_007"), tint = Color.LightGray, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -273,7 +280,7 @@ fun InputLanguagesScreen(
             ) {
                 item {
                     Text(
-                        text = AppStrings.tr(context, "ui_input_languages_screen_008"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_008"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -333,7 +340,7 @@ fun InputLanguagesScreen(
                                                 color = Color(0xFF10B981).copy(alpha = 0.2f)
                                             ) {
                                                 Text(
-                                                    text = AppStrings.tr(context, "ui_input_languages_screen_009"),
+                                                    text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_009"),
                                                     color = Color(0xFF10B981),
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold,
@@ -343,7 +350,7 @@ fun InputLanguagesScreen(
                                         }
                                     }
                                     Text(
-                                        text = AppStrings.trf(context, "ui_input_languages_screen_010", lang.nameAr, lang.nameEn),
+                                        text = if (isArUi) AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_010", lang.nameAr, lang.nameEn) else lang.nameEn,
                                         color = Color(0xFF8E9BAE),
                                         fontSize = 11.sp
                                     )
@@ -363,11 +370,11 @@ fun InputLanguagesScreen(
                                                 InputLanguagesManager.toggleLanguageActive(context, lang.code)
                                             }
                                             refreshLists()
-                                            Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_011", lang.nameNative), Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_011", lang.nameNative), Toast.LENGTH_SHORT).show()
                                         },
                                         colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF00E5FF))
                                     ) {
-                                        Text(AppStrings.tr(context, "ui_input_languages_screen_012"), fontSize = 11.sp)
+                                        Text(AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_012"), fontSize = 11.sp)
                                     }
                                 }
 
@@ -390,13 +397,14 @@ fun InputLanguagesScreen(
                                         onClick = {
                                             InputLanguagesManager.uninstallLanguage(context, lang.code)
                                             refreshLists()
-                                            Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_013", lang.nameAr), Toast.LENGTH_SHORT).show()
+                                            val dispName = if (isArUi) lang.nameAr else lang.nameEn
+                                            Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_013", dispName), Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.size(30.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Delete,
-                                            contentDescription = AppStrings.tr(context, "ui_input_languages_screen_014"),
+                                            contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_014"),
                                             tint = Color(0xFFEF4444).copy(alpha = 0.7f),
                                             modifier = Modifier.size(16.dp)
                                         )
@@ -422,7 +430,7 @@ fun InputLanguagesScreen(
             ) {
                 item {
                     Text(
-                        text = AppStrings.tr(context, "ui_input_languages_screen_015"),
+                        text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_015"),
                         color = Color(0xFF8E9BAE),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -476,7 +484,7 @@ fun InputLanguagesScreen(
                                             }
                                         }
                                         Text(
-                                            text = AppStrings.trf(context, "ui_input_languages_screen_016", lang.nameAr, lang.size),
+                                            text = AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_016", if (isArUi) lang.nameAr else lang.nameEn, lang.size),
                                             color = Color(0xFF8E9BAE),
                                             fontSize = 11.sp
                                         )
@@ -502,7 +510,7 @@ fun InputLanguagesScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = AppStrings.tr(context, "ui_input_languages_screen_017"),
+                                                    text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_017"),
                                                     color = Color(0xFF10B981),
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold
@@ -515,10 +523,10 @@ fun InputLanguagesScreen(
                                             onClick = {
                                                 InputLanguagesManager.setCurrentLanguageCode(context, lang.code)
                                                 refreshLists()
-                                                Toast.makeText(context, AppStrings.trf(context, "ui_input_languages_screen_011", lang.nameNative), Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_011", lang.nameNative), Toast.LENGTH_SHORT).show()
                                             }
                                         ) {
-                                            Text(AppStrings.tr(context, "ui_input_languages_screen_012"), color = Color(0xFF00E5FF), fontSize = 11.sp)
+                                            Text(AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_012"), color = Color(0xFF00E5FF), fontSize = 11.sp)
                                         }
                                     }
                                 } else if (progress != null) {
@@ -528,7 +536,7 @@ fun InputLanguagesScreen(
                                         modifier = Modifier.width(100.dp)
                                     ) {
                                         Text(
-                                            text = AppStrings.trf(context, "ui_input_languages_screen_018", (progress * 100).toInt()),
+                                            text = AppStrings.trfCode(context, appLanguageCode, "ui_input_languages_screen_018", (progress * 100).toInt()),
                                             color = Color(0xFF00E5FF),
                                             fontSize = 10.sp
                                         )
@@ -559,7 +567,7 @@ fun InputLanguagesScreen(
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = AppStrings.tr(context, "ui_input_languages_screen_019"),
+                                            text = AppStrings.trCode(context, appLanguageCode, "ui_input_languages_screen_019"),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )

@@ -616,13 +616,14 @@ class PreferencesManager(private val context: Context) {
 
         val json = getStringSafe("clipboard_history", "")
         if (json.isBlank()) {
+            val now = System.currentTimeMillis()
             val initial = listOf(
-                ClipboardItem(text = "مرحبا! كيف حالك اليوم؟", isPinned = true),
-                ClipboardItem(text = "السلام عليكم ورحمة الله وبركاته", isPinned = true),
-                ClipboardItem(text = "جزاك الله خيراً وبارك فيك", isPinned = true),
-                ClipboardItem(text = "صلى الله عليه وسلم", isPinned = true),
-                ClipboardItem(text = "أنا بخير، شكراً لك! 😊", isPinned = false),
-                ClipboardItem(text = "https://google.com", isPinned = false)
+                ClipboardItem(text = "مرحبا! كيف حالك اليوم؟", timestamp = now, isPinned = true),
+                ClipboardItem(text = "السلام عليكم ورحمة الله وبركاته", timestamp = now - 1000L, isPinned = true),
+                ClipboardItem(text = "جزاك الله خيراً وبارك فيك", timestamp = now - 2000L, isPinned = true),
+                ClipboardItem(text = "صلى الله عليه وسلم", timestamp = now - 3000L, isPinned = true),
+                ClipboardItem(text = "أنا بخير، شكراً لك! 😊", timestamp = now - 4000L, isPinned = false),
+                ClipboardItem(text = "https://google.com", timestamp = now - 5000L, isPinned = false)
             )
             globalCachedClipboardItems = initial
             saveClipboardItems(initial)
@@ -667,6 +668,7 @@ class PreferencesManager(private val context: Context) {
             arr.put(obj)
         }
         prefs.edit().putString("clipboard_history", arr.toString()).commit()
+        prefsVersionFlow.value += 1
     }
 
     private fun getDeletedSystemClips(): MutableSet<String> {
@@ -744,7 +746,18 @@ class PreferencesManager(private val context: Context) {
         if (existingIndex >= 0) {
             current.removeAt(existingIndex)
         }
-        current.add(0, ClipboardItem(text = trimmed, isPinned = finalPinned, timestamp = System.currentTimeMillis()))
+        val newItem = ClipboardItem(
+            text = trimmed,
+            isPinned = finalPinned,
+            timestamp = System.currentTimeMillis()
+        )
+        if (finalPinned) {
+            current.add(0, newItem)
+        } else {
+            val firstUnpinnedIdx = current.indexOfFirst { !it.isPinned }
+            val insertIdx = if (firstUnpinnedIdx >= 0) firstUnpinnedIdx else current.size
+            current.add(insertIdx, newItem)
+        }
         // Stored forever without small limit - up to 50000 items
         if (current.size > 2000) {
             saveClipboardItems(current.take(2000))
@@ -847,10 +860,20 @@ class PreferencesManager(private val context: Context) {
 
     @Synchronized
     fun togglePinClipboard(id: String) {
-        val current = getClipboardItems(forceRefresh = true).map {
-            if (it.id == id) it.copy(isPinned = !it.isPinned) else it
+        val current = getClipboardItems(forceRefresh = true)
+        val target = current.firstOrNull { it.id == id } ?: return
+        val updatedTarget = target.copy(isPinned = !target.isPinned)
+        val remaining = current.filter { it.id != id }
+        val pinnedRemaining = remaining.filter { it.isPinned }
+        val unpinnedRemaining = remaining.filterNot { it.isPinned }
+
+        val reordered = if (updatedTarget.isPinned) {
+            listOf(updatedTarget) + pinnedRemaining + unpinnedRemaining.sortedByDescending { it.timestamp }
+        } else {
+            val unpinnedSorted = (unpinnedRemaining + updatedTarget).sortedByDescending { it.timestamp }
+            pinnedRemaining + unpinnedSorted
         }
-        saveClipboardItems(current)
+        saveClipboardItems(reordered)
     }
 
     @Synchronized

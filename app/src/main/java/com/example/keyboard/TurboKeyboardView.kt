@@ -1932,16 +1932,20 @@ fun TurboKeyboardView(
                             prefs = prefs,
                             keyboardHeight = calculatedKeyboardHeight,
                             appLanguageCode = appLangCode,
+                            searchQuery = clipboardSearchQuery,
+                            onSearchQueryChange = { clipboardSearchQuery = it },
                             onItemInserted = { text ->
                                 sendText(text)
                                 if (currentSettings.autoReturnToLettersOnShortcut || currentSettings.clipboardCloseOnPaste) {
                                     activeSubView = KeyboardSubView.NONE
+                                    clipboardSearchQuery = ""
                                     isSymbolsMode = false
                                     isMoreSymbolsMode = false
                                 }
                             },
                             onClose = {
                                 activeSubView = KeyboardSubView.NONE
+                                clipboardSearchQuery = ""
                                 isSymbolsMode = false
                                 isMoreSymbolsMode = false
                             }

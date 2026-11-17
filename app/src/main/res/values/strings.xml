@@ -310,6 +310,7 @@
     <string name="clipboard_opt_unpin">Unpin</string>
     <string name="clipboard_opt_copy">Copy</string>
     <string name="clipboard_opt_close">Close</string>
+    <string name="clipboard_no_results">No results found</string>
     <string name="decor_screen_title">Professional Text Decoration</string>
     <string name="decor_tab_ar">Arabic Decor</string>
     <string name="decor_tab_en">English Decor</string>

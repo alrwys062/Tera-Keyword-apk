@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -660,20 +661,33 @@ fun ClipboardDrawer(
     prefs: PreferencesManager,
     keyboardHeight: Dp = 220.dp,
     appLanguageCode: String = "auto",
+    searchQuery: String = "",
+    onSearchQueryChange: ((String) -> Unit)? = null,
     onItemInserted: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
     val resolvedUiLang = remember(appLanguageCode) {
         if (appLanguageCode == "auto") AppStrings.getLang(context) else AppStrings.getNormalizedLangCode(appLanguageCode)
     }
     val isAr = resolvedUiLang == "ar"
     var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
-    var searchQuery by remember { mutableStateOf("") }
+    var internalSearchQuery by remember { mutableStateOf(searchQuery) }
+    val activeSearchQuery = if (onSearchQueryChange != null) searchQuery else internalSearchQuery
+    val updateSearchQuery: (String) -> Unit = { newQuery ->
+        if (onSearchQueryChange != null) onSearchQueryChange(newQuery)
+        else internalSearchQuery = newQuery
+    }
     var selectedClipForMenu by remember { mutableStateOf<ClipboardItem?>(null) }
     var showClearConfirmation by remember { mutableStateOf(false) }
     var isSingleColumnMode by remember { mutableStateOf(false) }
     var previewFullTextItem by remember { mutableStateOf<ClipboardItem?>(null) }
+
+    LaunchedEffect(prefsVersion) {
+        items = prefs.getClipboardItems(forceRefresh = true)
+    }
 
     LaunchedEffect(Unit) {
         if (prefs.syncWithSystemClipboard(context)) {
@@ -691,9 +705,12 @@ fun ClipboardDrawer(
         }
     }
 
-    val filteredItems = remember(items, searchQuery) {
-        if (searchQuery.isBlank()) items
-        else items.filter { it.text.contains(searchQuery.trim(), ignoreCase = true) }
+    val filteredItems by remember(items, activeSearchQuery) {
+        derivedStateOf {
+            val q = activeSearchQuery.trim()
+            if (q.isEmpty()) items
+            else items.filter { it.text.contains(q, ignoreCase = true) }
+        }
     }
 
     // Remember the user's exact scroll position when opening clipboard!
@@ -893,27 +910,111 @@ fun ClipboardDrawer(
                 }
             }
 
+            Spacer(modifier = Modifier.height(5.dp))
+
+            // Real-time Search Bar at top of Clipboard Grid
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(theme.keyBackgroundColor))
+                    .border(1.dp, Color(theme.borderColor).copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_themes_screen_001"),
+                        tint = Color(theme.subtextColor),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (activeSearchQuery.isEmpty()) {
+                            Text(
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_007"),
+                                color = Color(theme.subtextColor).copy(alpha = 0.7f),
+                                fontSize = 11.sp
+                            )
+                        }
+                        BasicTextField(
+                            value = activeSearchQuery,
+                            onValueChange = updateSearchQuery,
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = Color(theme.keyTextColor),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(Color(theme.accentColor)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("clipboard_drawer_search_input")
+                        )
+                    }
+                    if (activeSearchQuery.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .clickable { updateSearchQuery("") }
+                                .testTag("clipboard_drawer_search_clear"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = AppStrings.trCode(context, appLanguageCode, "clear_filter"),
+                                tint = Color(theme.subtextColor),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(6.dp))
 
             if (filteredItems.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_020"),
-                            color = Color(theme.subtextColor),
-                            fontSize = 12.sp
-                        )
-                        OutlinedButton(
-                            onClick = {
-                                val count = prefs.forceSyncAndRepairClipboard(context)
-                                items = prefs.getClipboardItems(forceRefresh = true)
-                                Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_021", count), Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(theme.accentColor)),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_022"), color = Color(theme.accentColor), fontSize = 11.sp)
+                    if (activeSearchQuery.isNotBlank()) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.SearchOff,
+                                contentDescription = null,
+                                tint = Color(theme.subtextColor),
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                text = AppStrings.trCode(context, appLanguageCode, "clipboard_no_results"),
+                                color = Color(theme.subtextColor),
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_020"),
+                                color = Color(theme.subtextColor),
+                                fontSize = 12.sp
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    val count = prefs.forceSyncAndRepairClipboard(context)
+                                    items = prefs.getClipboardItems(forceRefresh = true)
+                                    Toast.makeText(context, AppStrings.trfCode(context, appLanguageCode, "ui_keyboard_sub_views_021", count), Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(theme.accentColor)),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_022"), color = Color(theme.accentColor), fontSize = 11.sp)
+                            }
                         }
                     }
                 }
@@ -937,6 +1038,7 @@ fun ClipboardDrawer(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(if (isSingleColumnMode) 96.dp else 84.dp)
+                                .animateItem()
                                 .pointerInput(clip.id) {
                                     detectTapGestures(
                                         onLongPress = {
@@ -965,7 +1067,7 @@ fun ClipboardDrawer(
                                     )
                                 }
 
-                                // Icons bottom: Preview eye for large text, and Pin
+                                // Icons bottom: Preview eye for large text, and direct clickable Pin toggle
                                 Row(
                                     modifier = Modifier.align(Alignment.BottomEnd),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -989,11 +1091,29 @@ fun ClipboardDrawer(
                                         }
                                     }
 
-                                    if (clip.isPinned) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (clip.isPinned) Color(theme.accentColor).copy(alpha = 0.18f)
+                                                else Color(theme.keyPressedColor).copy(alpha = 0.45f)
+                                            )
+                                            .clickable {
+                                                val wasPinned = clip.isPinned
+                                                prefs.togglePinClipboard(clip.id)
+                                                items = prefs.getClipboardItems(forceRefresh = true)
+                                                if (!wasPinned) {
+                                                    coroutineScope.launch { gridState.animateScrollToItem(0) }
+                                                }
+                                            }
+                                            .testTag("clipboard_card_pin_${clip.id}"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Icon(
-                                            imageVector = Icons.Default.PushPin,
+                                            imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
                                             contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_024"),
-                                            tint = Color(theme.accentColor),
+                                            tint = if (clip.isPinned) Color(theme.accentColor) else Color(theme.subtextColor).copy(alpha = 0.8f),
                                             modifier = Modifier.size(12.dp)
                                         )
                                     }
@@ -1082,9 +1202,13 @@ fun ClipboardDrawer(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable {
+                                        val wasPinned = clip.isPinned
                                         prefs.togglePinClipboard(clip.id)
                                         items = prefs.getClipboardItems(forceRefresh = true)
                                         selectedClipForMenu = null
+                                        if (!wasPinned) {
+                                            coroutineScope.launch { gridState.animateScrollToItem(0) }
+                                        }
                                     }
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
@@ -1097,7 +1221,7 @@ fun ClipboardDrawer(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = if (clip.isPinned) {
-                                        if (isAr) "إلغاء التثبيت" else "Unpin"
+                                        AppStrings.trCode(context, appLanguageCode, "clipboard_opt_unpin")
                                     } else {
                                         AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_017")
                                     },

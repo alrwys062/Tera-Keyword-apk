@@ -98,6 +98,7 @@
     <string name="ui_clipboard_screen_017">تثبيت</string>
     <string name="ui_clipboard_screen_018">نسخ</string>
     <string name="ui_clipboard_screen_019">إغلاق</string>
+    <string name="clipboard_no_results">لا توجد نتائج</string>
     <string name="ui_custom_theme_builder_screen_001">ثيم مخصص</string>
     <string name="ui_custom_theme_builder_screen_002">صانع الثيمات بالصور والألوان</string>
     <string name="ui_custom_theme_builder_screen_003">حفظ وتطبيق</string>

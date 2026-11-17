@@ -10,6 +10,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,12 +26,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.PreferencesManager
+import kotlinx.coroutines.launch
 
 @Composable
 fun ClipboardScreen(
@@ -40,20 +43,29 @@ fun ClipboardScreen(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     val prefsVersion by PreferencesManager.prefsVersionFlow.collectAsState()
     var items by remember { mutableStateOf(prefs.getClipboardItems(forceRefresh = true)) }
     var searchQuery by remember { mutableStateOf("") }
     var newClipText by remember { mutableStateOf("") }
     var selectedClipForFloatingMenu by remember { mutableStateOf<com.example.model.ClipboardItem?>(null) }
 
-    LaunchedEffect(Unit, prefsVersion) {
+    LaunchedEffect(Unit) {
         prefs.syncWithSystemClipboard(context)
         items = prefs.getClipboardItems(forceRefresh = true)
     }
 
-    val filteredItems = remember(items, searchQuery) {
-        if (searchQuery.isBlank()) items
-        else items.filter { it.text.contains(searchQuery.trim(), ignoreCase = true) }
+    LaunchedEffect(prefsVersion) {
+        items = prefs.getClipboardItems(forceRefresh = true)
+    }
+
+    val filteredItems by remember(items, searchQuery) {
+        derivedStateOf {
+            val q = searchQuery.trim()
+            if (q.isEmpty()) items
+            else items.filter { it.text.contains(q, ignoreCase = true) }
+        }
     }
 
     Column(
@@ -152,7 +164,8 @@ fun ClipboardScreen(
             placeholder = { Text(AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_007"), color = Color(0xFF8E9BAE), fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .heightIn(min = 52.dp)
+                .testTag("clipboard_search_input"),
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color(0xFF00E5FF),
@@ -163,103 +176,169 @@ fun ClipboardScreen(
             singleLine = true,
             leadingIcon = {
                 Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = Color(0xFF8E9BAE))
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(
+                        onClick = { searchQuery = "" },
+                        modifier = Modifier.testTag("clipboard_search_clear")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = AppStrings.trCode(context, appLanguageCode, "clear_filter"),
+                            tint = Color(0xFF8E9BAE)
+                        )
+                    }
+                }
             }
         )
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Clips list
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredItems, key = { it.id }) { clip ->
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF141926),
-                    border = BorderStroke(
-                        1.dp,
-                        if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF26334A)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pointerInput(clip.id) {
-                            detectTapGestures(
-                                onLongPress = {
-                                    selectedClipForFloatingMenu = clip
-                                },
-                                onTap = {
-                                    clipboardManager.setText(AnnotatedString(clip.text))
-                                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
-                                }
+        if (filteredItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Icon(
+                        imageVector = if (searchQuery.isNotBlank()) Icons.Default.SearchOff else Icons.Outlined.ContentPaste,
+                        contentDescription = null,
+                        tint = Color(0xFF8E9BAE),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = if (searchQuery.isNotBlank()) {
+                            AppStrings.trCode(context, appLanguageCode, "clipboard_no_results")
+                        } else {
+                            AppStrings.trCode(context, appLanguageCode, "ui_keyboard_sub_views_020")
+                        },
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (searchQuery.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = { searchQuery = "" },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFF00E5FF))
+                        ) {
+                            Text(
+                                text = AppStrings.trCode(context, appLanguageCode, "clear_filter"),
+                                color = Color(0xFF00E5FF),
+                                fontSize = 13.sp
                             )
                         }
-                ) {
-                    Row(
+                    }
+                }
+            }
+        } else {
+            // Clips list
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredItems, key = { it.id }) { clip ->
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF141926),
+                        border = BorderStroke(
+                            1.dp,
+                            if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF26334A)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .animateItem()
+                            .pointerInput(clip.id) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        selectedClipForFloatingMenu = clip
+                                    },
+                                    onTap = {
+                                        clipboardManager.setText(AnnotatedString(clip.text))
+                                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_008"), Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = clip.text,
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = if (clip.isPinned) {
-                                    AppStrings.trCode(context, appLanguageCode, "clipboard_pinned_badge")
-                                } else {
-                                    AppStrings.trCode(context, appLanguageCode, "clipboard_recent_badge")
-                                },
-                                color = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE),
-                                fontSize = 10.sp
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = {
-                                    prefs.togglePinClipboard(clip.id)
-                                    items = prefs.getClipboardItems()
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Default.OutlinedFlag,
-                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_009"),
-                                    tint = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = clip.text,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = if (clip.isPinned) {
+                                        AppStrings.trCode(context, appLanguageCode, "clipboard_pinned_badge")
+                                    } else {
+                                        AppStrings.trCode(context, appLanguageCode, "clipboard_recent_badge")
+                                    },
+                                    color = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE),
+                                    fontSize = 10.sp
                                 )
                             }
 
-                            IconButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(clip.text))
-                                    Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = {
+                                        val wasPinned = clip.isPinned
+                                        prefs.togglePinClipboard(clip.id)
+                                        items = prefs.getClipboardItems(forceRefresh = true)
+                                        if (!wasPinned) {
+                                            coroutineScope.launch { listState.animateScrollToItem(0) }
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("clipboard_pin_button_${clip.id}")
+                                ) {
+                                    Icon(
+                                        imageVector = if (clip.isPinned) Icons.Default.PushPin else Icons.Default.OutlinedFlag,
+                                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_009"),
+                                        tint = if (clip.isPinned) Color(0xFF00E5FF) else Color(0xFF8E9BAE)
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.ContentPaste,
-                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_011"),
-                                    tint = Color(0xFF38BDF8)
-                                )
-                            }
 
-                            IconButton(
-                                onClick = {
-                                    prefs.deleteClipboardItem(clip.id, clip.text)
-                                    items = prefs.getClipboardItems(forceRefresh = true)
+                                IconButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(clip.text))
+                                        Toast.makeText(context, AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_010"), Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentPaste,
+                                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_011"),
+                                        tint = Color(0xFF38BDF8)
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.DeleteOutline,
-                                    contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_012"),
-                                    tint = Color(0xFFEF4444)
-                                )
+
+                                IconButton(
+                                    onClick = {
+                                        prefs.deleteClipboardItem(clip.id, clip.text)
+                                        items = prefs.getClipboardItems(forceRefresh = true)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.DeleteOutline,
+                                        contentDescription = AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_012"),
+                                        tint = Color(0xFFEF4444)
+                                    )
+                                }
                             }
                         }
                     }
@@ -317,9 +396,13 @@ fun ClipboardScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable {
+                                        val wasPinned = clip.isPinned
                                         prefs.togglePinClipboard(clip.id)
-                                        items = prefs.getClipboardItems()
+                                        items = prefs.getClipboardItems(forceRefresh = true)
                                         selectedClipForFloatingMenu = null
+                                        if (!wasPinned) {
+                                            coroutineScope.launch { listState.animateScrollToItem(0) }
+                                        }
                                         val pinMsg = if (!clip.isPinned) {
                                             AppStrings.trCode(context, appLanguageCode, "ui_clipboard_screen_016")
                                         } else {
